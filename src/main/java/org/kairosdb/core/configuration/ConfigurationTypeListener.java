@@ -78,7 +78,7 @@ public class ConfigurationTypeListener implements TypeListener
 	private <I> Optional<Object> getConfigurationValue(Parameter parameter,  String path, TypeEncounter<I> encounter)
 	{
 		Config config = m_config.getRawConfig();
-		Class paramClass = parameter.getType();
+		Class<?> paramClass = parameter.getType();
 		Optional<Object> extractedValue = ConfigExtractors.extractConfigValue(config,
 				paramClass, path);
 		if (extractedValue.isPresent()) {

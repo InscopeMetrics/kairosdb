@@ -23,5 +23,6 @@ package org.kairosdb.datastore.h2.orm;
 */
 public class MetricTag extends MetricTag_base
 	{
-	
+
+		private static final long serialVersionUID = -7619820379821335070L;
 	}

@@ -6,4 +6,5 @@ package org.kairosdb.datastore.h2.orm;
  */
 public class ServiceIndex extends ServiceIndex_base
 {
+    private static final long serialVersionUID = 3327790581928689613L;
 }

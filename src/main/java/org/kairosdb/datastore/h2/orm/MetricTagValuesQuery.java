@@ -384,7 +384,7 @@ public class MetricTagValuesQuery extends org.agileclick.genorm.runtime.SQLQuery
 		protected Record(java.sql.ResultSet rs)
 				throws java.sql.SQLException
 			{
-			m_tagValue = (String)rs.getString(1);
+			m_tagValue = rs.getString(1);
 
 			if (m_serializable)
 				{

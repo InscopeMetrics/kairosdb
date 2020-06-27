@@ -4,6 +4,8 @@ import java.util.HashMap;
 
 public class SummingMap extends HashMap<String, Long>
 {
+    private static final long serialVersionUID = -8116874754812985816L;
+
     @Override
     public Long put(String key, Long value)
     {

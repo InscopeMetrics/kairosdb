@@ -18,6 +18,8 @@ package org.kairosdb.core.http.rest;
 
 public class QueryException extends Exception
 {
+	private static final long serialVersionUID = -5120544355113691529L;
+
 	/**
 	 Constructs a new {@code QueryException} with {@code null} as its detail
 	 message.

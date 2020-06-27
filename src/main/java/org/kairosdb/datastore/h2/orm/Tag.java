@@ -22,6 +22,6 @@ package org.kairosdb.datastore.h2.orm;
 	
 */
 public class Tag extends Tag_base
-	{
-	
-	}
+{
+	private static final long serialVersionUID = -8970111271610499901L;
+}

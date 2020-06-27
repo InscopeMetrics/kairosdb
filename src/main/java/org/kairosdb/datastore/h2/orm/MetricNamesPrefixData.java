@@ -6,10 +6,10 @@ package org.kairosdb.datastore.h2.orm;
 	
 */
 public class MetricNamesPrefixData extends MetricNamesPrefixQuery.Record
-	{
+{
 	public MetricNamesPrefixData(MetricNamesPrefixQuery query, java.sql.ResultSet resultSet)
 			throws java.sql.SQLException
-		{
+	{
 		query.super(resultSet);
-		}
 	}
+}

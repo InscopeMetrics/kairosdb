@@ -4,7 +4,7 @@
 	<configuration>
 		<option name="genorm.package" value="org.kairosdb.datastore.h2.orm"/>
 		<option name="genorm.destination" value="src/main/java/org/kairosdb/datastore/h2/orm"/>
-		<option name="genorm.graphvizFile" value="build/tables.dot"/>
+		<option name="genorm.graphvizFile" value="target/tables.dot"/>
 
 		<type_map>
 			<type custom="integer" java="int" db="INT"/>

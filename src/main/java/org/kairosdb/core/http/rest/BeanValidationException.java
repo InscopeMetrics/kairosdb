@@ -29,6 +29,8 @@ import java.util.Set;
  */
 public class BeanValidationException extends IOException
 {
+	private static final long serialVersionUID = -7717479821963988279L;
+
 	private ImmutableSet<ConstraintViolation<Object>> violations;
 	private String context;
 

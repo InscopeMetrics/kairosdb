@@ -19,6 +19,7 @@ package org.kairosdb.core;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
+import org.h2.store.fs.FileUtils;
 import org.json.JSONException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -64,7 +65,7 @@ public class ExportTest
 	@BeforeClass
 	public static void setup()
 	{
-		new File("build").mkdir();
+		new File("target").mkdir();
 	}
 
 	private static void loadData(int port) throws IOException, InterruptedException
@@ -83,7 +84,7 @@ public class ExportTest
 
 		os.close();
 		sock.close();
-		Thread.sleep(2000);
+		Thread.sleep(4000);
 	}
 
 	@BeforeClass
@@ -131,7 +132,8 @@ public class ExportTest
 	{
 		verifyDataPoints();
 
-		Writer ps = new OutputStreamWriter(new FileOutputStream("build/export.json"), "UTF-8");
+		FileUtils.delete("target/export.json");
+		Writer ps = new OutputStreamWriter(new FileOutputStream("target/export.json"), "UTF-8");
 		s_main.runExport(ps, Collections.singletonList(METRIC_NAME));
 		ps.flush();
 		ps.close();
@@ -153,12 +155,12 @@ public class ExportTest
 
 		query.close();
 
-		InputStream export = new FileInputStream("build/export.json");
+		InputStream export = new FileInputStream("target/export.json");
 
 		s_main.runImport(export);
 
 		export.close();
-		Thread.sleep(2000);
+		Thread.sleep(4000);
 
 		verifyDataPoints();
 	}

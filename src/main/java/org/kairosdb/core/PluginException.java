@@ -5,6 +5,8 @@ package org.kairosdb.core;
  */
 public class PluginException extends Exception
 {
+	private static final long serialVersionUID = 5159086578496853083L;
+
 	public PluginException()
 	{
 	}

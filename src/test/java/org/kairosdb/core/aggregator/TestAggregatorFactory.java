@@ -75,9 +75,9 @@ public class TestAggregatorFactory implements FeatureProcessingFactory<Aggregato
 	}
 
 	@SuppressWarnings("unchecked")
-	private void addAggregator(Class agg)
+	private void addAggregator(Class<?> agg)
 	{
-		String name = ((FeatureComponent)(agg.getAnnotation(FeatureComponent.class))).name();
+		String name = agg.getAnnotation(FeatureComponent.class).name();
 		aggregators.put(name, agg);
 	}
 

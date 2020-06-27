@@ -342,6 +342,8 @@ public class CachedSearchResult implements SearchResult
 	//===========================================================================
 	private class FilePositionMarker implements Iterable<DataPoint>, Externalizable
 	{
+		private static final long serialVersionUID = 6689886756826118923L;
+
 		private long m_startPosition;
 		private long m_endPosition;
 		private Map<String, String> m_tags;

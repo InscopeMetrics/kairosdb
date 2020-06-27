@@ -15,6 +15,7 @@ import org.kairosdb.plugin.GroupBy;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.kairosdb.core.processingstage.GenericFeatureProcessorFactoryTest.assertQueryProcessors;
@@ -30,10 +31,9 @@ public class GenericProcessingChainTest
     {
         Injector injector = Guice.createInjector((Module) binder -> binder.bind(AAggregator.class));
 
-        GenericProcessingChainTest.processingChain = new TestKairosDBProcessor(new ArrayList<FeatureProcessingFactory<?>>()
-        {{
-            add(new AggregatorFactory(injector));
-        }});
+        final List<FeatureProcessingFactory<?>> list = new ArrayList<FeatureProcessingFactory<?>>();
+        list.add(new AggregatorFactory(injector));
+        GenericProcessingChainTest.processingChain = new TestKairosDBProcessor(list);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -83,7 +83,7 @@ public class GenericProcessingChainTest
     {
         assertQueryProcessorFactories(
                 ImmutableList.copyOf(chain_valid_metadata_generator()),
-                this.processingChain.getFeatureProcessingMetadata()
+                GenericProcessingChainTest.processingChain.getFeatureProcessingMetadata()
         );
     }
 

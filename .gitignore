@@ -1,19 +1,30 @@
-*.ipr
-*.iws
-*.iml
-var/*
-target/*
-build/*
-*/target/*
-.gradle/*
-out/*
-dependency.txt
-.tablesawcache
+# Output
+target/
+logs/
+pom.xml.versionsBackup
+dependency-reduced-pom.xml
+
+# Eclipse
+.metadata/
+.externalToolBuilders/
+maven-eclipse.xml
+bin/
+eclipse-bin/
+**/.classpath
+**/RemoteSystemsTempFiles/
+
+# IntelliJ
 .idea
-log/*
-kairosdb.properties
-lib/ivy/default/*
-lib/ivy/test/*
+.settings/
+*.iml
+
+# Mac
 .DS_Store
-myivysettings.xml
-tablesaw.properties
+
+# VSCode
+.vscode
+.project
+
+# KDB Specific
+# TODO(ville): Move under target
+big_array/

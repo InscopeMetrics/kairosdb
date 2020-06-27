@@ -17,6 +17,8 @@ package org.kairosdb.core.exception;
 
 public class KairosDBException extends Exception
 {
+	private static final long serialVersionUID = -7898332703863893417L;
+
 	public KairosDBException(String message)
 	{
 		super(message);

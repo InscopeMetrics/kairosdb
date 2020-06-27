@@ -22,6 +22,6 @@ package org.kairosdb.datastore.h2.orm;
 	
 */
 public class DataPoint extends DataPoint_base
-	{
-	
-	}
+{
+	private static final long serialVersionUID = 4656162855854832980L;
+}

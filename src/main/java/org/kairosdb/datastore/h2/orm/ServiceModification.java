@@ -6,6 +6,6 @@ package org.kairosdb.datastore.h2.orm;
 	
 */
 public class ServiceModification extends ServiceModification_base
-	{
-
-	}
+{
+	private static final long serialVersionUID = 3473308625054565239L;
+}

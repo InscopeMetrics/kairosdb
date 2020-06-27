@@ -1,36 +1,124 @@
-![KairosDB](webroot/img/logoSmall.png)
-[![Build Status](https://travis-ci.org/kairosdb/kairosdb.svg?branch=develop)](https://travis-ci.org/kairosdb/kairosdb)
+KairosDb
+========
 
-KairosDB is a fast distributed scalable time series database written on top of Cassandra.
+<a href="https://raw.githubusercontent.com/InscopeMetrics/kairosdb/master/LICENSE">
+    <img src="https://img.shields.io/hexpm/l/plug.svg"
+         alt="License: Apache 2">
+</a>
+<a href="https://travis-ci.com/InscopeMetrics/kairodb">
+    <img src="https://travis-ci.com/InscopeMetrics/kairosdb.svg?branch=master"
+         alt="Travis Build">
+</a>
+<a href="http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.inscopemetrics.kairosdb%22%20a%3A%22kairosdb%22">
+    <img src="https://img.shields.io/maven-central/v/io.inscopemetrics.kairosdb/kairosdb.svg"
+         alt="Maven Artifact">
+</a>
+<a href="https://hub.docker.com/r/inscopemetrics/kairosdb">
+    <img src="https://img.shields.io/docker/pulls/inscopemetrics/kairosdb.svg" alt="Docker">
+</a>
 
-## Documentation
+KairosDB is a fast distributed scalable time series abstraction on top of [Cassandra](https://cassandra.apache.org/).
 
-Documentation is found [here](http://kairosdb.github.io/website/).
-Chinese Documentation is found [here](http://www.kairosdb.com/).中文文档在这里
+Usage
+-----
 
-[Frequently Asked Questions](https://github.com/kairosdb/kairosdb/wiki/Frequently-Asked-Questions)
+### Installation
 
-## Installing
+#### Manual
+The artifacts from the build are in *kairosdb/target/appassembler* and should be copied to an
+appropriate directory on your application host(s).
 
-Download the latest [KairosDB release](https://github.com/kairosdb/kairosdb/releases).
+#### Docker
+If you use Docker, we publish a base docker image that makes it easy for you to layer configuration on top of.  Create
+a Docker image based on the image inscopmetrics/kairosdb.  Configuration files are typically located at /opt/kairosdb/config/.
+In addition, you can specify CONFIG_FILE (defaults to /opt/kairosdb/config/kairosdb.properties), LOGBACK_CONFIG (defaults to
+"-Dlogback.configurationFile=/opt/kairosdb/config/logback.xml"), and JAVA_OPTS (defaults to "") environment variables to
+control startup.
 
-Installation instructions are found [here](http://kairosdb.github.io/docs/build/html/GettingStarted.html)
+### Execution
 
-## Getting Involved
+In the installation's *bin* directory there are scripts to start Kairosdb: *kairosdb* (Linux) and
+*kairosdb.bat* (Windows).  One of these should be executed on system start with appropriate parameters; for example:
 
-Join the [KairosDB discussion group](https://groups.google.com/forum/#!forum/kairosdb-group).
+    /usr/local/lib/kairosdb/bin/kairosdb -c run -p /usr/local/lib/kairosdb/config/kairosdb.properties
 
-## Contributing to KairosDB
+### Configuration
 
-Contributions to KairosDB are **very welcome**. KairosDB is mainly developed in Java, but there's a lot of tasks for non-Java programmers too, so don't feel shy and join us!
+#### Logging
 
-What you can do for KairosDB:
+To customize logging you may provide a [LogBack](http://logback.qos.ch/) configuration file. The project ships with
+`logback.xml` which writes logs to rotated files and with `logback-console.xml` which writes logs to STDOUT.
 
-- [KairosDB Core](https://github.com/kairosdb/kairosdb): join the development of core features of KairosDB.
-- [Website](https://github.com/kairosdb/kairosdb.github.io): improve the KairosDB website.
-- [Documentation](https://github.com/kairosdb/kairosdb/wiki/Contribute:-Documentation): improve our documentation, it's a very important task.
+Outside of Docker, set the `JAVA_OPTS` environment variable to configure logging:
 
-If you have any questions about how to contribute to KairosDB, [join our discussion group](https://groups.google.com/forum/#!forum/kairosdb-group) and tell us your issue.
+    export JAVA_OPTS="-Dlogback.configurationFile=/usr/local/lib/kairosdb/config/logback-console.xml"
 
-## License
-The license is the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+Where */usr/local/lib/kairosdb/config/logger-console.xml* is the path to your logging configuration file.
+
+Under Docker, set the `LOGBACK_CONFIG` environment variable to configure logging:
+
+    docker run -e LOGBACK_CONFIG=/opt/kairosdb/config/logack-console.xml inscopemetrics/kairosdb:latest
+
+#### Service
+
+Please refer to the original KairosDb documentation linked below for information on how to configure KairosDb.
+
+Origin
+-----
+
+## Reference Material
+
+* [Documentation](http://kairosdb.github.io/website/)
+* [Frequently Asked Questions](https://github.com/kairosdb/kairosdb/wiki/Frequently-Asked-Questions)
+* [KairosDB Releases](https://github.com/kairosdb/kairosdb/releases)
+* [Installation Instructions](http://kairosdb.github.io/docs/build/html/GettingStarted.html)
+* [KairosDB Discussion Group](https://groups.google.com/forum/#!forum/kairosdb-group)
+
+Development
+-----------
+
+To build the service locally you must satisfy these prerequisites:
+* [Docker](http://www.docker.com/) (for [Mac](https://docs.docker.com/docker-for-mac/))
+
+__Note:__ Requires at least Docker for Mac Beta version _Version 1.12.0-rc4-beta19 (build: 10258)_
+
+Next, fork the repository, clone and build.
+
+Unit tests and integration tests can be run from IntelliJ. Integration tests
+require that the service and its dependencies be running (see below).
+
+Building:
+
+    kairosdb> ./jdk-wrapper.sh ./mvnw verify
+
+To launch the service and its dependencies in Docker:
+
+    kairosdb> ./jdk-wrapper.sh ./mvnw docker:start
+
+To launch the service with remote debugging on port 9005 and its dependencies in Docker:
+
+    kairosdb> ./jdk-wrapper.sh ./mvnw -Ddebug=true docker:start
+
+To execute performance tests:
+
+    kairosdb> ./jdk-wrapper.sh ./mvnw -PperformanceTest test
+
+To use the local version in your project you must first install it locally:
+
+    kairosdb> ./jdk-wrapper.sh ./mvnw install
+
+You can determine the version of the local build from the pom.xml file.  Using the local version is intended only for
+testing or development.
+
+You may also need to add the local repository to your build in order to pick-up the local version:
+
+* Maven - Included by default.
+* Gradle - Add *mavenLocal()* to *build.gradle* in the *repositories* block.
+* SBT - Add *resolvers += Resolver.mavenLocal* into *project/plugins.sbt*.
+
+License
+-------
+
+Published under Apache Software License 2.0, see LICENSE
+
+&copy; Inscope Metrics, 2020

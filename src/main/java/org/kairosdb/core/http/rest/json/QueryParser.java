@@ -54,6 +54,7 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -68,7 +69,7 @@ public class QueryParser
 	private QueryPluginFactory m_pluginFactory;
 
 	private Gson m_gson;
-	private Map<Class, Map<String, PropertyDescriptor>> m_descriptorMap;
+	private Map<Class<?>, Map<String, PropertyDescriptor>> m_descriptorMap;
 	private final Object m_descriptorMapLock = new Object();
 
 	@Inject
@@ -114,7 +115,7 @@ public class QueryParser
 		return (sb.toString());
 	}
 
-	private PropertyDescriptor getPropertyDescriptor(Class objClass, String property) throws IntrospectionException
+	private PropertyDescriptor getPropertyDescriptor(Class<?> objClass, String property) throws IntrospectionException
 	{
 		synchronized (m_descriptorMapLock)
 		{
@@ -839,7 +840,9 @@ public class QueryParser
 	//===========================================================================
 	private static class ContextualJsonSyntaxException extends RuntimeException
 	{
-		private String context;
+		private static final long serialVersionUID = 6261897737657599591L;
+
+        private String context;
 
 		private ContextualJsonSyntaxException(String context, String msg)
 		{
@@ -854,8 +857,10 @@ public class QueryParser
 	}
 
 	//===========================================================================
-	public static class SimpleConstraintViolation implements ConstraintViolation<Object>
-	{
+	public static class SimpleConstraintViolation implements ConstraintViolation<Object>, Serializable
+    {
+        private static final long serialVersionUID = -6024258074325439556L;
+
 		private String message;
 		private String context;
 
