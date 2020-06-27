@@ -20,6 +20,8 @@ package org.kairosdb.core.exception;
  */
 public class DatastoreException extends KairosDBException
 {
+	private static final long serialVersionUID = 6507025891306414920L;
+
 	public DatastoreException(String message)
 	{
 		super(message);

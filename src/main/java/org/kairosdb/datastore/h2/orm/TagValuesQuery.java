@@ -329,7 +329,7 @@ public class TagValuesQuery extends org.agileclick.genorm.runtime.SQLQuery
 		protected Record(java.sql.ResultSet rs)
 				throws java.sql.SQLException
 			{
-			m_value = (String)rs.getString(1);
+			m_value = rs.getString(1);
 
 			if (m_serializable)
 				{

@@ -390,7 +390,7 @@ public class CountDataPointsForMetricQuery extends org.agileclick.genorm.runtime
 		protected Record(java.sql.ResultSet rs)
 				throws java.sql.SQLException
 			{
-			m_dpCount = (int)rs.getInt(1);
+			m_dpCount = rs.getInt(1);
 
 			if (m_serializable)
 				{

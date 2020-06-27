@@ -82,7 +82,7 @@ public class GenericFeatureProcessorFactoryTest
 
 
 
-    static String getEnumAsString(Class type)
+    static String getEnumAsString(Class<?> type)
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException
     {
         StringBuilder builder = new StringBuilder();
@@ -119,7 +119,7 @@ public class GenericFeatureProcessorFactoryTest
     }
 
     @SuppressWarnings("ConstantConditions")
-    static List<FeaturePropertyMetadata> getPropertyMetadata(Class clazz)
+    static List<FeaturePropertyMetadata> getPropertyMetadata(Class<?> clazz)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException
     {
         checkNotNull(clazz, "class cannot be null");

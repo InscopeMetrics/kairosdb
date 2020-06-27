@@ -16,6 +16,7 @@
 package org.kairosdb.datastore.h2;
 
 
+import org.apache.commons.io.FileUtils;
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -27,6 +28,7 @@ import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.datastore.DatastoreTestHelper;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -42,7 +44,7 @@ import static org.junit.Assert.assertFalse;
 
 public class H2DatastoreTest extends DatastoreTestHelper
 {
-	private static final String DB_PATH = "build/h2db_test";
+	private static final String DB_PATH = "target/h2db_test";
 
 	private static H2Datastore h2Datastore;
 
@@ -68,9 +70,11 @@ public class H2DatastoreTest extends DatastoreTestHelper
 
 
 	@BeforeClass
-	public static void setupDatabase() throws DatastoreException
+	public static void setupDatabase() throws DatastoreException, IOException
 	{
+		FileUtils.deleteDirectory(new File(DB_PATH));
 		KairosDataPointFactory dataPointFactory = new TestDataPointFactory();
+		FileUtils.deleteDirectory(new File(DB_PATH));
 		h2Datastore = new H2Datastore(DB_PATH, dataPointFactory, s_eventBus, "regex:");
 
 		s_datastore = new KairosDatastore(h2Datastore,

@@ -171,6 +171,8 @@ public class IngestExecutorService implements KairosMetricReporter
 
 	private static class CongestionSemaphore extends Semaphore
 	{
+		private static final long serialVersionUID = 3505799624122644396L;
+
 		public CongestionSemaphore(int permits)
 		{
 			super(permits);

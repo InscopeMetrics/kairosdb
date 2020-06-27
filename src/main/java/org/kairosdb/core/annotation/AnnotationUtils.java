@@ -17,7 +17,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class AnnotationUtils
 {
     @SuppressWarnings("ConstantConditions")
-    public static List<FeaturePropertyMetadata> getPropertyMetadata(Class clazz)
+    public static List<FeaturePropertyMetadata> getPropertyMetadata(Class<?> clazz)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException
     {
         checkNotNull(clazz, "class cannot be null");
@@ -62,7 +62,7 @@ public class AnnotationUtils
         return properties;
     }
 
-    private static String getEnumAsString(Class type)
+    private static String getEnumAsString(Class<?> type)
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException
     {
         StringBuilder builder = new StringBuilder();

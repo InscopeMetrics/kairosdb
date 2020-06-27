@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 	should not be modified.
 	
 */
+@SuppressWarnings("serial")
 public class ServiceIndex_base extends GenOrmRecord
 	{
 	protected static final Logger s_logger = LoggerFactory.getLogger(ServiceIndex.class.getName());

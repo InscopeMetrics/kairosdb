@@ -4,6 +4,8 @@ import org.kairosdb.core.exception.KairosDBException;
 
 public class RollUpException extends KairosDBException
 {
+	private static final long serialVersionUID = 6722888025886152791L;
+
 	public RollUpException(String message)
 	{
 		super(message);

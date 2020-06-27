@@ -379,7 +379,7 @@ public class MetricNamesPrefixQuery extends org.agileclick.genorm.runtime.SQLQue
 		protected Record(java.sql.ResultSet rs)
 				throws java.sql.SQLException
 			{
-			m_name = (String)rs.getString(1);
+			m_name = rs.getString(1);
 
 			if (m_serializable)
 				{

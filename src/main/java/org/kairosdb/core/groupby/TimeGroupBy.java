@@ -101,7 +101,7 @@ public class TimeGroupBy implements GroupBy
 	 	    return (int) (((dataPoint.getTimestamp() - startDate) / convertGroupSizeToMillis() ) % groupCount);
 	}
 
-	@SuppressWarnings("NumericOverflow")
+	@SuppressWarnings({"NumericOverflow", "fallthrough"})
 	private long convertGroupSizeToMillis()
 	{
 		long milliseconds = rangeSize.getValue();

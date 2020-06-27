@@ -382,8 +382,8 @@ public class MetricIdsQuery extends org.agileclick.genorm.runtime.SQLQuery
 		protected Record(java.sql.ResultSet rs)
 				throws java.sql.SQLException
 			{
-			m_metricId = (String)rs.getString(1);
-			m_metricType = (String)rs.getString(2);
+			m_metricId = rs.getString(1);
+			m_metricType = rs.getString(2);
 
 			if (m_serializable)
 				{

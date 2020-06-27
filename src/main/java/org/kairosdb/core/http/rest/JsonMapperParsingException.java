@@ -22,6 +22,8 @@ import java.io.IOException;
  */
 public class JsonMapperParsingException extends IOException
 {
+	private static final long serialVersionUID = -451714144157806559L;
+
 	private Class<?> type;
 
 	public JsonMapperParsingException(Class<?> type, Throwable cause)

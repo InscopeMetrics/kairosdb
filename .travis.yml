@@ -1,19 +1,35 @@
----
-
-language: java
-
-jdk:
-  - oraclejdk8
-
-#services:
-#  - cassandra
-
+cache:
+  directories:
+  - "$HOME/.m2"
+  - "$HOME/.jdk"
+sudo: false
+services:
+- docker
+addons:
+  apt:
+    packages:
+    - rpm
+env:
+  global:
+  - TARGET=install
+  - secure: OyEH7UohEBenL1R1CyPOw2GYGb8S1pFRzFeqB5loWVqrZHFv46vP8rScCKLmjOryVuJHPPBoHMtSrY5c+5BSKIB27mLzCas5A4EnNNJDGqIuTpSoQN3WuHhSYLQfPPb8jXA1DKIids6MccU156zTcFDRz54N03UT+1Lk5FFV0Ab8XOY5agyJNkm2U5+XDDsXF1Vf9Qu/iNL26l88RHYSVdoqPBSZ5M3d1Q8HlXYAVCX0kb50H60e+N0rBPYb6gX2wFmctC3qO8wnMKJAPE6axtVzYm8GRgUJSOKvqmWFOpsMjGvGc96+tyVSHx2HrqXrEmrrA8RV2QUTEBxYiZyJulhuMb1E8Rkzkd7y8RgJAsbTzrMH9ZHST/vKdZ3vc8EQypcNim26Z8i5pYGP6vKjm6g6LDXCr4sYZI4DBH0NQX9gWbaj6R53gkeUVe9s9F3ugavpPTyLY49XuV1C4cj7xsY4jJYtEaBmsHeROb5SSBTaLFUbTP1cJEs4+RjLaYnycEmnYcg/xedAk0Uxpfz9rJ6PUgXp8hq+AK0uyOXlmp2MTj3f9Xn+oMSad8f9XIjDgpvclzBhRmTMaqO24EnSRUw2QWGggEVFnhO2MdIcs10RRLy5CJSzbJAtNqxHjs+xo/ABIcLt/SIfGVdGlKG0NUiPMZn8qu4pDtxlSLXZYUA=
+  - secure: refQHfoqp4F2s+Npov5Ytgt1xl4528AgoKg28RH3gSKukJXXrHkEubZ6+Snx2eutdLTDFk30zgJFB4bOUmVVartwWfDKQdxeri0a3HTAxLfRYUUZqf/Qng045ucxI+eBsOTPcYpYaeAIFkXHh+skX3SDsm9hdm3tgIvn/LLEw8W61qSeDLEMgcBuzMzCXDMwbKRUn8/w3D2WDE868rh6V7DnETlxrffBfa1RVpvx1u5Y+1BoWh5qXciT7HK9n9fV+ig/9Xto3bDJR1P0D//9Y68B2HDoiiRIm62vqAZ5ua0Jqi6GGCuCcmVqPs4OypMMsJ1FeyJ5OItCtGu11WdvPxyojMxcUYqPCoKV2TjHvSKtzucWKVIBtl7RY1pV4IaRUXNYM+zob2YJ4UTzvprL8vqkjUtac9EsL3bj9sJdMhIuXB4D8ZDaYe6agKX/50mlBFhdaUAEuVZWPidGLYlSvY0iqilIqjzSWoxOeCPhzcpLyM1J6jLKAzSIJxSudwhVnUBHBBya1WH4R5A71/YGSaO9VboXdZjjFB/KIq2Ue3cWwBZ7TnInz9+VUbt8o5iI7qgZh3qotkIPwD1M1td00hgVpA1QKk896qB3YLxwCg1SNBgjfmIzSGye8FYhI6dmF58N1NaW77dz8wbdwhoNJaWRC8XGK31G9AIQ/JJYzmU=
+  - secure: bMUFEri0CrUEsgUOwSfAvmwDiWc858VGLwciyTPreYvcwIhYrWDsNWjwqbpKixE94u0Mp3qldIAplMyqAjHkHe0eT+h01TG7c875OhaQK5uMe4yFi/8jtzbq7UdjTc9OuOlrYkCktzrnwFQFcuqQPMUQL38KpyrP9pRNLEPOhqBL7mkGqTZSj416EMECpu0y/hcG2Gj2kY45rQCt/dhJrRFIkZrg6SgrODyA9g6iG0nwqdN0lINeJI1vN2TF7SADiRpOX2pGxNPzAjdfA+8V9/8VdnI64kUksQbXGAdOLlEJJsQ1bfof2v5wLPncQZcfvS6xy9sDz12pTdp67CnRcvLXJaf5btqdOW0znQ4IQWAJQbTOiu8DpX+h/WaXkak8a+5aWw9FYK7JJvb3dBfJWcMYCpV+kfYBQLG3Vj/p0JrlCIANdFEMDTYOrKTjXjmbBXPgv6TmmLr9G8bgmKZZp3sYzwNfX/DiLwF4Z9kGIX4w7HBGQKFpGW/DhU/uD4ZfHJL0Q/mnhe+24p9Vg5DRGlGKMBOCnfocHhXZdSysRjtGtPtT8Wv1eQIqcdUDY5iO83ciAnpRkZKEIpAx/KCV+LqiWJQWhwTNW0+VSAY42VQfkaOcBbXIBjsPK2VF8BjTW0CWIHseuoORvAB16aifc1I/g3AuI87gyur0y5nV7BY=
+  - secure: HKHy6CcHhR84kzAvokiZxce+yzGG88xoJAyw1h0hJHFCxGB4qDLz9eJFqlSWaVwlw44iejKruSf0KNYYggmH8nEnrrljcvSIpUreRf7pRd8B4QbItwC3j4na7TRGgyF/U/oszta+TDWQ32dbljFX4OUhv7rtY1bTCe0slfZ9bTmAFW0+I95Hnd913/j9rDCp5+ykh6nDy5WPXU6YlgLY5k2dCToqKKkzavDzmixs0hkhIGkmZHMbFKqz4h6wG0sx7WDTeDPAnvYBqDd4tq+llOssM6vM9RWr1muNHRxPuYlocvDX9KYkDlh9gcxHUOBPw/5T8fcDoEISK2pLQWQHQFf3e7vqgvXZEHxy17RVuBJja37i490Ky7hUvwXYV7iCg+6vpAfEnoCxBG96r6UUdtkOFfLD8RroWlWCoPKzQ5XkEHqgSEkw55n/iVFrRfaySHZcnzndi/lSDOnWzzRVsgk34MLJX3EbJm/gqFeMzgCFAQhARBg9B+VTiNynQwnW/TAgyNDB9hQyMDKB8WrC/hAXBvO5eLAyuTCnWoj4yrf3S2iImRv7k2TAPRBpGZzWLkrI43nIF5NWyFgfVtQC0Z3FD5jIMWrs+ces0f/kLOtEj/2YGNJ9mnbFDrgKm991nZcxE6Hcyj23U0xGtZA7lcHPkEjrTnreV8y7u55TXP0=
+  - secure: uSyJxO0DQvrhI9nm9s4vf0VCqHRgtjM9A0Q4cF2X8Cl04psdyMtEXt3ervRCf8KVY3DwipUKo1ODb4SpoXAEoAtKyQLAIOUI/MlwbuxtwX5QjQemePmVXBEsZiw+1UNVskdssgecuyBxSBbJm1l9KI/rk4sQzZv5llXne12eZZttKzm54E1+y6TC2zpIiF1Ln/k7GYwKEIk7MkX5h83ju/+cKlSTJalmRyi6lUT/lykt8ZtUcFPYxToOzGmcZNeCfgP7P//SUDi57/6hnH9s8WFRHPZO9zmb+6jNbUlQ557J5I/GCB6sCEdb2H2wfsbJySRC+d7bZEPWNtoCHZRBclQrfvQahQxgi2w/a4qVUxXXoeVsxSWejh9DX/B6Lnu5/C9e8y341wYdBzpIsVY7DbTTIB7eMFJV+vVWhnw9Av+wnNW8PfPkfv6VQBp0jvsCcwUBx4mqGqpk7girOsfKCSz6kYi8OnsieI0I48B3JWCrfjh8FD+A1wlV/DI8wiM6XSOIYVY7jZRl5TWrwTFUhlviSCwmC/q33UYwRzdZd1sX54HTlC3VilUGE1GfcLABzWCB1FCkHLAe3jOUSDxeBnZcy69rxfiVr9QnNBsqxp28XtZ0XFim6RQI2MLpVTT5hyzKR6qNtnILCX9TaFVOf7NrCw0MQYG3rSeELNYMpHc=
+install: true
 before_script:
-  - export CLASSPATH=tools/tablesaw-1.2.6.jar
-
+- gpg --import ism.key
+- if [ \( -n "${TRAVIS_TAG}" \) -a  "${TRAVIS_PULL_REQUEST}" = "false" ]; then export TARGET="deploy -P release --settings settings.xml"; fi;
 script:
-  - java make ivy-retrieve;java make clean test-all
-
-before_install:
-  - sudo rm -rf /var/lib/cassandra/*
-  - wget http://www.us.apache.org/dist/cassandra/3.11.3/apache-cassandra-3.11.3-bin.tar.gz && tar -xvzf apache-cassandra-3.11.3-bin.tar.gz && sudo sh apache-cassandra-3.11.3/bin/cassandra -R
+- "./jdk-wrapper.sh ./mvnw clean ${TARGET} -P rpm -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+deploy:
+  provider: releases
+  api_key:
+    secure: nVIQYvCITxtJWnKjC1ymyKZUqp8BQcgQXlH/MAd0Ft8iZDf4aHSSvKUEW8D3g/k5Joak88ggpLzuOWCXZssyxoz/nS/qDiwbv4zO5O/nXGdFb4liEqvVBZt4eI4qeowVMxieBTHWxdFiFgGDzKrJaGyFXkcM1lSVjsATqNm5oAIYg6pZdky3O7QnCK90d/VfD+ywzqaFIYZNjRSekuIomiyJOuDC06yNa7m/ghLKoJYMdg7gLU8D50Tx0HpkEpJffuB+8V4xLMRHdQymMdBcIWZAasFTtBua12+pO7c6YjCwOPNUl3VpiN198SMASbuA2jAMQzVG9uEyCi9bkF6SpgPlHoOwv03Gs6KGLVC1k1iLnAdH/AktCCmi1zG8rOHPbqTl39Lom7PaFmDn54u25Z7EkiVOdPqUAN7dix/kKRaHbnh9xxpm2Q3xZVsK+NQUdCRLaozTj7cP3NDdQP76ZKK1pUGBeVQKr/Xrocd/hXsXJZ8u173ZBSSvKnlFr+nUgAFESxr2uFWJWQ8Gsibg8Ws7MQE0G6c7GbI75wTWs4Ulno7UE7ndV8sTvkZYz4EN7suFb+sSLxLJFpnUU3DsBs+gGkusfNgnO35LTUyKnEeT9qAKAY0P8dnAOme82MPo9BwWmJaRGLgjdQdJ18HKs78w74Ur3dpsAdewNRgBva4=
+  file:
+  - target/rpm/kairosdb/RPMS/noarch/kairosdb*.rpm
+  - target/kairosdb*-bin.tgz
+  on:
+    repo: InscopeMetrics/kairosdb
+    tags: true

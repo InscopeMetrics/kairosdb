@@ -22,6 +22,6 @@ package org.kairosdb.datastore.h2.orm;
 	
 */
 public class Metric extends Metric_base
-	{
-	
-	}
+{
+	private static final long serialVersionUID = -5210858208090301728L;
+}

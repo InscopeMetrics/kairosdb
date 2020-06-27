@@ -64,20 +64,6 @@ import java.util.zip.GZIPInputStream;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.ws.rs.core.Response.ResponseBuilder;
 
-enum NameType
-{
-	METRIC_NAMES,
-	TAG_KEYS,
-	TAG_VALUES
-}
-
-enum ServerType
-{
-	INGEST,
-	QUERY,
-	DELETE
-}
-
 @Path("/api/v1")
 public class MetricsResource implements KairosMetricReporter
 {
@@ -894,5 +880,19 @@ public class MetricsResource implements KairosMetricReporter
 				m_responseFile.delete();
 			}
 		}
+	}
+
+	enum ServerType
+	{
+		INGEST,
+		QUERY,
+		DELETE
+	}
+
+	enum NameType
+	{
+		METRIC_NAMES,
+		TAG_KEYS,
+		TAG_VALUES
 	}
 }

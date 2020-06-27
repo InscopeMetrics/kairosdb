@@ -181,6 +181,7 @@ public class MetadataResource
 
 	private class NotAuthorizedException extends Exception
 	{
+		private static final long serialVersionUID = -9178572502364424189L;
 
 		NotAuthorizedException(String message)
 		{
