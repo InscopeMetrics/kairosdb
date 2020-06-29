@@ -2,7 +2,6 @@ cache:
   directories:
   - "$HOME/.m2"
   - "$HOME/.jdk"
-sudo: false
 services:
 - docker
 addons:
@@ -22,7 +21,7 @@ before_script:
 - gpg --import ism.key
 - if [ \( -n "${TRAVIS_TAG}" \) -a  "${TRAVIS_PULL_REQUEST}" = "false" ]; then export TARGET="deploy -P release --settings settings.xml"; fi;
 script:
-- "./jdk-wrapper.sh ./mvnw clean ${TARGET} -P rpm -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+- ./jdk-wrapper.sh ./mvnw clean ${TARGET} -P rpm -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 deploy:
   provider: releases
   api_key:
@@ -30,6 +29,8 @@ deploy:
   file:
   - target/rpm/kairosdb/RPMS/noarch/kairosdb*.rpm
   - target/kairosdb*-bin.tgz
+  file_glob: true
+  skip_cleanup: true
   on:
     repo: InscopeMetrics/kairosdb
     tags: true
