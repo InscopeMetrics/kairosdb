@@ -40,6 +40,8 @@ public class MetricReportingModule extends ServletModule
 		KairosMetricReporterListProvider reporterProvider = new KairosMetricReporterListProvider();
 		bind(KairosMetricReporterListProvider.class).toInstance(reporterProvider);
 
+		requestStaticInjection(ThreadReporter.class);
+
 		bindListener(Matchers.any(), reporterProvider);
 	}
 }
