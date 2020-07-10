@@ -17,6 +17,8 @@
 package org.kairosdb.core.reporting;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.StringDataPointFactory;
 import org.kairosdb.core.exception.DatastoreException;
@@ -38,7 +40,13 @@ import java.util.TreeMap;
  */
 public class ThreadReporter
 {
-	private static class ReporterDataPoint
+	private static final String REPORTER_TTL_KEY = "kairosdb.reporter.ttl";
+
+	@Inject
+	@Named(REPORTER_TTL_KEY)
+	private static int DEFAULT_REPORTER_TTL = 0;
+
+	/* package */ static class ReporterDataPoint
 	{
 		private final String m_metricName;
 		private final long m_value;
@@ -159,7 +167,7 @@ public class ThreadReporter
 
 	public static ReporterDataPoint addDataPoint(String metric, long value)
 	{
-		return addDataPoint(metric, value, 0);
+		return addDataPoint(metric, value, DEFAULT_REPORTER_TTL);
 	}
 
 	public static ReporterDataPoint addDataPoint(String metric, long value, int ttl)
@@ -173,7 +181,7 @@ public class ThreadReporter
 
 	public static ReporterDataPoint addDataPoint(String metric, String value)
 	{
-		return addDataPoint(metric, value, 0);
+		return addDataPoint(metric, value, DEFAULT_REPORTER_TTL);
 	}
 
 	public static ReporterDataPoint addDataPoint(String metric, String value, int ttl)
