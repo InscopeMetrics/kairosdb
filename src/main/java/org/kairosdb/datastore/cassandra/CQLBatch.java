@@ -65,7 +65,6 @@ public class CQLBatch
 		Statement bs = m_clusterConnection.psRowKeyTimeInsert.bind()
 				.setString(0, metricName)
 				.setTimestamp(1, new Date(rowKey.getTimestamp()))
-				//.setBytesUnsafe(1, bb) //Setting timestamp in a more optimal way
 				.setInt(2, rowKeyTtl)
 				.setIdempotent(true);
 
@@ -76,7 +75,6 @@ public class CQLBatch
 		bs = m_clusterConnection.psRowKeyInsert.bind()
 				.setString(0, metricName)
 				.setTimestamp(1, new Date(rowKey.getTimestamp()))
-				//.setBytesUnsafe(1, bb)  //Setting timestamp in a more optimal way
 				.setString(2, rowKey.getDataType())
 				.setMap(3, rowKey.getTags())
 				.setInt(4, rowKeyTtl)
@@ -162,18 +160,15 @@ public class CQLBatch
 
 		if (rowKeyBatch.size() != 0)
 		{
-			//rowKeyBatch.enableTracing();
 			m_clusterConnection.execute(rowKeyBatch);
 			m_batchStats.addRowKeyBatch(rowKeyBatch.size());
 		}
 
 		for (BatchStatement batchStatement : m_batchMap.values())
 		{
-			//batchStatement.enableTracing();
 			if (batchStatement.size() != 0)
 			{
 				m_clusterConnection.execute(batchStatement);
-				//System.out.println(resultSet.getExecutionInfo().getQueryTrace().getTraceId());
 				m_batchStats.addDatapointsBatch(batchStatement.size());
 			}
 		}
