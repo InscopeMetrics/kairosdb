@@ -33,8 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DataCache<T>
 {
-	private final Object m_lock = new Object();
-
 	private final LinkItem<T> m_front = new LinkItem<T>(null);
 	private final LinkItem<T> m_back = new LinkItem<T>(null);
 
@@ -74,43 +72,39 @@ public class DataCache<T>
 	 @param cacheData
 	 @return
 	 */
-	public T cacheItem(T cacheData)
+	public synchronized T cacheItem(T cacheData)
 	{
 		LinkItem<T> mappedItem = null;
+        LinkItem<T> li = new LinkItem<T>(cacheData);
+        mappedItem = m_hashMap.putIfAbsent(cacheData, li);
 
-		synchronized (m_lock)
-		{
-			LinkItem<T> li = new LinkItem<T>(cacheData);
-			mappedItem = m_hashMap.putIfAbsent(cacheData, li);
+        if (mappedItem != null)
+        {
+            //moves item to top of list
+            remove(mappedItem);
+            addItem(mappedItem);
+        }
+        else
+            addItem(li);
 
-			if (mappedItem != null)
-			{
-				//moves item to top of list
-				remove(mappedItem);
-				addItem(mappedItem);
-			}
-			else
-				addItem(li);
+        if (m_hashMap.size() > m_maxSize)
+        {
+            LinkItem<T> last = m_back.m_prev;
+            remove(last);
 
-			if (m_hashMap.size() > m_maxSize)
-			{
-				LinkItem<T> last = m_back.m_prev;
-				remove(last);
-
-				m_hashMap.remove(last.m_data);
-			}
-		}
+            m_hashMap.remove(last.m_data);
+        }
 
 		return (mappedItem == null ? null : mappedItem.m_data);
 	}
 
-	private void remove(LinkItem<T> li)
+	private synchronized void remove(LinkItem<T> li)
 	{
 		li.m_prev.m_next = li.m_next;
 		li.m_next.m_prev = li.m_prev;
 	}
 
-	private void addItem(LinkItem<T> li)
+	private synchronized void addItem(LinkItem<T> li)
 	{
 		li.m_prev = m_front;
 		li.m_next = m_front.m_next;
@@ -119,29 +113,23 @@ public class DataCache<T>
 		li.m_next.m_prev = li;
 	}
 
-	public Set<T> getCachedKeys()
+	public synchronized Set<T> getCachedKeys()
 	{
 		return (m_hashMap.keySet());
 	}
 
-	public void removeKey(T key)
+	public synchronized void removeKey(T key)
 	{
-		synchronized (m_lock)
-		{
-			LinkItem<T> li = m_hashMap.remove(key);
-			if (li != null)
-				remove(li);
-		}
+        LinkItem<T> li = m_hashMap.remove(key);
+        if (li != null)
+            remove(li);
 	}
 
-	public void clear()
+	public synchronized void clear()
 	{
-		synchronized (m_lock)
-		{
-			m_front.m_next = m_back;
-			m_back.m_prev = m_front;
+        m_front.m_next = m_back;
+        m_back.m_prev = m_front;
 
-			m_hashMap.clear();
-		}
+        m_hashMap.clear();
 	}
 }
