@@ -57,16 +57,17 @@ public class DataCacheTest
 	{
 		DataCache<String> cache = new DataCache<String>(3);
 
-		assertNull(cache.cacheItem("one"));
-		assertNull(cache.cacheItem("two"));
-		assertNull(cache.cacheItem("three"));
+		cache.put("one");
+		cache.put("two");
+		cache.put("three");
 
-		assertNotNull(cache.cacheItem("one")); //This puts 'one' as the newest
-		assertNull(cache.cacheItem("four")); //This should boot out 'two'
-		assertNull(cache.cacheItem("two")); //Should have booted 'three'
-		assertNotNull(cache.cacheItem("one"));
-		assertNull(cache.cacheItem("three")); //Should have booted 'four'
-		assertNotNull(cache.cacheItem("one"));
+		cache.put("one");
+		assertNotNull(cache.get("one")); //This puts 'one' as the newest
+		cache.put("four"); //This should boot out 'two'
+		assertNull(cache.get("two")); //Should have booted 'three'
+		cache.put("one");
+		cache.put("three"); //Should have booted 'four'
+		assertNotNull(cache.get("one"));
 	}
 
 	@Test
@@ -78,17 +79,17 @@ public class DataCacheTest
 
 		DataCache<TestObject> cache = new DataCache<TestObject>(10);
 
-		cache.cacheItem(td1);
-		cache.cacheItem(td2);
-		cache.cacheItem(td3);
+		cache.put(td1);
+		cache.put(td2);
+		cache.put(td3);
 
-		TestObject ret = cache.cacheItem(new TestObject("td1"));
+		TestObject ret = cache.get(new TestObject("td1"));
 		assertTrue(td1 == ret);
 
-		ret = cache.cacheItem(new TestObject("td2"));
+		ret = cache.get(new TestObject("td2"));
 		assertTrue(td2 == ret);
 
-		ret = cache.cacheItem(new TestObject("td3"));
+		ret = cache.get(new TestObject("td3"));
 		assertTrue(td3 == ret);
 	}
 }
