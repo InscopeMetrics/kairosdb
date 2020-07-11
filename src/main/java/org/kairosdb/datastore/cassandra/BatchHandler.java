@@ -81,8 +81,6 @@ public class BatchHandler extends RetryCallable
 			count++;
 
 			String metricName = event.getMetricName();
-				/*if (metricName.startsWith("blast"))
-					continue;*/
 
 			ImmutableSortedMap<String, String> tags = event.getTags();
 			DataPoint dataPoint = event.getDataPoint();
@@ -176,9 +174,6 @@ public class BatchHandler extends RetryCallable
 				while (events.hasNext())
 				{
 					CQLBatch batch = m_cqlBatchFactory.create();
-
-					/*CQLBatch batch = new CQLBatch(m_consistencyLevel, m_session, m_schema,
-							m_batchStats, m_loadBalancingPolicy);*/
 
 					loadBatch(limit, batch, events);
 
