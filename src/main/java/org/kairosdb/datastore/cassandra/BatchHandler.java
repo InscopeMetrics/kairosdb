@@ -122,7 +122,7 @@ public class BatchHandler extends RetryCallable
 					tags);
 
 			//Write out the row key if it is not cached
-			DataPointsRowKey cachedKey = m_rowKeyCache.cacheItem(rowKey);
+			DataPointsRowKey cachedKey = m_rowKeyCache.get(rowKey);
 			if (cachedKey == null)
 			{
 				batch.addRowKey(metricName, rowKey, rowKeyTtl);
@@ -133,7 +133,7 @@ public class BatchHandler extends RetryCallable
 				rowKey = cachedKey;
 
 			//Write metric name if not in cache
-			String cachedName = m_metricNameCache.cacheItem(metricName);
+			String cachedName = m_metricNameCache.get(metricName);
 			if (cachedName == null)
 			{
 				if (metricName.length() == 0)

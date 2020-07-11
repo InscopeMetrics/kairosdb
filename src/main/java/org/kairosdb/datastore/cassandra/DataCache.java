@@ -66,45 +66,63 @@ public class DataCache<T>
 	}
 
 	/**
-	 returns null if item was not in cache.  If the return is not null the item
+	 returns null if item is not in cache.  If the return is not null the item
 	 from the cache is returned.
 
 	 @param cacheData
 	 @return
 	 */
-	public synchronized T cacheItem(T cacheData)
+	public synchronized T get(T cacheData)
 	{
-		LinkItem<T> mappedItem = null;
-        LinkItem<T> li = new LinkItem<T>(cacheData);
-        mappedItem = m_hashMap.putIfAbsent(cacheData, li);
+		final LinkItem<T> mappedItem = getMappedItem(cacheData);
 
-        if (mappedItem != null)
-        {
-            //moves item to top of list
-            remove(mappedItem);
-            addItem(mappedItem);
-        }
-        else
-            addItem(li);
-
-        if (m_hashMap.size() > m_maxSize)
-        {
-            LinkItem<T> last = m_back.m_prev;
-            remove(last);
-
-            m_hashMap.remove(last.m_data);
-        }
+		pruneCache();
 
 		return (mappedItem == null ? null : mappedItem.m_data);
 	}
 
-	private synchronized void remove(LinkItem<T> li)
+	private synchronized LinkItem<T> getMappedItem(T cacheData) {
+		final LinkItem<T> mappedItem = m_hashMap.get(cacheData);
+
+		if (mappedItem != null)
+		{
+			//moves item to top of list
+			removeLRUItem(mappedItem);
+			addLRUItem(mappedItem);
+		}
+
+		return mappedItem;
+	}
+
+
+	public synchronized void put(final T cacheData) {
+		final LinkItem<T> existing = getMappedItem(cacheData);
+		if (existing != null) {
+			return;
+		}
+
+		final LinkItem<T> li = new LinkItem<>(cacheData);
+		addLRUItem(li);
+		m_hashMap.put(cacheData, li);
+		pruneCache();
+	}
+
+	private synchronized void pruneCache() {
+		while (m_hashMap.size() > m_maxSize) {
+			LinkItem<T> last = m_back.m_prev;
+			removeLRUItem(last);
+
+			m_hashMap.remove(last.m_data);
+		}
+	}
+
+	private synchronized void removeLRUItem(LinkItem<T> li)
 	{
 		li.m_prev.m_next = li.m_next;
 		li.m_next.m_prev = li.m_prev;
 	}
 
-	private synchronized void addItem(LinkItem<T> li)
+	private synchronized void addLRUItem(LinkItem<T> li)
 	{
 		li.m_prev = m_front;
 		li.m_next = m_front.m_next;
@@ -122,7 +140,7 @@ public class DataCache<T>
 	{
         LinkItem<T> li = m_hashMap.remove(key);
         if (li != null)
-            remove(li);
+            removeLRUItem(li);
 	}
 
 	public synchronized void clear()
