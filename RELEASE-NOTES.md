@@ -1,7 +1,13 @@
 KairosDb Release Notes
 ======================
 
-1.3.0 - June 27, 2020
+1.2.3 - TBD
+------------------------
+* Update data cache only after successful write to Cassandra
+* Use reporter ttl in MetricReporterService
+* Refuse to startup with reporter ttl set to 0 and align ttl
+
+1.2.2 - June 27, 2020
 ------------------------
 * Initial release as gruop:artifact `io.inscopemetrics.kairosdb:kairosdb`.
 * Forked from [ddimensia/kairosdb](https://github.com/ddimensia/kairosdb).
