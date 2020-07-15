@@ -41,6 +41,7 @@ import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.core.exception.KairosDBException;
 import org.kairosdb.core.http.rest.json.DataPointsParser;
 import org.kairosdb.core.http.rest.json.ValidationErrors;
+import org.kairosdb.core.properties.PropertiesValidator;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Publisher;
 import org.kairosdb.events.DataPointEvent;
@@ -411,6 +412,7 @@ public class Main
 						}
 					}));
 
+					main.validateProperties();
 					main.startServices();
 
 					logger.info("------------------------------------------");
@@ -552,6 +554,11 @@ public class Main
 		}
 	}
 
+	public void validateProperties() throws KairosDBException
+	{
+		final PropertiesValidator validator = m_injector.getInstance(PropertiesValidator.class);
+		validator.validate();
+	}
 
 	public void startServices() throws KairosDBException
 	{
