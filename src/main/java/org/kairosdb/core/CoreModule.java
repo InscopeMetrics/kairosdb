@@ -44,6 +44,7 @@ import org.kairosdb.core.http.rest.json.QueryParser;
 import org.kairosdb.core.jobs.CacheFileCleaner;
 import org.kairosdb.core.processingstage.FeatureProcessingFactory;
 import org.kairosdb.core.processingstage.FeatureProcessor;
+import org.kairosdb.core.properties.PropertiesValidator;
 import org.kairosdb.core.queue.DataPointEventSerializer;
 import org.kairosdb.core.queue.QueueProcessor;
 import org.kairosdb.core.scheduler.KairosDBScheduler;
@@ -183,6 +184,7 @@ public class CoreModule extends AbstractModule
 		bindConfiguration(binder());
 		bind(KairosRootConfig.class).toInstance(m_config);
 
+		bind(PropertiesValidator.class).in(Singleton.class);
 		bind(QueryQueuingManager.class).in(Singleton.class);
 		bind(KairosDatastore.class).in(Singleton.class);
 

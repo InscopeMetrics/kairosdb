@@ -1,5 +1,6 @@
 package org.kairosdb.datastore.cassandra;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -48,18 +49,29 @@ public class CassandraConfiguration
 	
 	public static final String LOCAL_DATACENTER = "kairosdb.datastore.cassandra.local_datacenter";
 
+	public static final boolean DEFAULT_ALIGN_DATAPOINT_TTL_WITH_TIMESTAMP = false;
+	public static final int DEFAULT_DATAPOINT_TTL = 0; //Zero ttl means data lives forever.
+	public static final boolean DEFAULT_FORCE_DEFAULT_DATAPOINT_TTL = false;
+
+	@Inject
+	@Named(WRITE_CONSISTENCY_LEVEL)
+	private ConsistencyLevel m_dataWriteLevel = ConsistencyLevel.QUORUM;
+
+	@Inject
+	@Named(READ_CONSISTENCY_LEVEL)
+	private ConsistencyLevel m_dataReadLevel = ConsistencyLevel.ONE;
 
 	@Inject(optional = true)
 	@Named(DATAPOINT_TTL)
-	private int m_datapointTtl = 0; //Zero ttl means data lives forever.
+	private int m_datapointTtl = DEFAULT_DATAPOINT_TTL;
 
 	@Inject(optional = true)
 	@Named(ALIGN_DATAPOINT_TTL_WITH_TIMESTAMP)
-	private boolean m_alignDatapointTtlWithTimestamp = false;
+	private boolean m_alignDatapointTtlWithTimestamp = DEFAULT_ALIGN_DATAPOINT_TTL_WITH_TIMESTAMP;
 	
 	@Inject(optional = true)
 	@Named(FORCE_DEFAULT_DATAPOINT_TTL)
-	private boolean m_forceDefaultDatapointTtl = false;
+	private boolean m_forceDefaultDatapointTtl = DEFAULT_FORCE_DEFAULT_DATAPOINT_TTL;
 
 	@Inject
 	@Named(ROW_KEY_CACHE_SIZE_PROPERTY)
@@ -170,7 +182,7 @@ public class CassandraConfiguration
 	{
 		return m_queryLimit;
 	}
-	
+
 	public String getLocalDatacenter()
 	{
 		return m_localDatacenter;
