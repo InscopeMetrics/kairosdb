@@ -74,14 +74,14 @@ public class DataCache<T>
 	 */
 	public synchronized T get(T cacheData)
 	{
-		final LinkItem<T> mappedItem = getMappedItem(cacheData);
+		final LinkItem<T> mappedItem = getMappedItemAndUpdateLRU(cacheData);
 
 		pruneCache();
 
 		return (mappedItem == null ? null : mappedItem.m_data);
 	}
 
-	private synchronized LinkItem<T> getMappedItem(T cacheData) {
+	private synchronized LinkItem<T> getMappedItemAndUpdateLRU(T cacheData) {
 		final LinkItem<T> mappedItem = m_hashMap.get(cacheData);
 
 		if (mappedItem != null)
@@ -96,7 +96,7 @@ public class DataCache<T>
 
 
 	public synchronized void put(final T cacheData) {
-		final LinkItem<T> existing = getMappedItem(cacheData);
+		final LinkItem<T> existing = m_hashMap.get(cacheData);
 		if (existing != null) {
 			return;
 		}

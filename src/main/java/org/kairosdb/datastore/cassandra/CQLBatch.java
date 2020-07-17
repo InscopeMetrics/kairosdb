@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -202,10 +203,10 @@ public class CQLBatch
 	}
 
 	public Collection<String> getMetricNames() {
-		return m_metricNames;
+		return Collections.unmodifiableCollection(m_metricNames);
 	}
 
 	public Collection<DataPointsRowKey> getRowKeys() {
-		return m_rowKeys;
+		return Collections.unmodifiableCollection(m_rowKeys);
 	}
 }
