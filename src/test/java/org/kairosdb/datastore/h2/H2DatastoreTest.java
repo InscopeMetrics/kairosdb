@@ -127,6 +127,8 @@ public class H2DatastoreTest extends DatastoreTestHelper
 	public void test_serviceKeyStore_singleService()
 			throws DatastoreException
 	{
+		// NOTE (wittekm, July 2020) - This test appears to be flaky; we should dependency-inject a Time Provider.
+		// I will do this ASAP in a separate diff
 		h2Datastore.setValue("Service", "ServiceKey", "key1", "value1");
 		h2Datastore.setValue("Service", "ServiceKey", "key2", "value2");
 		h2Datastore.setValue("Service", "ServiceKey", "foo", "value3");

@@ -51,6 +51,16 @@
       </roles>
     </developer>
     <developer>
+      <id>cbriones</id>
+      <name>Christian Briones</name>
+      <email>cwbriones@gmail.com</email>
+      <organization>Dropbox</organization>
+      <organizationUrl>http://www.dropbox.com</organizationUrl>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+    <developer>
       <id>gmarkham</id>
       <name>Gil Markham</name>
       <email>gmarkham@dropbox.com</email>
@@ -66,6 +76,16 @@
       <email>ville.koskela@inscopemetrics.io</email>
       <organization>Inscope Metrics</organization>
       <organizationUrl>http://www.inscopemetrics.io</organizationUrl>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>wehlhardt</id>
+      <name>William Ehlhardt</name>
+      <email>williamehlhardt@gmail.com</email>
+      <organization>Dropbox</organization>
+      <organizationUrl>http://www.dropbox.com</organizationUrl>
       <roles>
         <role>developer</role>
       </roles>
