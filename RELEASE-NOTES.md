@@ -1,11 +1,16 @@
 KairosDb Release Notes
 ======================
 
-1.2.3 - TBD
-------------------------
-* Update data cache only after successful write to Cassandra
-* Use reporter ttl in MetricReporterService
+1.2.4 - TBD
+---
 * Refuse to startup with reporter ttl set to 0 and align ttl
+
+1.2.3 - July 22, 2020
+------------------------
+* Fixed all compiler warnings. Converted TestNG to JUnit.
+* Configured GitHub releases.
+* Update data cache only after successful write to Cassandra.
+* Use reporter ttl in MetricReporterService.
 
 1.2.2 - June 27, 2020
 ------------------------
