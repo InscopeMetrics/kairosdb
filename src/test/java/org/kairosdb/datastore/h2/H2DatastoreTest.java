@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.kairosdb.core.KairosDataPointFactory;
 import org.kairosdb.core.TestDataPointFactory;
@@ -121,6 +122,7 @@ public class H2DatastoreTest extends DatastoreTestHelper
 	}
 
 	@Test
+        @Ignore
 	public void test_serviceKeyStore_singleService()
 			throws DatastoreException
 	{
