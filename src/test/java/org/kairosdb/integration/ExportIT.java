@@ -14,18 +14,18 @@
  *    limitations under the License.
  */
 
-package org.kairosdb.core;
+package org.kairosdb.integration;
 
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
-import org.h2.store.fs.FileUtils;
 import org.json.JSONException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.kairosdb.core.Main;
 import org.kairosdb.core.aggregator.Sampling;
 import org.kairosdb.core.aggregator.SumAggregator;
 import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
@@ -47,6 +47,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
@@ -54,7 +57,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ExportTest
+public class ExportIT
 {
 	public static final String METRIC_NAME = "kairos.import_export_unit_test";
 	private static Main s_main;
@@ -94,8 +97,12 @@ public class ExportTest
 		if (!props.exists())
 			props = null;
 
+		// TODO(ville): The integration tests should all talk to the same KDB.
+
 		//Ensure the memory queue processor is used
 		System.setProperty("kairosdb.queue_processor.class", "org.kairosdb.core.queue.MemoryQueueProcessor");
+		System.setProperty("kairosdb.jetty.port", "8181");
+		System.setProperty("kairosdb.datastore.cassandra.cql_host_list", System.getProperty("dockerHostAddress"));
 		System.setProperty("kairosdb.hostname", "ExportText");
 		s_main = new Main(props);
 		s_main.startServices();
@@ -132,7 +139,7 @@ public class ExportTest
 	{
 		verifyDataPoints();
 
-		FileUtils.delete("target/export.json");
+		Files.deleteIfExists(Paths.get("target/export.json"));
 		Writer ps = new OutputStreamWriter(new FileOutputStream("target/export.json"), "UTF-8");
 		s_main.runExport(ps, Collections.singletonList(METRIC_NAME));
 		ps.flush();

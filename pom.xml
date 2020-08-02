@@ -110,7 +110,6 @@
     <apache.httpcore.version>4.3.3</apache.httpcore.version>
     <bigqueue.version>1.6.0.0</bigqueue.version>
     <bval.jsr303.version>0.5</bval.jsr303.version>
-    <c3p0.version>0.9.1.2</c3p0.version>
     <cassandra.driver.core.version>3.3.2</cassandra.driver.core.version>
     <codahale.version>3.0.2</codahale.version>
     <dropwizard.metrics.version>3.2.2</dropwizard.metrics.version>
@@ -119,7 +118,6 @@
     <guava.version>19.0</guava.version>
     <guice.version>4.1.0</guice.version>
     <guava.retrying.version>2.0.0</guava.retrying.version>
-    <h2.version>1.3.170</h2.version>
     <jackson.version>2.2.3</jackson.version>
     <javax.inject.version>1</javax.inject.version>
     <javax.servlet.version>3.0.0.v201112011016</javax.servlet.version>
@@ -451,7 +449,7 @@
                   <port>+kairosdb.ip:8080:8080</port>
                 </ports>
                 <env>
-                  <JAVA_OPTS>${debugJavaOptions}</JAVA_OPTS>
+                  <JAVA_OPTS>-Dkairosdb.datastore.cassandra.cql_host_list=cassandra ${debugJavaOptions}</JAVA_OPTS>
                   <!-- TODO(ville): Obtain these from the current user! -->
                   <!-- Ref: https://github.com/rynr/user-id-maven-plugin -->
                   <KDB_UID>1000</KDB_UID>
@@ -608,35 +606,6 @@
     </dependency>
 
     <!-- Datastores -->
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>c3p0</groupId>
-      <artifactId>c3p0</artifactId>
-      <version>${c3p0.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.agileclick.genorm</groupId>
-      <artifactId>genormous</artifactId>
-      <version>${genormous.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>javax.servlet</groupId>
-          <artifactId>servlet-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.agileclick.slickxml</groupId>
-          <artifactId>slickxml</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.agileclick.ultramc</groupId>
-          <artifactId>ultramc</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
     <dependency>
       <groupId>jaxen</groupId>
       <artifactId>jaxen</artifactId>

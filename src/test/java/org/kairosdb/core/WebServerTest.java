@@ -3,14 +3,14 @@
 //
 // Copyright 2016, KairosDB Authors
 //
-package org.kairosdb.core.http;
+package org.kairosdb.core;
 
 import com.google.common.io.Resources;
 import org.apache.http.conn.HttpHostConnectException;
-import org.eclipse.jetty.util.thread.ExecutorThreadPool;
 import org.junit.After;
 import org.junit.Test;
 import org.kairosdb.core.exception.KairosDBException;
+import org.kairosdb.core.http.WebServer;
 import org.kairosdb.testing.Client;
 import org.kairosdb.testing.JsonResponse;
 
@@ -21,8 +21,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
