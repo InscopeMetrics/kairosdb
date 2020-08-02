@@ -22,6 +22,7 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.inject.Binding;
@@ -30,7 +31,6 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
-import org.h2.util.StringUtils;
 import org.json.JSONException;
 import org.json.JSONWriter;
 import org.kairosdb.core.datastore.DatastoreQuery;
@@ -344,7 +344,7 @@ public class Main
 		}
 
 		File propertiesFile = null;
-		if (!StringUtils.isNullOrEmpty(arguments.propertiesFile))
+		if (!Strings.isNullOrEmpty(arguments.propertiesFile))
 			propertiesFile = new File(arguments.propertiesFile);
 
 		try
@@ -353,7 +353,7 @@ public class Main
 
 			if (arguments.operationCommand.equals("export"))
 			{
-				if (!StringUtils.isNullOrEmpty(arguments.exportFile))
+				if (!Strings.isNullOrEmpty(arguments.exportFile))
 				{
 					Writer ps = new OutputStreamWriter(new FileOutputStream(arguments.exportFile,
 							arguments.appendToExportFile), "UTF-8");
@@ -374,7 +374,7 @@ public class Main
 			}
 			else if (arguments.operationCommand.equals("import"))
 			{
-				if (!StringUtils.isNullOrEmpty(arguments.exportFile))
+				if (!Strings.isNullOrEmpty(arguments.exportFile))
 				{
 					FileInputStream fin = new FileInputStream(arguments.exportFile);
 					main.runImport(fin);
@@ -608,7 +608,7 @@ public class Main
 
 		public RecoveryFile() throws IOException
 		{
-			if (!StringUtils.isNullOrEmpty(arguments.exportRecoveryFile))
+			if (!Strings.isNullOrEmpty(arguments.exportRecoveryFile))
 			{
 				recoveryFile = new File(arguments.exportRecoveryFile);
 				logger.info("Tracking exported metric names in " + recoveryFile.getAbsolutePath());

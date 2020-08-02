@@ -3,7 +3,8 @@ KairosDb Release Notes
 
 1.2.4 - TBD
 ---
-* Refuse to startup with reporter ttl set to 0 and align ttl
+* Refuse to startup with reporter ttl set to 0 and align ttl.
+* Remove support for H2 datastore.
 
 1.2.3 - July 22, 2020
 ------------------------

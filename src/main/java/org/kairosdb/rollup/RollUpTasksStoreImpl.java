@@ -1,8 +1,8 @@
 package org.kairosdb.rollup;
 
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import org.apache.commons.io.FileUtils;
-import org.h2.util.StringUtils;
 import org.kairosdb.core.datastore.ServiceKeyStore;
 import org.kairosdb.core.datastore.ServiceKeyValue;
 import org.kairosdb.core.exception.DatastoreException;
@@ -77,7 +77,7 @@ public class RollUpTasksStoreImpl implements RollUpTasksStore
             for (String key : keys) {
                 ServiceKeyValue serviceKeyValue = keyStore.getValue(SERVICE, SERVICE_KEY_CONFIG, key);
                 String value = serviceKeyValue.getValue();
-                if (!StringUtils.isNullOrEmpty(value)) {
+                if (!Strings.isNullOrEmpty(value)) {
 
                     RollupTask task = parser.parseRollupTask(value);
                     task.setLastModified(serviceKeyValue.getLastModified().getTime());

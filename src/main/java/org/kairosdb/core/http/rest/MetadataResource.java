@@ -1,7 +1,7 @@
 package org.kairosdb.core.http.rest;
 
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
-import org.h2.util.StringUtils;
 import org.kairosdb.core.datastore.ServiceKeyStore;
 import org.kairosdb.core.formatter.JsonFormatter;
 import org.kairosdb.core.http.rest.MetricsResource.ValuesStreamingOutput;
@@ -75,7 +75,7 @@ public class MetadataResource
 		{
 			checkLocalService(service);
 			Iterable<String> keys;
-			keys = StringUtils.isNullOrEmpty(startsWidth) ?
+			keys = Strings.isNullOrEmpty(startsWidth) ?
 					m_keyStore.listKeys(service, serviceKey) :
 					m_keyStore.listKeys(service, serviceKey, startsWidth);
 
