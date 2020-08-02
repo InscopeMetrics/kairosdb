@@ -52,6 +52,14 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>${buildDirectory}/build-resources</directory>
+      <outputDirectory>bin</outputDirectory>
+      <fileMode>0755</fileMode>
+      <includes>
+        <include>docker-entrypoint.sh</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>${buildDirectory}/appassembler/lib</directory>
       <outputDirectory>lib</outputDirectory>
       <fileMode>0644</fileMode>

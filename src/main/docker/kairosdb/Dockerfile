@@ -20,6 +20,9 @@ EXPOSE 8080 4242
 WORKDIR /opt/kairosdb
 
 # Configuration
+ENV KDB_USER="kairosdb"
+ENV KDB_UID=1000
+ENV KDB_GID=1000
 ENV JVM_XMS="64m"
 ENV JVM_XMX="1024m"
 ENV LOGBACK_CONFIG="-Dlogback.configurationFile=/opt/kairosdb/config/logback.xml"
@@ -27,7 +30,10 @@ ENV KAIROSDB_CONFIG="/opt/kairosdb/config/kairosdb.properties"
 ENV JAVA_OPTS=""
 
 # Build
-RUN mkdir -p /opt/kairosdb/lib/ext && \
+RUN apt-get update && \
+    apt-get install -y gosu && \
+    apt-get clean && \
+    mkdir -p /opt/kairosdb/lib/ext && \
     mkdir -p /opt/kairosdb/logs && \
     mkdir -p /opt/kairosdb/config
 ADD deps /opt/kairosdb/lib/
@@ -37,7 +43,19 @@ ADD config /opt/kairosdb/config/
 ADD lib /opt/kairosdb/lib/
 
 # Entry point
-ENTRYPOINT [ \
+ENTRYPOINT [ "/opt/kairosdb/bin/docker-entrypoint.sh" ]
+
+# Default arguments
+CMD [ \
+    "-n", \
+    "${KDB_USER}", \
+    "-u", \
+    "${KDB_UID}", \
+    "-g", \
+    "${KDB_GID}", \
+    "-d", \
+    "/opt/kairosdb", \
+    "--", \
     "/opt/kairosdb/bin/kairosdb", \
     "${LOGBACK_CONFIG}", \
     "-XX:+HeapDumpOnOutOfMemoryError", \
