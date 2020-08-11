@@ -40,10 +40,8 @@ import java.util.TreeMap;
  */
 public class ThreadReporter
 {
-	private static final String REPORTER_TTL_KEY = "kairosdb.reporter.ttl";
-
 	@Inject(optional = true)
-	@Named(REPORTER_TTL_KEY)
+	@Named(MetricReporterService.REPORTER_TTL)
 	private static int DEFAULT_REPORTER_TTL = 0;
 
 	/* package */ static class ReporterDataPoint
