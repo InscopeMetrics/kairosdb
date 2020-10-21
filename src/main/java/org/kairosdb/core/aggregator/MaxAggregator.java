@@ -28,48 +28,39 @@ import java.util.Iterator;
  */
 @FeatureComponent(
         name = "max",
-		description = "Returns the maximum value data point for the time range."
-)
-public class MaxAggregator extends RangeAggregator
-{
-	private DoubleDataPointFactory m_dataPointFactory;
+        description = "Returns the maximum value data point for the time range.")
+public class MaxAggregator extends RangeAggregator {
+    private final DoubleDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public MaxAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public MaxAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new MaxDataPointAggregator());
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new MaxDataPointAggregator());
+    }
 
-	private class MaxDataPointAggregator implements RangeSubAggregator
-	{
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			double max = -Double.MAX_VALUE;
-			while (dataPointRange.hasNext())
-			{
-				max = Math.max(max, dataPointRange.next().getDoubleValue());
-			}
+    private class MaxDataPointAggregator implements RangeSubAggregator {
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            double max = -Double.MAX_VALUE;
+            while (dataPointRange.hasNext()) {
+                max = Math.max(max, dataPointRange.next().getDoubleValue());
+            }
 
-			return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, max));
-		}
-	}
+            return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, max));
+        }
+    }
 }

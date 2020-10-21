@@ -9,5 +9,5 @@ import org.joda.time.DateTimeZone;
  */
 public interface TimezoneAware
 {
-	void setTimeZone(DateTimeZone timeZone);
+    void setTimeZone(DateTimeZone timeZone);
 }

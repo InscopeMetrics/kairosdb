@@ -22,76 +22,63 @@ import org.kairosdb.core.groupby.GroupByResult;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AggregatedDataPointGroupWrapper implements DataPointGroup
-{
-	protected DataPoint currentDataPoint = null;
-	private DataPointGroup innerDataPointGroup;
+public abstract class AggregatedDataPointGroupWrapper implements DataPointGroup {
+    protected DataPoint currentDataPoint = null;
+    private final DataPointGroup innerDataPointGroup;
 
+    public AggregatedDataPointGroupWrapper(final DataPointGroup innerDataPointGroup) {
+        this.innerDataPointGroup = innerDataPointGroup;
 
-	public AggregatedDataPointGroupWrapper(DataPointGroup innerDataPointGroup)
-	{
-		this.innerDataPointGroup = innerDataPointGroup;
+        if (innerDataPointGroup.hasNext())
+            currentDataPoint = innerDataPointGroup.next();
+    }
 
-		if (innerDataPointGroup.hasNext())
-			currentDataPoint = innerDataPointGroup.next();
-	}
+    @Override
+    public String getName() {
+        return (innerDataPointGroup.getName());
+    }
 
-	@Override
-	public String getName()
-	{
-		return (innerDataPointGroup.getName());
-	}
+    @Override
+    public Set<String> getTagNames() {
+        return (innerDataPointGroup.getTagNames());
+    }
 
-	@Override
-	public Set<String> getTagNames()
-	{
-		return (innerDataPointGroup.getTagNames());
-	}
+    @Override
+    public Set<String> getTagValues(String tag) {
+        return (innerDataPointGroup.getTagValues(tag));
+    }
 
-	@Override
-	public Set<String> getTagValues(String tag)
-	{
-		return (innerDataPointGroup.getTagValues(tag));
-	}
+    @Override
+    public boolean hasNext() {
+        return currentDataPoint != null;
+    }
 
-	@Override
-	public boolean hasNext()
-	{
-		return currentDataPoint != null;
-	}
+    @Override
+    public abstract DataPoint next();
 
-	@Override
-	public abstract DataPoint next();
+    protected boolean hasNextInternal() {
+        boolean hasNext = innerDataPointGroup.hasNext();
+        if (!hasNext)
+            currentDataPoint = null;
+        return hasNext;
+    }
 
-	protected boolean hasNextInternal()
-	{
-		boolean hasNext = innerDataPointGroup.hasNext();
-		if (!hasNext)
-			currentDataPoint = null;
-		return hasNext;
-	}
+    protected DataPoint nextInternal() {
+        return innerDataPointGroup.next();
+    }
 
-	protected DataPoint nextInternal()
-	{
-		return innerDataPointGroup.next();
-	}
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public void remove()
-	{
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public void close() {
+        innerDataPointGroup.close();
+    }
 
-	@Override
-	public void close()
-	{
-		innerDataPointGroup.close();
-	}
-
-	@Override
-	public List<GroupByResult> getGroupByResult()
-	{
-		return innerDataPointGroup.getGroupByResult();
-	}
-
+    @Override
+    public List<GroupByResult> getGroupByResult() {
+        return innerDataPointGroup.getGroupByResult();
+    }
 }

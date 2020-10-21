@@ -18,12 +18,6 @@ package org.kairosdb.core.aggregator;
 
 
 import com.google.inject.Inject;
-import static com.google.common.base.Preconditions.checkState;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.annotation.FeatureComponent;
 import org.kairosdb.core.annotation.FeatureProperty;
@@ -31,141 +25,127 @@ import org.kairosdb.core.annotation.ValidationProperty;
 import org.kairosdb.core.datapoints.DoubleDataPointFactory;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.core.groupby.GroupByResult;
-
 import org.kairosdb.plugin.Aggregator;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkState;
 
 @FeatureComponent(
         name = "sma",
-		label = "SMA",
-		description = "Simple moving average."
-)
-public class SmaAggregator implements Aggregator
-{
-	private DoubleDataPointFactory m_dataPointFactory;
+        label = "SMA",
+        description = "Simple moving average.")
+public class SmaAggregator implements Aggregator {
+    private final DoubleDataPointFactory m_dataPointFactory;
 
-	//@NonZero
-	@FeatureProperty(
-			label = "Size",
-			description = "The period of the moving average. This is the number of data point to use each time the average is calculated.",
-			default_value = "10",
+    //@NonZero
+    @FeatureProperty(
+            label = "Size",
+            description = "The period of the moving average. This is the number of data point to use each time the average is calculated.",
+            default_value = "10",
             validations = {
-					@ValidationProperty(
-							expression = "value > 0",
-							message = "Size must be greater than 0."
-					)
-			}
-	)
-	private int m_size;
+                    @ValidationProperty(
+                            expression = "value > 0",
+                            message = "Size must be greater than 0."
+                    )
+            }
+    )
+    private int m_size;
 
-	@Inject
-	public SmaAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public SmaAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@Override
-	public DataPointGroup aggregate(DataPointGroup dataPointGroup)
-	{
-		checkState(m_size != 0);
-		return new SmaDataPointGroup(dataPointGroup);
-	}
+    @Override
+    public DataPointGroup aggregate(final DataPointGroup dataPointGroup) {
+        checkState(m_size != 0);
+        return new SmaDataPointGroup(dataPointGroup);
+    }
 
-	public void setSize(int size)
-	{
-		m_size = size;
-	}
+    public void setSize(final int size) {
+        m_size = size;
+    }
 
-	private class SmaDataPointGroup implements DataPointGroup
-	{
-		private DataPointGroup m_innerDataPointGroup;
-		ArrayList<DataPoint> subSet = new ArrayList<DataPoint>();
+    private class SmaDataPointGroup implements DataPointGroup {
+        ArrayList<DataPoint> subSet = new ArrayList<>();
+        private final DataPointGroup m_innerDataPointGroup;
 
-		public SmaDataPointGroup(DataPointGroup innerDataPointGroup)
-		{
-			m_innerDataPointGroup = innerDataPointGroup;
+        public SmaDataPointGroup(final DataPointGroup innerDataPointGroup) {
+            m_innerDataPointGroup = innerDataPointGroup;
 
-			for(int i=0;i<m_size-1;i++){
-				if (innerDataPointGroup.hasNext()){
-					subSet.add(innerDataPointGroup.next());
-				}
-			}
-		}
+            for (int i = 0; i < m_size - 1; i++) {
+                if (innerDataPointGroup.hasNext()) {
+                    subSet.add(innerDataPointGroup.next());
+                }
+            }
+        }
 
-		@Override
-		public boolean hasNext()
-		{
-			return (m_innerDataPointGroup.hasNext());
-		}
+        @Override
+        public boolean hasNext() {
+            return (m_innerDataPointGroup.hasNext());
+        }
 
-		@Override
-		public DataPoint next()
-		{
-			DataPoint dp = m_innerDataPointGroup.next();
+        @Override
+        public DataPoint next() {
+            DataPoint dp = m_innerDataPointGroup.next();
 
-			subSet.add(dp);
-			if(subSet.size()>m_size){
-				subSet.remove(0);
-			}
-			
-			double sum = 0;
-			for(int i=0;i<subSet.size();i++){
-				DataPoint dpt = subSet.get(i);
-				sum += dpt.getDoubleValue();
-			}
-			
-			dp = m_dataPointFactory.createDataPoint(dp.getTimestamp(), sum / subSet.size());
+            subSet.add(dp);
+            if (subSet.size() > m_size) {
+                subSet.remove(0);
+            }
 
-			//System.out.println(new SimpleDateFormat("MM/dd/yyyy HH:mm").format(dp.getTimestamp())+" "+sum+" "+subSet.size());
-			return (dp);
-		}
+            double sum = 0;
+            for (final DataPoint dpt : subSet) {
+                sum += dpt.getDoubleValue();
+            }
 
-		@Override
-		public void remove()
-		{
-			m_innerDataPointGroup.remove();
-		}
+            dp = m_dataPointFactory.createDataPoint(dp.getTimestamp(), sum / subSet.size());
 
-		@Override
-		public String getName()
-		{
-			return (m_innerDataPointGroup.getName());
-		}
+            return (dp);
+        }
 
-		@Override
-		public List<GroupByResult> getGroupByResult()
-		{
-			return (m_innerDataPointGroup.getGroupByResult());
-		}
+        @Override
+        public void remove() {
+            m_innerDataPointGroup.remove();
+        }
+
+        @Override
+        public String getName() {
+            return (m_innerDataPointGroup.getName());
+        }
+
+        @Override
+        public List<GroupByResult> getGroupByResult() {
+            return (m_innerDataPointGroup.getGroupByResult());
+        }
 
 
-		@Override
-		public void close()
-		{
-			m_innerDataPointGroup.close();
-		}
+        @Override
+        public void close() {
+            m_innerDataPointGroup.close();
+        }
 
-		@Override
-		public Set<String> getTagNames()
-		{
-			return (m_innerDataPointGroup.getTagNames());
-		}
+        @Override
+        public Set<String> getTagNames() {
+            return (m_innerDataPointGroup.getTagNames());
+        }
 
-		@Override
-		public Set<String> getTagValues(String tag)
-		{
-			return (m_innerDataPointGroup.getTagValues(tag));
-		}
-	}
+        @Override
+        public Set<String> getTagValues(final String tag) {
+            return (m_innerDataPointGroup.getTagValues(tag));
+        }
+    }
 }

@@ -7,8 +7,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-public @interface FeatureComponent
-{
+public @interface FeatureComponent {
     String name();
 
     String label() default "";

@@ -7,8 +7,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface FeatureProperty
-{
+public @interface FeatureProperty {
     String name() default "";
 
     String label() default "";
@@ -27,5 +26,5 @@ public @interface FeatureProperty
 
     boolean multiline() default false;
 
-    ValidationProperty[] validations() default { };
+    ValidationProperty[] validations() default {};
 }
