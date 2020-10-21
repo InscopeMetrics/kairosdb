@@ -1,9 +1,8 @@
 package org.kairosdb.core.queue;
 
-import org.kairosdb.core.DataPointSet;
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.kairosdb.events.DataPointEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  Created by bhawkins on 12/15/16.
  */
-public class MemoryQueueProcessor extends QueueProcessor implements KairosMetricReporter
+public class MemoryQueueProcessor extends QueueProcessor
 {
 	public static final Logger logger = LoggerFactory.getLogger(MemoryQueueProcessor.class);
 	private static final EventCompletionCallBack CALL_BACK = new VoidCompletionCallBack();
@@ -37,34 +36,23 @@ public class MemoryQueueProcessor extends QueueProcessor implements KairosMetric
 	@Inject
 	public MemoryQueueProcessor(
 			@Named(QUEUE_PROCESSOR) ExecutorService executor,
+			PeriodicMetrics periodicMetrics,
 			@Named(BATCH_SIZE) int batchSize,
 			@Named(MEMORY_QUEUE_SIZE) int memoryQueueSize,
 			@Named(MINIMUM_BATCH_SIZE) int minimumBatchSize,
 			@Named(MINIMUM_BATCH_WAIT) int minBatchWait)
 
 	{
-		super(executor, batchSize, minimumBatchSize, minBatchWait);
+		super(executor, periodicMetrics, batchSize, minimumBatchSize, minBatchWait);
 
 		m_queue = new ArrayBlockingQueue<>(memoryQueueSize, true);
 	}
 
 	@Override
-	public void addReportedMetrics(ArrayList<DataPointSet> metrics, long now)
+	public void addReportedMetrics(final PeriodicMetrics periodicMetrics)
 	{
-		long readFromQueue = m_readFromQueueCount.getAndSet(0);
-		long arraySize = m_queue.size();
-
-		DataPointSet dps = new DataPointSet("kairosdb.queue.process_count");
-		dps.addTag("host", m_hostName);
-		dps.addDataPoint(m_dataPointFactory.createDataPoint(now, readFromQueue));
-
-		metrics.add(dps);
-
-		dps = new DataPointSet("kairosdb.queue.memory_queue.size");
-		dps.addTag("host", m_hostName);
-		dps.addDataPoint(m_dataPointFactory.createDataPoint(now, arraySize));
-
-		metrics.add(dps);
+		periodicMetrics.recordGauge("queue/process_count", m_readFromQueueCount.getAndSet(0));
+		periodicMetrics.recordGauge("queue/memory_queue.size", m_queue.size());
 	}
 
 	@Override

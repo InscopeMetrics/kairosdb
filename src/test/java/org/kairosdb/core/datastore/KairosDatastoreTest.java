@@ -15,6 +15,7 @@
  */
 package org.kairosdb.core.datastore;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import org.junit.Test;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.KairosDataPointFactory;
@@ -30,6 +31,7 @@ import org.kairosdb.core.groupby.TagGroupBy;
 import org.kairosdb.core.groupby.TagGroupByResult;
 import org.kairosdb.core.processingstage.FeatureProcessingFactory;
 import org.kairosdb.plugin.Aggregator;
+import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,13 +43,18 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.junit.Assert.assertThat;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class KairosDatastoreTest
 {
 	private FeatureProcessingFactory<Aggregator> aggFactory;
 
+	@Mock
+    private PeriodicMetrics periodicMetrics;
+
 	public KairosDatastoreTest() throws KairosDBException
 	{
+		initMocks(this);
 		aggFactory = new TestAggregatorFactory();
 	}
 
@@ -55,7 +62,7 @@ public class KairosDatastoreTest
 	public void test_query_nullMetricInvalid() throws KairosDBException
 	{
 		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(1, "hostname"),
+		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory(), false);
 
 		datastore.createQuery(null);
@@ -65,7 +72,7 @@ public class KairosDatastoreTest
 	public void test_query_sumAggregator() throws KairosDBException
 	{
 		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(1, "hostname"),
+		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory(), false);
 		datastore.init();
 
@@ -96,7 +103,7 @@ public class KairosDatastoreTest
 	public void test_query_noAggregator() throws KairosDBException
 	{
 		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(1, "hostname"),
+		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory(), false);
 		datastore.init();
 		QueryMetric metric = new QueryMetric(1L, 1, "metric1");
@@ -171,7 +178,7 @@ public class KairosDatastoreTest
 	public void test_cleanCacheDir() throws IOException, DatastoreException
 	{
 		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(1, "hostname"),
+		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics,1),
 				new TestDataPointFactory(), false);
 		datastore.init();
 
@@ -194,7 +201,7 @@ public class KairosDatastoreTest
 	@Test
 	public void test_groupByTypeAndTag_SameTagValue() throws DatastoreException
 	{
-		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(1, "hostname"),
+		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory());
 
 		TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
@@ -225,7 +232,7 @@ public class KairosDatastoreTest
 	@Test
 	public void test_groupByTypeAndTag_DifferentTagValues() throws DatastoreException
 	{
-		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(1, "hostname"),
+		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory());
 
 		TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
@@ -256,7 +263,7 @@ public class KairosDatastoreTest
 	@Test
 	public void test_groupByTypeAndTag_MultipleTags() throws DatastoreException
 	{
-		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(1, "hostname"),
+		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory());
 
 		/*

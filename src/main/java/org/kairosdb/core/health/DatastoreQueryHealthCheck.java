@@ -32,9 +32,10 @@ public class DatastoreQueryHealthCheck extends HealthCheck implements HealthStat
 	@Override
 	protected Result check() throws Exception
 	{
+		// TODO(ville): Make the query configurable
 		try (DatastoreQuery query = datastore.createQuery(
 				new QueryMetric(System.currentTimeMillis() - (10 * 60 * 1000),
-						0, "kairosdb.jvm.thread_count")))
+						0, "jvm/threads/thread_count")))
 		{
 			List<DataPointGroup> results = query.execute();
 			return Result.healthy();
