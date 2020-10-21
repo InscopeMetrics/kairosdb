@@ -56,6 +56,9 @@ public class CassandraConfiguration
 	public static final String CONNECTION_TIMEOUT_PROPERTY = "kairosdb.datastore.cassandra.connection_timeout";
 	public static final String READ_TIMEOUT_PROPERTY = "kairosdb.datastore.cassandra.read_timeout";
 
+	public static final boolean DEFAULT_ALIGN_DATAPOINT_TTL_WITH_TIMESTAMP = false;
+	public static final int DEFAULT_DATAPOINT_TTL = 0; //Zero ttl means data lives forever.
+	public static final boolean DEFAULT_FORCE_DEFAULT_DATAPOINT_TTL = false;
 
 	@Inject
 	@Named(WRITE_CONSISTENCY_LEVEL)
@@ -67,15 +70,15 @@ public class CassandraConfiguration
 
 	@Inject(optional = true)
 	@Named(DATAPOINT_TTL)
-	private int m_datapointTtl = 0; //Zero ttl means data lives forever.
+	private int m_datapointTtl = DEFAULT_DATAPOINT_TTL;
 
 	@Inject(optional = true)
 	@Named(ALIGN_DATAPOINT_TTL_WITH_TIMESTAMP)
-	private boolean m_alignDatapointTtlWithTimestamp = false;
+	private boolean m_alignDatapointTtlWithTimestamp = DEFAULT_ALIGN_DATAPOINT_TTL_WITH_TIMESTAMP;
 	
 	@Inject(optional = true)
 	@Named(FORCE_DEFAULT_DATAPOINT_TTL)
-	private boolean m_forceDefaultDatapointTtl = false;
+	private boolean m_forceDefaultDatapointTtl = DEFAULT_FORCE_DEFAULT_DATAPOINT_TTL;
 
 	@Inject
 	@Named(ROW_KEY_CACHE_SIZE_PROPERTY)
