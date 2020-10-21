@@ -39,8 +39,17 @@ public final class PropertiesValidatorTest {
     public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test
-    public void testWhenNothingSpecifiedValidatorPasses() throws KairosDBException {
+    public void testWhenNothingSpecifiedValidatorSucceeds() throws KairosDBException {
         ValidatorArgs args = new ValidatorArgs();
+
+        validatorWithInjection(args).validate();
+    }
+
+    @Test
+    public void testWhenForceAndTtlValidatorSucceeds() throws KairosDBException {
+        ValidatorArgs args = new ValidatorArgs();
+        args.forceDefaultDatapointTtl = Optional.of(true);
+        args.cassandraDatapointTtl = Optional.of(100);
 
         validatorWithInjection(args).validate();
     }
