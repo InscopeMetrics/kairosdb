@@ -11,11 +11,12 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface FeatureCompoundProperty
-{
+public @interface FeatureCompoundProperty {
     String name() default "";
-	String label();
 
-	FeatureProperty[] properties() default {};
-	String[] order() default {};
+    String label();
+
+    FeatureProperty[] properties() default {};
+
+    String[] order() default {};
 }

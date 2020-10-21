@@ -16,7 +16,6 @@
 package org.kairosdb.core.groupby;
 
 import org.junit.Test;
-import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.datapoints.DoubleDataPoint;
 import org.kairosdb.core.datapoints.LongDataPoint;
 import org.kairosdb.core.formatter.FormatterException;
@@ -27,58 +26,52 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class ValueGroupByTest
-{
+public class ValueGroupByTest {
 
-	@Test(expected = IllegalArgumentException.class)
-	public void test_groupSizeZero_invalid()
-	{
-		new ValueGroupBy(0);
-	}
+    @Test(expected = IllegalArgumentException.class)
+    public void test_groupSizeZero_invalid() {
+        new ValueGroupBy(0);
+    }
 
-	@Test(expected = IllegalArgumentException.class)
-	public void test_groupSizeNegative_invalid()
-	{
-		new ValueGroupBy(-1);
-	}
+    @Test(expected = IllegalArgumentException.class)
+    public void test_groupSizeNegative_invalid() {
+        new ValueGroupBy(-1);
+    }
 
-	@Test
-	public void test_GroupByResultJson() throws FormatterException
-	{
-		ValueGroupBy groupBy = new ValueGroupBy(3);
+    @Test
+    public void test_GroupByResultJson() throws FormatterException {
+        final ValueGroupBy groupBy = new ValueGroupBy(3);
 
-		GroupByResult groupByResult = groupBy.getGroupByResult(2);
+        final GroupByResult groupByResult = groupBy.getGroupByResult(2);
 
-		assertThat(groupByResult.toJson(), equalTo("{\"name\":\"value\",\"range_size\":3,\"group\":{\"group_number\":2}}"));
-	}
+        assertThat(groupByResult.toJson(), equalTo("{\"name\":\"value\",\"range_size\":3,\"group\":{\"group_number\":2}}"));
+    }
 
-	@Test
-	public void test_getGroupId_longValue()
-	{
-		Map<String, String> tags = new HashMap<String, String>();
-		ValueGroupBy groupBy = new ValueGroupBy(3);
+    @Test
+    public void test_getGroupId_longValue() {
+        final Map<String, String> tags = new HashMap<String, String>();
+        final ValueGroupBy groupBy = new ValueGroupBy(3);
 
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 0L), tags), equalTo(0));
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 1L), tags), equalTo(0));
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 2L), tags), equalTo(0));
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 3L), tags), equalTo(1));
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 4L), tags), equalTo(1));
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 5L), tags), equalTo(1));
-		assertThat(groupBy.getGroupId(new LongDataPoint(1, 6L), tags), equalTo(2));
-	}
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 0L), tags), equalTo(0));
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 1L), tags), equalTo(0));
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 2L), tags), equalTo(0));
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 3L), tags), equalTo(1));
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 4L), tags), equalTo(1));
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 5L), tags), equalTo(1));
+        assertThat(groupBy.getGroupId(new LongDataPoint(1, 6L), tags), equalTo(2));
+    }
 
-	@Test
-	public void test_getGroupId_doubleValue()
-	{
-		Map<String, String> tags = new HashMap<String, String>();
-		ValueGroupBy groupBy = new ValueGroupBy(3);
+    @Test
+    public void test_getGroupId_doubleValue() {
+        final Map<String, String> tags = new HashMap<String, String>();
+        final ValueGroupBy groupBy = new ValueGroupBy(3);
 
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 0.0), tags), equalTo(0));
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 1.2), tags), equalTo(0));
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 2.3), tags), equalTo(0));
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 3.3), tags), equalTo(1));
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 4.4), tags), equalTo(1));
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 5.2), tags), equalTo(1));
-		assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 6.1), tags), equalTo(2));
-	}
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 0.0), tags), equalTo(0));
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 1.2), tags), equalTo(0));
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 2.3), tags), equalTo(0));
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 3.3), tags), equalTo(1));
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 4.4), tags), equalTo(1));
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 5.2), tags), equalTo(1));
+        assertThat(groupBy.getGroupId(new DoubleDataPoint(1, 6.1), tags), equalTo(2));
+    }
 }

@@ -28,147 +28,136 @@ import org.kairosdb.core.datastore.TimeUnit;
 import org.kairosdb.core.formatter.FormatterException;
 import org.kairosdb.plugin.GroupBy;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 import java.io.StringWriter;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @FeatureComponent(
-		name = "time",
-		description = "Groups data points in time ranges."
+        name = "time",
+        description = "Groups data points in time ranges."
 )
-public class TimeGroupBy implements GroupBy
-{
-	@NotNull
+public class TimeGroupBy implements GroupBy {
+    @NotNull
     @FeatureCompoundProperty(
-    		name = "range_size",
+            name = "range_size",
             label = "Range Size",
             order = {"Value", "Unit"}
     )
-	private Duration rangeSize;
+    private Duration rangeSize;
 
-	@Min(1)
+    @Min(1)
     @FeatureProperty(
-    		name = "group_count",
+            name = "group_count",
             label = "Count",
             description = "The number of groups. This would typically be 7 to group by day of week.",
             validations = {
-            		@ValidationProperty(
-            				expression = "value > 0",
-							message = "Count must be greater than 0."
-					)
-			}
+                    @ValidationProperty(
+                            expression = "value > 0",
+                            message = "Count must be greater than 0."
+                    )
+            }
     )
-	private int groupCount;
+    private int groupCount;
 
-	private long startDate;
-	private Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    private long startDate;
+    private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 
-	public TimeGroupBy()
-	{
-	}
+    public TimeGroupBy() {
+    }
 
-	public TimeGroupBy(Duration rangeSize, int groupCount)
-	{
-		checkArgument(groupCount > 0);
+    public TimeGroupBy(final Duration rangeSize, final int groupCount) {
+        checkArgument(groupCount > 0);
 
-		this.rangeSize = checkNotNull(rangeSize);
-		this.groupCount = groupCount;
-	}
+        this.rangeSize = checkNotNull(rangeSize);
+        this.groupCount = groupCount;
+    }
 
-	@Override
-	public int getGroupId(DataPoint dataPoint, Map<String, String> tags)
-	{
-		if (rangeSize.getUnit() == TimeUnit.MONTHS)
-		{
-			calendar.setTimeInMillis(dataPoint.getTimestamp());
-			int dataPointYear = calendar.get(Calendar.YEAR);
-			int dataPointMonth = calendar.get(Calendar.MONTH);
+    @Override
+    public int getGroupId(final DataPoint dataPoint, final Map<String, String> tags) {
+        if (rangeSize.getUnit() == TimeUnit.MONTHS) {
+            calendar.setTimeInMillis(dataPoint.getTimestamp());
+            final int dataPointYear = calendar.get(Calendar.YEAR);
+            final int dataPointMonth = calendar.get(Calendar.MONTH);
 
-			calendar.setTimeInMillis(startDate);
-			int startDateYear = calendar.get(Calendar.YEAR);
-			int startDateMonth = calendar.get(Calendar.MONTH);
+            calendar.setTimeInMillis(startDate);
+            final int startDateYear = calendar.get(Calendar.YEAR);
+            final int startDateMonth = calendar.get(Calendar.MONTH);
 
-			return ((dataPointYear - startDateYear) * 12 + (dataPointMonth - startDateMonth)) % groupCount;
-		}
-		else
-	 	    return (int) (((dataPoint.getTimestamp() - startDate) / convertGroupSizeToMillis() ) % groupCount);
-	}
+            return ((dataPointYear - startDateYear) * 12 + (dataPointMonth - startDateMonth)) % groupCount;
+        } else
+            return (int) (((dataPoint.getTimestamp() - startDate) / convertGroupSizeToMillis()) % groupCount);
+    }
 
-	@SuppressWarnings({"NumericOverflow", "fallthrough"})
-	private long convertGroupSizeToMillis()
-	{
-		long milliseconds = rangeSize.getValue();
-		switch(rangeSize.getUnit())
-		{
-			case MONTHS:
-				throw new AssertionError();
-			case YEARS: milliseconds *= 52;
-			case WEEKS: milliseconds *= 7;
-			case DAYS: milliseconds *= 24;
-			case HOURS: milliseconds *= 60;
-			case MINUTES: milliseconds *= 60;
-			case SECONDS: milliseconds *= 1000;
-		}
+    @SuppressWarnings({"NumericOverflow", "fallthrough"})
+    private long convertGroupSizeToMillis() {
+        long milliseconds = rangeSize.getValue();
+        switch (rangeSize.getUnit()) {
+            case MONTHS:
+                throw new AssertionError();
+            case YEARS:
+                milliseconds *= 52;
+            case WEEKS:
+                milliseconds *= 7;
+            case DAYS:
+                milliseconds *= 24;
+            case HOURS:
+                milliseconds *= 60;
+            case MINUTES:
+                milliseconds *= 60;
+            case SECONDS:
+                milliseconds *= 1000;
+        }
 
-		return milliseconds;
-	}
+        return milliseconds;
+    }
 
-	public void setRangeSize(Duration rangeSize)
-	{
-		this.rangeSize = rangeSize;
-	}
+    public void setRangeSize(final Duration rangeSize) {
+        this.rangeSize = rangeSize;
+    }
 
-	public void setGroupCount(int groupCount)
-	{
-		this.groupCount = groupCount;
-	}
+    public void setGroupCount(final int groupCount) {
+        this.groupCount = groupCount;
+    }
 
-	@Override
-	public GroupByResult getGroupByResult(final int id)
-	{
-		return new GroupByResult()
-		{
-			@Override
-			public String toJson() throws FormatterException
-			{
-				StringWriter stringWriter = new StringWriter();
-				try
-				{
-					JSONWriter writer = new JSONWriter(stringWriter);
+    @Override
+    public GroupByResult getGroupByResult(final int id) {
+        return new GroupByResult() {
+            @Override
+            public String toJson() throws FormatterException {
+                final StringWriter stringWriter = new StringWriter();
+                try {
+                    final JSONWriter writer = new JSONWriter(stringWriter);
 
-					writer.object();
-					writer.key("name").value("time");
-					writer.key("range_size").object();
-					writer.key("value").value(rangeSize.getValue());
-					writer.key("unit").value(rangeSize.getUnit().toString());
-					writer.endObject();
-					writer.key("group_count").value(groupCount);
-					writer.key("group").object();
-					writer.key("group_number").value(id);
-					writer.endObject();
-					writer.endObject();
-				}
-				catch (JSONException e)
-				{
-					throw new FormatterException(e);
-				}
+                    writer.object();
+                    writer.key("name").value("time");
+                    writer.key("range_size").object();
+                    writer.key("value").value(rangeSize.getValue());
+                    writer.key("unit").value(rangeSize.getUnit().toString());
+                    writer.endObject();
+                    writer.key("group_count").value(groupCount);
+                    writer.key("group").object();
+                    writer.key("group_number").value(id);
+                    writer.endObject();
+                    writer.endObject();
+                } catch (final JSONException e) {
+                    throw new FormatterException(e);
+                }
 
-				return stringWriter.toString();
-			}
-		};
+                return stringWriter.toString();
+            }
+        };
 
-	}
+    }
 
-	@Override
-	public void setStartDate(long startDate)
-	{
-		this.startDate = startDate;
-	}
+    @Override
+    public void setStartDate(final long startDate) {
+        this.startDate = startDate;
+    }
 }

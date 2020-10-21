@@ -21,34 +21,33 @@ import org.kairosdb.core.groupby.GroupByResult;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
-public interface DataPointGroup extends Iterator<DataPoint>, TagSet
-{
-	/**
-	 Returns the metric name for this group
-	 @return Metric name
-	 */
-	public String getName();
+public interface DataPointGroup extends Iterator<DataPoint>, TagSet {
+    /**
+     * Returns the metric name for this group
+     *
+     * @return Metric name
+     */
+    String getName();
 
-	/**
-	 * Returns the list of group by results or an empty list if the results are not grouped.
-	 *
-	 * @return list of group by results
-	 */
-	public List<GroupByResult> getGroupByResult();
+    /**
+     * Returns the list of group by results or an empty list if the results are not grouped.
+     *
+     * @return list of group by results
+     */
+    List<GroupByResult> getGroupByResult();
 
-	/**
-	 Returns the api data type for this group
-	 @return
-	 */
-	/*public String getAPIDataType();*/
+    /**
+     Returns the api data type for this group
+     @return
+     */
+    /*public String getAPIDataType();*/
 
-	/**
-	 Close any underlying resources held open by this DataPointGroup.  This
-	 will be called at the end of a query to free up resources.
-	 */
-	public void close();
+    /**
+     * Close any underlying resources held open by this DataPointGroup.  This
+     * will be called at the end of a query to free up resources.
+     */
+    void close();
 
 
 }

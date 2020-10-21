@@ -26,8 +26,7 @@ import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class RollUpTasksStoreImplTest extends RollupTestBase
-{
+public class RollUpTasksStoreImplTest extends RollupTestBase {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -35,20 +34,18 @@ public class RollUpTasksStoreImplTest extends RollupTestBase
 
     @Before
     public void setup()
-            throws RollUpException, DatastoreException
-    {
+            throws RollUpException, DatastoreException {
         store = new RollUpTasksStoreImpl(fakeServiceKeyStore, queryParser);
     }
 
     @Test
     public void test_writeRead()
-            throws RollUpException, DatastoreException
-    {
+            throws RollUpException, DatastoreException {
         addTasks(TASK1, TASK2, TASK3);
 
         store.write(ImmutableList.of(TASK1, TASK2, TASK3, TASK4));
 
-        Map<String, RollupTask> tasks = store.read();
+        final Map<String, RollupTask> tasks = store.read();
         assertThat(tasks.size(), equalTo(4));
         assertThat(tasks, hasEntry(TASK1.getId(), TASK1));
         assertThat(tasks, hasEntry(TASK2.getId(), TASK2));
@@ -58,13 +55,12 @@ public class RollUpTasksStoreImplTest extends RollupTestBase
 
     @Test
     public void test_listIds()
-            throws RollUpException, DatastoreException
-    {
+            throws RollUpException, DatastoreException {
         addTasks(TASK1, TASK2, TASK3);
 
         store.write(ImmutableList.of(TASK1, TASK2, TASK3, TASK4));
 
-        Set<String> ids = store.listIds();
+        final Set<String> ids = store.listIds();
         assertThat(ids.size(), equalTo(4));
         assertThat(ids, hasItem(TASK1.getId()));
         assertThat(ids, hasItem(TASK2.getId()));
@@ -74,8 +70,7 @@ public class RollUpTasksStoreImplTest extends RollupTestBase
 
     @Test
     public void test_remove()
-            throws RollUpException, DatastoreException
-    {
+            throws RollUpException, DatastoreException {
         addTasks(TASK1, TASK2, TASK3, TASK4);
 
         store.write(ImmutableList.of(TASK1, TASK2, TASK3, TASK4));
@@ -98,29 +93,27 @@ public class RollUpTasksStoreImplTest extends RollupTestBase
 
     @Test
     public void test_import()
-            throws IOException, RollUpException, QueryException
-    {
-        String oldFormat = Resources.toString(Resources.getResource("rollup_old_format.config"), Charsets.UTF_8);
-        String[] lines = oldFormat.split("\n");
-        List<RollupTask> oldTasks = new ArrayList<>();
-        for (String line : lines) {
+            throws IOException, RollUpException, QueryException {
+        final String oldFormat = Resources.toString(Resources.getResource("rollup_old_format.config"), Charsets.UTF_8);
+        final String[] lines = oldFormat.split("\n");
+        final List<RollupTask> oldTasks = new ArrayList<>();
+        for (final String line : lines) {
             oldTasks.add(queryParser.parseRollupTask(line));
         }
 
-        Path path = Paths.get(RollUpTasksStoreImpl.OLD_FILENAME);
+        final Path path = Paths.get(RollUpTasksStoreImpl.OLD_FILENAME);
         try {
             Files.write(path, oldFormat.getBytes());
             assertTrue(Files.exists(path));
 
-            RollUpTasksStoreImpl store = new RollUpTasksStoreImpl(fakeServiceKeyStore, queryParser);
+            final RollUpTasksStoreImpl store = new RollUpTasksStoreImpl(fakeServiceKeyStore, queryParser);
 
-            Map<String, RollupTask> tasks = store.read();
+            final Map<String, RollupTask> tasks = store.read();
             assertThat(tasks.size(), equalTo(2));
-            for (RollupTask oldTask : oldTasks) {
+            for (final RollupTask oldTask : oldTasks) {
                 assertThat(tasks.values(), hasItem(oldTask));
             }
-        }
-        finally {
+        } finally {
             if (Files.exists(path)) {
                 Files.delete(path);
             }
@@ -129,14 +122,13 @@ public class RollUpTasksStoreImplTest extends RollupTestBase
 
     @Test
     public void test_import_oldFileNotExists()
-            throws IOException, RollUpException, QueryException
-    {
-        Path path = Paths.get(RollUpTasksStoreImpl.OLD_FILENAME);
+            throws IOException, RollUpException, QueryException {
+        final Path path = Paths.get(RollUpTasksStoreImpl.OLD_FILENAME);
         assertFalse(Files.exists(path));
 
-        RollUpTasksStoreImpl store = new RollUpTasksStoreImpl(fakeServiceKeyStore, queryParser);
+        final RollUpTasksStoreImpl store = new RollUpTasksStoreImpl(fakeServiceKeyStore, queryParser);
 
-        Map<String, RollupTask> tasks = store.read();
+        final Map<String, RollupTask> tasks = store.read();
         assertThat(tasks.size(), equalTo(0));
     }
 }

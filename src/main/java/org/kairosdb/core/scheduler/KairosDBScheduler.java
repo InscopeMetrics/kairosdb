@@ -7,34 +7,33 @@ import org.quartz.Trigger;
 
 import java.util.Set;
 
-public interface KairosDBScheduler
-{
-	void start() throws KairosDBException;
+public interface KairosDBScheduler {
+    void start() throws KairosDBException;
 
-	void stop();
+    void stop();
 
-	/**
-	 Schedules a job with the specified id and trigger
+    /**
+     * Schedules a job with the specified id and trigger
+     *
+     * @param jobDetail job id
+     * @param trigger   job trigger
+     * @throws KairosDBException if the job could not be schedule
+     */
+    void schedule(JobDetail jobDetail, Trigger trigger) throws KairosDBException;
 
-	 @param jobDetail job id
-	 @param trigger   job trigger
-	 @throws KairosDBException if the job could not be schedule
-	 */
-	void schedule(JobDetail jobDetail, Trigger trigger) throws KairosDBException;
+    /**
+     * Cancels a scheduled job.
+     *
+     * @param jobKey key of the job to cancel
+     * @throws KairosDBException if the job could not be canceled
+     */
+    void cancel(JobKey jobKey) throws KairosDBException;
 
-	/**
-	 Cancels a scheduled job.
-
-	 @param jobKey key of the job to cancel
-	 @throws KairosDBException if the job could not be canceled
-	 */
-	void cancel(JobKey jobKey) throws KairosDBException;
-
-	/**
-	 Returns a list of schedule job ids
-
-	 @return list of scheduled job ids
-	 @throws KairosDBException if could not get the list
-	 */
-	Set<String> getScheduledJobIds() throws KairosDBException;
+    /**
+     * Returns a list of schedule job ids
+     *
+     * @return list of scheduled job ids
+     * @throws KairosDBException if could not get the list
+     */
+    Set<String> getScheduledJobIds() throws KairosDBException;
 }

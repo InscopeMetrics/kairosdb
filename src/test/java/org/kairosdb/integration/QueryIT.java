@@ -63,284 +63,242 @@ List of tests we need to perform
 6. Test group by
  */
 @RunWith(DataProviderRunner.class)
-public class QueryIT
-{
-	private static final JsonParser parser = new JsonParser();
-	private static final Gson gson = new Gson();
-	private static final TypeToken<List<String>> stringListType = new TypeToken<List<String>>(){};
+public class QueryIT {
+    private static final JsonParser parser = new JsonParser();
+    private static final Gson gson = new Gson();
+    private static final TypeToken<List<String>> stringListType = new TypeToken<List<String>>() {
+    };
 
-	private String m_host = "127.0.0.1";
-	private String m_port = "8080";
+    private String m_host = "127.0.0.1";
+    private final String m_port = "8080";
 
-	public QueryIT()
-	{
-		m_host = System.getProperty("dockerHostAddress", m_host);
-	}
+    public QueryIT() {
+        m_host = System.getProperty("dockerHostAddress", m_host);
+    }
 
-	private static JsonElement readJsonFromStream(String path, String metricName) throws IOException, JSONException
-	{
-		try (InputStream is = ClassLoader.getSystemResourceAsStream(path))
-		{
-			if (is == null)
-				return (null);
+    private static JsonElement readJsonFromStream(final String path, final String metricName) throws IOException, JSONException {
+        try (final InputStream is = ClassLoader.getSystemResourceAsStream(path)) {
+            if (is == null)
+                return (null);
 
-			String str = new String(ByteStreams.toByteArray(is), Charsets.UTF_8);
+            String str = new String(ByteStreams.toByteArray(is), Charsets.UTF_8);
 
-			// replace metric name
-			str = str.replace("<metric_name>", metricName);
+            // replace metric name
+            str = str.replace("<metric_name>", metricName);
 
-			return (parser.parse(str));
-		}
-	}
+            return (parser.parse(str));
+        }
+    }
 
-	private JsonElement postQuery(JsonElement query) throws IOException, JSONException
-	{
-		try(CloseableHttpClient client = HttpClients.createDefault())
-		{
-			HttpPost post = new HttpPost("http://" + m_host + ":" + m_port + "/api/v1/datapoints/query");
-			post.setHeader("Content-Type", "application/json");
-	
-			post.setEntity(new StringEntity(query.toString()));
-			try(CloseableHttpResponse httpResponse = client.execute(post))
-			{
-				if (httpResponse.getStatusLine().getStatusCode() != 200)
-				{
-					httpResponse.getEntity().writeTo(System.out);
-					return (null);
-				}
-		
-				ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
-				httpResponse.getEntity().writeTo(output);
-		
-				return (parser.parse(output.toString("UTF-8")));
-			}
-		}
-	}
+    @DataProvider
+    public static Object[][] getQueryTests() throws IOException, JSONException, URISyntaxException {
+        final ArrayList<Object[]> ret = new ArrayList<Object[]>();
 
-	private int putDataPoints(JsonElement dataPoints) throws IOException, JSONException
-	{
-		try(CloseableHttpClient client = HttpClients.createDefault())
-		{
-			HttpPost post = new HttpPost("http://" + m_host + ":" + m_port + "/api/v1/datapoints");
-			post.setHeader("Content-Type", "application/json");
-	
-			post.setEntity(new StringEntity(dataPoints.toString()));
-			try(CloseableHttpResponse httpResponse = client.execute(post))
-			{
-				return httpResponse.getStatusLine().getStatusCode();
-			}
-		}
-	}
+        final List<String> resourceDirectoryNames = getTestDirectories("tests");
 
-	private int deleteDataPoints(JsonElement query) throws IOException, JSONException
-	{
-		try(CloseableHttpClient client = HttpClients.createDefault())
-		{
-			HttpPost post = new HttpPost("http://" + m_host + ":" + m_port + "/api/v1/datapoints/delete");
-			post.setHeader("Content-Type", "application/json");
-	
-			post.setEntity(new StringEntity(query.toString()));
-			try(CloseableHttpResponse httpResponse = client.execute(post))
-			{
-				return httpResponse.getStatusLine().getStatusCode();
-			}
-		}
-	}
+        for (final String resourceDirectory : resourceDirectoryNames) {
+            final String metricName = "integration_test_" + UUID.randomUUID();
+            final JsonElement dataPoints = readJsonFromStream("tests/" + resourceDirectory + "/datapoints.json", metricName);
+            final JsonElement query = readJsonFromStream("tests/" + resourceDirectory + "/query.json", metricName);
+            final JsonElement response = readJsonFromStream("tests/" + resourceDirectory + "/response.json", metricName);
 
-	@DataProvider
-	public static Object[][] getQueryTests() throws IOException, JSONException, URISyntaxException
-	{
-		ArrayList<Object[]> ret = new ArrayList<Object[]>();
+            checkState(query != null, "No query found for test " + resourceDirectory);
 
-		List<String> resourceDirectoryNames = getTestDirectories("tests");
+            ret.add(new Object[]{resourceDirectory, dataPoints, query, response});
+        }
 
-		for (String resourceDirectory : resourceDirectoryNames)
-		{
-			String metricName = "integration_test_" + UUID.randomUUID();
-			JsonElement dataPoints = readJsonFromStream("tests/" + resourceDirectory + "/datapoints.json", metricName);
-			JsonElement query = readJsonFromStream("tests/" + resourceDirectory + "/query.json", metricName);
-			JsonElement response = readJsonFromStream("tests/" + resourceDirectory + "/response.json", metricName);
+        return (ret.toArray(new Object[0][]));
+    }
 
-			checkState(query != null, "No query found for test " + resourceDirectory);
+    public static List<String> getTestDirectories(final String matchingDirectoryName) throws URISyntaxException, IOException {
+        return findTestDirectories(new File("src/test/resources"), matchingDirectoryName);
+    }
 
-			ret.add(new Object[]{resourceDirectory, dataPoints, query, response});
-		}
+    @SuppressWarnings("ConstantConditions")
+    private static List<String> findTestDirectories(final File directory, final String matchingDirectoryName) {
+        final List<String> matchingDirectories = new ArrayList<String>();
 
-		return (ret.toArray(new Object[0][]));
-	}
+        for (final File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                if (file.getParentFile().getName().equals(matchingDirectoryName)) {
+                    matchingDirectories.add(file.getName());
+                } else
+                    matchingDirectories.addAll(findTestDirectories(file, matchingDirectoryName));
+            }
+        }
+        return matchingDirectories;
+    }
 
-	@Test
-	@UseDataProvider("getQueryTests")
-	public void performQueryTest(String testName, JsonElement dataPoints, JsonElement query, JsonElement response)
-			throws IOException, JSONException, InterruptedException
-	{
-		int retryCount = 0;
-		if (dataPoints != null)
-		{
-			int status = putDataPoints(dataPoints);
-			assertThat(status, equalTo(204));
-			retryCount = 3;
-		}
+    private JsonElement postQuery(final JsonElement query) throws IOException, JSONException {
+        try (final CloseableHttpClient client = HttpClients.createDefault()) {
+            final HttpPost post = new HttpPost("http://" + m_host + ":" + m_port + "/api/v1/datapoints/query");
+            post.setHeader("Content-Type", "application/json");
 
-		do
-		{
-			try
-			{
-				JsonElement serverResponse = postQuery(query);
-				assertResponse(testName, serverResponse, response);
-				break;
-			}
-			catch (AssertionError e)
-			{
-				if (retryCount == 0)
-					throw e;
+            post.setEntity(new StringEntity(query.toString()));
+            try (final CloseableHttpResponse httpResponse = client.execute(post)) {
+                if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                    httpResponse.getEntity().writeTo(System.out);
+                    return (null);
+                }
 
-				retryCount--;
-				Thread.sleep(500); // Need to wait until datapoints are available in the data store
-			}
-		} while (true);
+                final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
+                httpResponse.getEntity().writeTo(output);
 
-		if (dataPoints != null)
-		{
-			// clean up
-			int status = deleteDataPoints(query);
+                return (parser.parse(output.toString("UTF-8")));
+            }
+        }
+    }
 
-			assertThat(status, equalTo(204));
+    private int putDataPoints(final JsonElement dataPoints) throws IOException, JSONException {
+        try (final CloseableHttpClient client = HttpClients.createDefault()) {
+            final HttpPost post = new HttpPost("http://" + m_host + ":" + m_port + "/api/v1/datapoints");
+            post.setHeader("Content-Type", "application/json");
 
-			retryCount = 3;
-			do
-			{
-				try
-				{
-					// Assert that data points are gone
-					JsonElement serverResponse = postQuery(query);
-					JsonArray queries = serverResponse.getAsJsonObject().get("queries").getAsJsonArray();
-					for (JsonElement responseQuery : queries)
-					{
-						JsonArray results = responseQuery.getAsJsonObject().get("results").getAsJsonArray();
-						for (JsonElement result : results)
-						{
-							assertThat(result.getAsJsonObject().get("values").getAsJsonArray().size(), equalTo(0));
-						}
-					}
+            post.setEntity(new StringEntity(dataPoints.toString()));
+            try (final CloseableHttpResponse httpResponse = client.execute(post)) {
+                return httpResponse.getStatusLine().getStatusCode();
+            }
+        }
+    }
 
-					break;
-				}
-				catch (AssertionError e)
-				{
-					if (retryCount == 0)
-						throw e;
+    private int deleteDataPoints(final JsonElement query) throws IOException, JSONException {
+        try (final CloseableHttpClient client = HttpClients.createDefault()) {
+            final HttpPost post = new HttpPost("http://" + m_host + ":" + m_port + "/api/v1/datapoints/delete");
+            post.setHeader("Content-Type", "application/json");
 
-					retryCount--;
-					Thread.sleep(500); // Need to wait until datapoints are available in the data store
-				}
-			} while (true);
-		}
-	}
+            post.setEntity(new StringEntity(query.toString()));
+            try (final CloseableHttpResponse httpResponse = client.execute(post)) {
+                return httpResponse.getStatusLine().getStatusCode();
+            }
+        }
+    }
 
-	private void assertResponse(String testName, JsonElement actual, JsonElement expected)
-	{
-		JsonArray actualQueries = actual.getAsJsonObject().get("queries").getAsJsonArray();
-		JsonArray expectedQueries = expected.getAsJsonObject().get("queries").getAsJsonArray();
+    @Test
+    @UseDataProvider("getQueryTests")
+    public void performQueryTest(final String testName, final JsonElement dataPoints, final JsonElement query, final JsonElement response)
+            throws IOException, JSONException, InterruptedException {
+        int retryCount = 0;
+        if (dataPoints != null) {
+            final int status = putDataPoints(dataPoints);
+            assertThat(status, equalTo(204));
+            retryCount = 3;
+        }
 
-		assertThat("Number of queries is different for test: " + testName, actualQueries.size(), equalTo(expectedQueries.size()));
+        do {
+            try {
+                final JsonElement serverResponse = postQuery(query);
+                assertResponse(testName, serverResponse, response);
+                break;
+            } catch (final AssertionError e) {
+                if (retryCount == 0)
+                    throw e;
 
-		for (int i = 0; i < expectedQueries.size(); i++)
-		{
-			JsonArray actualResult = actualQueries.get(i).getAsJsonObject().get("results").getAsJsonArray();
-			JsonArray expectedResult = expectedQueries.get(i).getAsJsonObject().get("results").getAsJsonArray();
+                retryCount--;
+                Thread.sleep(500); // Need to wait until datapoints are available in the data store
+            }
+        } while (true);
 
-			assertThat("Number of results is different for test: " + testName, actualResult.size(), equalTo(expectedResult.size()));
+        if (dataPoints != null) {
+            // clean up
+            final int status = deleteDataPoints(query);
 
-			for (int j = 0; j < expectedResult.size(); j++)
-			{
-				JsonObject actualMetric = actualResult.get(j).getAsJsonObject();
-				JsonObject expectedMetric = expectedResult.get(j).getAsJsonObject();
+            assertThat(status, equalTo(204));
 
-				assertThat("Metric name is different for test: " + testName, actualMetric.get("name"), equalTo(expectedMetric.get("name")));
-				assertTags(testName, i, j, actualMetric, expectedMetric);
-				assertDataPoints(testName, i, j, actualMetric, expectedMetric);
-			}
-		}
-	}
+            retryCount = 3;
+            do {
+                try {
+                    // Assert that data points are gone
+                    final JsonElement serverResponse = postQuery(query);
+                    final JsonArray queries = serverResponse.getAsJsonObject().get("queries").getAsJsonArray();
+                    for (final JsonElement responseQuery : queries) {
+                        final JsonArray results = responseQuery.getAsJsonObject().get("results").getAsJsonArray();
+                        for (final JsonElement result : results) {
+                            assertThat(result.getAsJsonObject().get("values").getAsJsonArray().size(), equalTo(0));
+                        }
+                    }
 
-	private void assertTags(String testName, int queryCount, int resultCount, JsonObject actual, JsonObject expected)
-	{
-		JsonObject actualTags = actual.getAsJsonObject("tags");
-		JsonObject expectedTags = expected.getAsJsonObject("tags");
+                    break;
+                } catch (final AssertionError e) {
+                    if (retryCount == 0)
+                        throw e;
 
-		assertThat(String.format("Number of tags is different for test %s, query[%d], result[%d]", testName, queryCount, resultCount),
-				actualTags.entrySet().size(), equalTo(expectedTags.entrySet().size()));
-		for (Map.Entry<String, JsonElement> tag : expectedTags.entrySet())
-		{
-			String tagName = tag.getKey();
-			assertThat(String.format("Missing tag: %s for test %s, query[%d], result[%d]",
-					tagName, testName, queryCount, resultCount),
-					actualTags.has(tagName), equalTo(true));
+                    retryCount--;
+                    Thread.sleep(500); // Need to wait until datapoints are available in the data store
+                }
+            } while (true);
+        }
+    }
 
-			List<String> actualTagsList = gson.fromJson(actualTags.get(tagName), stringListType.getType());
-			List<String> expectedTagsList = gson.fromJson(tag.getValue(), stringListType.getType());
-			assertTrue(String.format("Tag value different for key: %S for test %s, query[%d], result[%d]",
-					tagName, testName, queryCount, resultCount),
-					actualTagsList.containsAll(expectedTagsList) && expectedTagsList.containsAll(actualTagsList));
-		}
-	}
+    private void assertResponse(final String testName, final JsonElement actual, final JsonElement expected) {
+        final JsonArray actualQueries = actual.getAsJsonObject().get("queries").getAsJsonArray();
+        final JsonArray expectedQueries = expected.getAsJsonObject().get("queries").getAsJsonArray();
 
-	private void assertDataPoints(String testName, int queryCount, int resultCount, JsonObject actual, JsonObject expected)
-	{
-		JsonArray actualValues = actual.getAsJsonArray("values");
-		JsonArray expectedValues = expected.getAsJsonArray("values");
+        assertThat("Number of queries is different for test: " + testName, actualQueries.size(), equalTo(expectedQueries.size()));
 
-		assertThat(String.format("Number of datapoints is different for test %s, query[%d], result[%d]",
-				testName, queryCount, resultCount),
-				actualValues.size(), equalTo(expectedValues.size()));
+        for (int i = 0; i < expectedQueries.size(); i++) {
+            final JsonArray actualResult = actualQueries.get(i).getAsJsonObject().get("results").getAsJsonArray();
+            final JsonArray expectedResult = expectedQueries.get(i).getAsJsonObject().get("results").getAsJsonArray();
 
-		for (int i = 0; i < expectedValues.size(); i++)
-		{
-			assertThat(String.format("Timestamps different for data point %d for test %s, query[%d], result[%d]",
-					i, testName, queryCount, resultCount),
-					actualValues.get(i).getAsJsonArray().get(0), equalTo(expectedValues.get(i).getAsJsonArray().get(0)));
+            assertThat("Number of results is different for test: " + testName, actualResult.size(), equalTo(expectedResult.size()));
+
+            for (int j = 0; j < expectedResult.size(); j++) {
+                final JsonObject actualMetric = actualResult.get(j).getAsJsonObject();
+                final JsonObject expectedMetric = expectedResult.get(j).getAsJsonObject();
+
+                assertThat("Metric name is different for test: " + testName, actualMetric.get("name"), equalTo(expectedMetric.get("name")));
+                assertTags(testName, i, j, actualMetric, expectedMetric);
+                assertDataPoints(testName, i, j, actualMetric, expectedMetric);
+            }
+        }
+    }
+
+    private void assertTags(final String testName, final int queryCount, final int resultCount, final JsonObject actual, final JsonObject expected) {
+        final JsonObject actualTags = actual.getAsJsonObject("tags");
+        final JsonObject expectedTags = expected.getAsJsonObject("tags");
+
+        assertThat(String.format("Number of tags is different for test %s, query[%d], result[%d]", testName, queryCount, resultCount),
+                actualTags.entrySet().size(), equalTo(expectedTags.entrySet().size()));
+        for (final Map.Entry<String, JsonElement> tag : expectedTags.entrySet()) {
+            final String tagName = tag.getKey();
+            assertThat(String.format("Missing tag: %s for test %s, query[%d], result[%d]",
+                    tagName, testName, queryCount, resultCount),
+                    actualTags.has(tagName), equalTo(true));
+
+            final List<String> actualTagsList = gson.fromJson(actualTags.get(tagName), stringListType.getType());
+            final List<String> expectedTagsList = gson.fromJson(tag.getValue(), stringListType.getType());
+            assertTrue(String.format("Tag value different for key: %S for test %s, query[%d], result[%d]",
+                    tagName, testName, queryCount, resultCount),
+                    actualTagsList.containsAll(expectedTagsList) && expectedTagsList.containsAll(actualTagsList));
+        }
+    }
+
+    private void assertDataPoints(final String testName, final int queryCount, final int resultCount, final JsonObject actual, final JsonObject expected) {
+        final JsonArray actualValues = actual.getAsJsonArray("values");
+        final JsonArray expectedValues = expected.getAsJsonArray("values");
+
+        assertThat(String.format("Number of datapoints is different for test %s, query[%d], result[%d]",
+                testName, queryCount, resultCount),
+                actualValues.size(), equalTo(expectedValues.size()));
+
+        for (int i = 0; i < expectedValues.size(); i++) {
+            assertThat(String.format("Timestamps different for data point %d for test %s, query[%d], result[%d]",
+                    i, testName, queryCount, resultCount),
+                    actualValues.get(i).getAsJsonArray().get(0), equalTo(expectedValues.get(i).getAsJsonArray().get(0)));
 
 
-			if (isDouble(actualValues.get(i).getAsJsonArray().get(1)))
-				assertThat(String.format("Values different for data point: %d for test %s, query[%d], result[%d]",
-						i, testName, queryCount, resultCount),
-						actualValues.get(i).getAsJsonArray().get(1).getAsDouble(),
-						closeTo(expectedValues.get(i).getAsJsonArray().get(1).getAsDouble(), .01));
-			else
-				assertThat(String.format("Values different for data point: %d for test: %s, query[%d], result[%d]",
-						i, testName, queryCount, resultCount),
-						actualValues.get(i).getAsJsonArray().get(1), equalTo(expectedValues.get(i).getAsJsonArray().get(1)));
-		}
-	}
+            if (isDouble(actualValues.get(i).getAsJsonArray().get(1)))
+                assertThat(String.format("Values different for data point: %d for test %s, query[%d], result[%d]",
+                        i, testName, queryCount, resultCount),
+                        actualValues.get(i).getAsJsonArray().get(1).getAsDouble(),
+                        closeTo(expectedValues.get(i).getAsJsonArray().get(1).getAsDouble(), .01));
+            else
+                assertThat(String.format("Values different for data point: %d for test: %s, query[%d], result[%d]",
+                        i, testName, queryCount, resultCount),
+                        actualValues.get(i).getAsJsonArray().get(1), equalTo(expectedValues.get(i).getAsJsonArray().get(1)));
+        }
+    }
 
-	private boolean isDouble(JsonElement value)
-	{
-		return value.toString().contains(".");
-	}
-
-	public static List<String> getTestDirectories(String matchingDirectoryName) throws URISyntaxException, IOException
-	{
-		return findTestDirectories(new File("src/test/resources"), matchingDirectoryName);
-	}
-
-	@SuppressWarnings("ConstantConditions")
-	private static List<String> findTestDirectories(File directory, String matchingDirectoryName)
-	{
-		List<String> matchingDirectories = new ArrayList<String>();
-
-		for (File file : directory.listFiles())
-		{
-			if (file.isDirectory())
-			{
-				if (file.getParentFile().getName().equals(matchingDirectoryName))
-				{
-					matchingDirectories.add(file.getName());
-				}
-				else
-					matchingDirectories.addAll(findTestDirectories(file, matchingDirectoryName));
-			}
-		}
-		return matchingDirectories;
-	}
+    private boolean isDouble(final JsonElement value) {
+        return value.toString().contains(".");
+    }
 }

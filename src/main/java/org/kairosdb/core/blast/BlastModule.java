@@ -6,18 +6,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- Created by bhawkins on 5/16/14.
+ * Created by bhawkins on 5/16/14.
  */
-public class BlastModule extends AbstractModule
-{
-	public static final Logger logger = LoggerFactory.getLogger(BlastModule.class);
+public class BlastModule extends AbstractModule {
+    public static final Logger logger = LoggerFactory.getLogger(BlastModule.class);
 
-	@Override
-	protected void configure()
-	{
-		System.out.println("LOADING BLAST!!!!");
-		logger.info("Configuring module BlastModule");
+    @Override
+    protected void configure() {
+        System.out.println("LOADING BLAST!!!!");
+        logger.info("Configuring module BlastModule");
 
-		bind(BlastServer.class).in(Singleton.class);
-	}
+        bind(BlastServer.class).in(Singleton.class);
+    }
 }

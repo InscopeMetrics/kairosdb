@@ -23,27 +23,26 @@ import org.kairosdb.util.KDataInput;
 import java.io.IOException;
 
 /**
- Created with IntelliJ IDEA.
- User: bhawkins
- Date: 9/10/13
- Time: 8:55 AM
- To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA.
+ * User: bhawkins
+ * Date: 9/10/13
+ * Time: 8:55 AM
+ * To change this template use File | Settings | File Templates.
  */
-public interface KairosDataPointFactory
-{
-	public DataPoint createDataPoint(String type, long timestamp, JsonElement json) throws IOException;
+public interface KairosDataPointFactory {
+    DataPoint createDataPoint(String type, long timestamp, JsonElement json) throws IOException;
 
-	public DataPoint createDataPoint(String type, long timestamp, KDataInput buffer) throws IOException;
+    DataPoint createDataPoint(String type, long timestamp, KDataInput buffer) throws IOException;
 
-	//public DataPoint createDataPoint(byte type, long timestamp, ByteBuffer buffer);
+    //public DataPoint createDataPoint(byte type, long timestamp, ByteBuffer buffer);
 
-	//public byte getTypeByte(String type);
+    //public byte getTypeByte(String type);
 
-	public DataPointFactory getFactoryForType(String type);
+    DataPointFactory getFactoryForType(String type);
 
-	public DataPointFactory getFactoryForDataStoreType(String dataStoreType);
+    DataPointFactory getFactoryForDataStoreType(String dataStoreType);
 
-	public String getGroupType(String datastoreType);
+    String getGroupType(String datastoreType);
 
-	public boolean isRegisteredType(String type);
+    boolean isRegisteredType(String type);
 }

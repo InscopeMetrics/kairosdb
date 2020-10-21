@@ -6,10 +6,8 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- Created by bhawkins on 5/18/17.
-
+ * Created by bhawkins on 5/18/17.
  */
-public interface QueryPostProcessingPlugin extends QueryPlugin
-{
-	File processQueryResults(File queryResults) throws IOException, PluginException;
+public interface QueryPostProcessingPlugin extends QueryPlugin {
+    File processQueryResults(File queryResults) throws IOException, PluginException;
 }

@@ -29,99 +29,84 @@ import org.kairosdb.util.Util;
 
 @FeatureComponent(
         name = "sampler",
-		description = "Computes the sampling rate of change for the data points."
-)
-public class SamplerAggregator implements Aggregator, TimezoneAware
-{
-	@FeatureProperty(
-			name = "unit",
-			label = "Time Unit",
-			description = "Time unit of sampling",
-			default_value = "milliseconds"
-	)
-	private TimeUnit _ui_unit;
-	private Sampling m_sampling;
+        description = "Computes the sampling rate of change for the data points.")
+public class SamplerAggregator implements Aggregator, TimezoneAware {
+    @FeatureProperty(
+            name = "unit",
+            label = "Time Unit",
+            description = "Time unit of sampling",
+            default_value = "milliseconds")
+    private TimeUnit _ui_unit;
+    private Sampling m_sampling;
 
-	private DoubleDataPointFactory m_dataPointFactory;
-	private DateTimeZone m_timeZone;
+    private final DoubleDataPointFactory m_dataPointFactory;
+    private DateTimeZone m_timeZone;
 
-	@Inject
-	public SamplerAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-		m_sampling = new Sampling(1, TimeUnit.MILLISECONDS);
-	}
+    @Inject
+    public SamplerAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+        m_sampling = new Sampling(1, TimeUnit.MILLISECONDS);
+    }
 
-	public DataPointGroup aggregate(DataPointGroup dataPointGroup)
-	{
-		return (new SamplerDataPointAggregator(dataPointGroup));
-	}
+    public DataPointGroup aggregate(final DataPointGroup dataPointGroup) {
+        return (new SamplerDataPointAggregator(dataPointGroup));
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	public void setUnit(TimeUnit timeUnit)
-	{
-		m_sampling = new Sampling(1, timeUnit);
-	}
+    public void setUnit(final TimeUnit timeUnit) {
+        m_sampling = new Sampling(1, timeUnit);
+    }
 
-	@Override
-	public void setTimeZone(DateTimeZone timeZone)
-	{
-		m_timeZone = timeZone;
-	}
+    @Override
+    public void setTimeZone(final DateTimeZone timeZone) {
+        m_timeZone = timeZone;
+    }
 
 
-	private class SamplerDataPointAggregator extends AggregatedDataPointGroupWrapper
-	{
-		SamplerDataPointAggregator(DataPointGroup innerDataPointGroup)
-		{
-			super(innerDataPointGroup);
-		}
+    private class SamplerDataPointAggregator extends AggregatedDataPointGroupWrapper {
+        SamplerDataPointAggregator(final DataPointGroup innerDataPointGroup) {
+            super(innerDataPointGroup);
+        }
 
-		@Override
-		public boolean hasNext()
-		{
-			//Ensure we have two data points to mess with
-			return currentDataPoint != null && hasNextInternal();
-		}
+        @Override
+        public boolean hasNext() {
+            //Ensure we have two data points to mess with
+            return currentDataPoint != null && hasNextInternal();
+        }
 
-		@Override
-		public DataPoint next()
-		{
-			final double x0 = currentDataPoint.getDoubleValue();
-			final long y0 = currentDataPoint.getTimestamp();
+        @Override
+        public DataPoint next() {
+            final double x0 = currentDataPoint.getDoubleValue();
+            final long y0 = currentDataPoint.getTimestamp();
 
-			//This defaults the rate to 0 if no more data points exists
-			double x1 = 0;
-			long y1 = y0 + 1;
+            //This defaults the rate to 0 if no more data points exists
+            double x1 = 0;
+            long y1 = y0 + 1;
 
-			if (hasNextInternal())
-			{
-				currentDataPoint = nextInternal();
+            if (hasNextInternal()) {
+                currentDataPoint = nextInternal();
 
-				x1 = currentDataPoint.getDoubleValue();
-				y1 = currentDataPoint.getTimestamp();
+                x1 = currentDataPoint.getDoubleValue();
+                y1 = currentDataPoint.getTimestamp();
 
-				if (y1 == y0)
-				{
-					throw new IllegalStateException(
-							"The sampler aggregator cannot compute rate for data points with the same time stamp.  " +
-									"You must precede sampler with another aggregator.");
-				}
-			}
-			double rate = x1 / (y1 - y0) * Util.getSamplingDuration(y0, m_sampling, m_timeZone);
+                if (y1 == y0) {
+                    throw new IllegalStateException(
+                            "The sampler aggregator cannot compute rate for data points with the same time stamp.  " +
+                                    "You must precede sampler with another aggregator.");
+                }
+            }
+            final double rate = x1 / (y1 - y0) * Util.getSamplingDuration(y0, m_sampling, m_timeZone);
 
-			return (m_dataPointFactory.createDataPoint(y1, rate));
-		}
-	}
+            return (m_dataPointFactory.createDataPoint(y1, rate));
+        }
+    }
 }

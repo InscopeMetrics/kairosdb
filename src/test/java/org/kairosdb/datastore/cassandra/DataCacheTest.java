@@ -22,84 +22,74 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class DataCacheTest
-{
-	public class TestObject
-	{
-		private final String m_data;
+public class DataCacheTest {
+    @Test
+    public void test_isCached() {
+        final DataCache<String> cache = new DataCache<String>(3);
 
-		public TestObject(String data)
-		{
-			m_data = data;
-		}
+        cache.put("one");
+        cache.put("two");
+        cache.put("three");
 
-		@Override
-		public boolean equals(Object o)
-		{
-			if (this == o) return true;
-			if (o == null || getClass() != o.getClass()) return false;
+        cache.put("one");
+        assertNotNull(cache.get("one")); //This puts 'one' as the newest
+        cache.put("four"); //This should boot out 'two'
+        assertNull(cache.get("two")); //Should have booted 'three'
+        cache.put("one");
+        cache.put("three"); //Should have booted 'four'
+        assertNotNull(cache.get("one"));
+    }
 
-			TestObject that = (TestObject) o;
+    @Test
+    public void test_uniqueCache() {
+        final TestObject td1 = new TestObject("td1");
+        final TestObject td2 = new TestObject("td2");
+        final TestObject td3 = new TestObject("td3");
 
-			if (!m_data.equals(that.m_data)) return false;
+        final DataCache<TestObject> cache = new DataCache<TestObject>(10);
 
-			return true;
-		}
+        cache.put(td1);
+        cache.put(td2);
+        cache.put(td3);
 
-		@Override
-		public int hashCode()
-		{
-			return m_data.hashCode();
-		}
-	}
-	@Test
-	public void test_isCached()
-	{
-		DataCache<String> cache = new DataCache<String>(3);
+        TestObject ret = cache.get(new TestObject("td1"));
+        assertTrue(td1 == ret);
 
-		cache.put("one");
-		cache.put("two");
-		cache.put("three");
+        ret = cache.get(new TestObject("td2"));
+        assertTrue(td2 == ret);
 
-		cache.put("one");
-		assertNotNull(cache.get("one")); //This puts 'one' as the newest
-		cache.put("four"); //This should boot out 'two'
-		assertNull(cache.get("two")); //Should have booted 'three'
-		cache.put("one");
-		cache.put("three"); //Should have booted 'four'
-		assertNotNull(cache.get("one"));
-	}
+        ret = cache.get(new TestObject("td3"));
+        assertTrue(td3 == ret);
+    //Now if we do this again we should still get the original objects
+        ret = cache.get(new TestObject("td1"));
+        assertTrue(td1 == ret);
 
-	@Test
-	public void test_uniqueCache()
-	{
-		TestObject td1 = new TestObject("td1");
-		TestObject td2 = new TestObject("td2");
-		TestObject td3 = new TestObject("td3");
+        ret = cache.get(new TestObject("td2"));
+        assertTrue(td2 == ret);
 
-		DataCache<TestObject> cache = new DataCache<TestObject>(10);
+        ret = cache.get(new TestObject("td3"));
+        assertTrue(td3 == ret);}
 
-		cache.put(td1);
-		cache.put(td2);
-		cache.put(td3);
+    public class TestObject {
+        private final String m_data;
 
-		TestObject ret = cache.get(new TestObject("td1"));
-		assertTrue(td1 == ret);
+        public TestObject(final String data) {
+            m_data = data;
+        }
 
-		ret = cache.get(new TestObject("td2"));
-		assertTrue(td2 == ret);
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
 
-		ret = cache.get(new TestObject("td3"));
-		assertTrue(td3 == ret);
+            final TestObject that = (TestObject) o;
 
-		//Now if we do this again we should still get the original objects
-		ret = cache.get(new TestObject("td1"));
-		assertTrue(td1 == ret);
+            return m_data.equals(that.m_data);
+        }
 
-		ret = cache.get(new TestObject("td2"));
-		assertTrue(td2 == ret);
-
-		ret = cache.get(new TestObject("td3"));
-		assertTrue(td3 == ret);
-	}
+        @Override
+        public int hashCode() {
+            return m_data.hashCode();
+        }
+    }
 }

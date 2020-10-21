@@ -16,93 +16,93 @@
 package org.kairosdb.util;
 
 
-
 import org.kairosdb.core.datastore.Order;
 
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.TreeSet;
 
-public class TournamentTree<T>
-	{
-	private static class TreeValue<T>
-		{
-		private int m_iteratorNum;
-		private T m_value;
-		private Iterator<T> m_iterator;
+public class TournamentTree<T> {
+    //===========================================================================
+    private final TreeSet<TreeValue<T>> m_treeSet;
+    private final Comparator<T> m_comparator;
+    private int m_iteratorIndex = 0;
+    private final Order m_order;
 
-		public TreeValue(Iterator<T> iterator, T value, int iteratorNum)
-			{
-			m_iterator = iterator;
-			m_value = value;
-			m_iteratorNum = iteratorNum;
-			}
+    public TournamentTree(final Comparator<T> comparator, final Order order) {
+        m_comparator = comparator;
+        m_treeSet = new TreeSet<TreeValue<T>>(new TreeComparator());
+        m_order = order;
+    }
 
-		public int getIteratorNum() { return (m_iteratorNum); }
-		public void setValue(T value) { m_value = value; }
-		public T getValue() { return (m_value); }
-		public Iterator<T> getIterator() { return (m_iterator); }
-		}
+    //---------------------------------------------------------------------------
+    public void addIterator(final Iterator<T> iterator) {
+        if (iterator.hasNext())
+            m_treeSet.add(new TreeValue<T>(iterator, iterator.next(), m_iteratorIndex++));
+    }
 
-	private class TreeComparator implements Comparator<TreeValue<T>>
-		{
-		public int compare(TreeValue<T> tv1, TreeValue<T> tv2)
-			{
-			int resp = m_comparator.compare(tv1.getValue(), tv2.getValue());
+    //---------------------------------------------------------------------------
+    public boolean hasNext() {
+        return !m_treeSet.isEmpty();
+    }
 
-			if (resp == 0)
-				return (tv1.getIteratorNum() - tv2.getIteratorNum());
-			else
-				return (resp);
-			}
-		}
+    //---------------------------------------------------------------------------
+    public T nextElement() {
+        final TreeValue<T> value;
+        if (m_order == Order.ASC)
+            value = m_treeSet.pollFirst();
+        else
+            value = m_treeSet.pollLast();
 
-	//===========================================================================
-	private TreeSet<TreeValue<T>> m_treeSet;
-	private Comparator<T> m_comparator;
-	private int m_iteratorIndex = 0;
-	private Order m_order;
+        if (value == null)
+            return (null);
 
-	public TournamentTree(Comparator<T> comparator, Order order)
-	{
-		m_comparator = comparator;
-		m_treeSet = new TreeSet<TreeValue<T>>(new TreeComparator());
-		m_order = order;
-	}
+        final T ret = value.getValue();
 
-	//---------------------------------------------------------------------------
-	public void addIterator(Iterator<T> iterator)
-	{
-		if (iterator.hasNext())
-			m_treeSet.add(new TreeValue<T>(iterator, iterator.next(), m_iteratorIndex ++));
-	}
+        if (value.getIterator().hasNext()) {
+            value.setValue(value.getIterator().next());
+            m_treeSet.add(value);
+        }
 
-	//---------------------------------------------------------------------------
-	public boolean hasNext()
-	{
-		return !m_treeSet.isEmpty();
-	}
+        return (ret);
+    }
 
-	//---------------------------------------------------------------------------
-	public T nextElement()
-	{
-		TreeValue<T> value;
-		if (m_order == Order.ASC)
-			value = m_treeSet.pollFirst();
-		else
-			value = m_treeSet.pollLast();
+    private static class TreeValue<T> {
+        private final int m_iteratorNum;
+        private T m_value;
+        private final Iterator<T> m_iterator;
 
-		if (value == null)
-			return (null);
+        public TreeValue(final Iterator<T> iterator, final T value, final int iteratorNum) {
+            m_iterator = iterator;
+            m_value = value;
+            m_iteratorNum = iteratorNum;
+        }
 
-		T ret = value.getValue();
+        public int getIteratorNum() {
+            return (m_iteratorNum);
+        }
 
-		if (value.getIterator().hasNext())
-		{
-			value.setValue(value.getIterator().next());
-			m_treeSet.add(value);
-		}
+        public T getValue() {
+            return (m_value);
+        }
 
-		return (ret);
-	}
+        public void setValue(final T value) {
+            m_value = value;
+        }
+
+        public Iterator<T> getIterator() {
+            return (m_iterator);
+        }
+    }
+
+    private class TreeComparator implements Comparator<TreeValue<T>> {
+        public int compare(final TreeValue<T> tv1, final TreeValue<T> tv2) {
+            final int resp = m_comparator.compare(tv1.getValue(), tv2.getValue());
+
+            if (resp == 0)
+                return (tv1.getIteratorNum() - tv2.getIteratorNum());
+            else
+                return (resp);
+        }
+    }
 }

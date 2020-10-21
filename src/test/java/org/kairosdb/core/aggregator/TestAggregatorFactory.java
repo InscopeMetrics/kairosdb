@@ -36,69 +36,60 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Feature(
-		name = "aggregators",
-		label = "Test Aggregator"
+        name = "aggregators",
+        label = "Test Aggregator"
 )
-public class TestAggregatorFactory implements FeatureProcessingFactory<Aggregator>
-{
-	private Injector injector;
-	private Map<String, Class<?>> aggregators = new HashMap<>();
+public class TestAggregatorFactory implements FeatureProcessingFactory<Aggregator> {
+    private final Injector injector;
+    private final Map<String, Class<?>> aggregators = new HashMap<>();
 
-	public TestAggregatorFactory() throws KairosDBException
-	{
-		addAggregator(SumAggregator.class);
-		addAggregator(MinAggregator.class);
-		addAggregator(MaxAggregator.class);
-		addAggregator(AvgAggregator.class);
-		addAggregator(StdAggregator.class);
-		addAggregator(PercentileAggregator.class);
-		addAggregator(DivideAggregator.class);
-		addAggregator(FirstAggregator.class);
-		addAggregator(LastAggregator.class);
-		addAggregator(SaveAsAggregator.class);
-		addAggregator(TrimAggregator.class);
+    public TestAggregatorFactory() throws KairosDBException {
+        addAggregator(SumAggregator.class);
+        addAggregator(MinAggregator.class);
+        addAggregator(MaxAggregator.class);
+        addAggregator(AvgAggregator.class);
+        addAggregator(StdAggregator.class);
+        addAggregator(PercentileAggregator.class);
+        addAggregator(DivideAggregator.class);
+        addAggregator(FirstAggregator.class);
+        addAggregator(LastAggregator.class);
+        addAggregator(SaveAsAggregator.class);
+        addAggregator(TrimAggregator.class);
 
-		injector = Guice.createInjector(new AbstractModule()
-		{
-			@Override
-			protected void configure()
-			{
-				bind(DoubleDataPointFactory.class).to(DoubleDataPointFactoryImpl.class);
-				bind(FilterEventBus.class).toInstance(new FilterEventBus(new EventBusConfiguration(new KairosRootConfig())));
+        injector = Guice.createInjector(new AbstractModule() {
+            @Override
+            protected void configure() {
+                bind(DoubleDataPointFactory.class).to(DoubleDataPointFactoryImpl.class);
+                bind(FilterEventBus.class).toInstance(new FilterEventBus(new EventBusConfiguration(new KairosRootConfig())));
 
-				for (Class<?> aggregator : aggregators.values())
-				{
-					bind(aggregator);
-				}
-			}
-		});
-	}
+                for (final Class<?> aggregator : aggregators.values()) {
+                    bind(aggregator);
+                }
+            }
+        });
+    }
 
-	@SuppressWarnings("unchecked")
-	private void addAggregator(Class<?> agg)
-	{
-		String name = agg.getAnnotation(FeatureComponent.class).name();
-		aggregators.put(name, agg);
-	}
+    @SuppressWarnings("unchecked")
+    private void addAggregator(final Class<?> agg) {
+        final String name = agg.getAnnotation(FeatureComponent.class).name();
+        aggregators.put(name, agg);
+    }
 
-	@Override
-	public Aggregator createFeatureProcessor(String name)
-	{
-		Class<?> aggregator = aggregators.get(name);
-		if (aggregator != null)
-				return (Aggregator) injector.getInstance(aggregator);
-		return null;
-	}
+    @Override
+    public Aggregator createFeatureProcessor(final String name) {
+        final Class<?> aggregator = aggregators.get(name);
+        if (aggregator != null)
+            return (Aggregator) injector.getInstance(aggregator);
+        return null;
+    }
 
-	@Override
-	public Class<Aggregator> getFeature()
-	{
-		return Aggregator.class;
-	}
+    @Override
+    public Class<Aggregator> getFeature() {
+        return Aggregator.class;
+    }
 
-	@Override
-	public ImmutableList<FeatureProcessorMetadata> getFeatureProcessorMetadata()
-	{
-		return ImmutableList.copyOf(new FeatureProcessorMetadata[]{});
-	}
+    @Override
+    public ImmutableList<FeatureProcessorMetadata> getFeatureProcessorMetadata() {
+        return ImmutableList.copyOf(new FeatureProcessorMetadata[]{});
+    }
 }

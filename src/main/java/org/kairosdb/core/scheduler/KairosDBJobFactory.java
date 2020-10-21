@@ -23,19 +23,16 @@ import org.quartz.SchedulerException;
 import org.quartz.spi.JobFactory;
 import org.quartz.spi.TriggerFiredBundle;
 
-public class KairosDBJobFactory implements JobFactory
-{
-	private final Injector guice;
+public class KairosDBJobFactory implements JobFactory {
+    private final Injector guice;
 
-	@Inject
-	public KairosDBJobFactory(Injector guice)
-	{
-		this.guice = guice;
-	}
+    @Inject
+    public KairosDBJobFactory(final Injector guice) {
+        this.guice = guice;
+    }
 
-	@Override
-	public Job newJob(TriggerFiredBundle triggerFiredBundle, Scheduler scheduler) throws SchedulerException
-	{
-		return guice.getInstance(triggerFiredBundle.getJobDetail().getJobClass());
-	}
+    @Override
+    public Job newJob(final TriggerFiredBundle triggerFiredBundle, final Scheduler scheduler) throws SchedulerException {
+        return guice.getInstance(triggerFiredBundle.getJobDetail().getJobClass());
+    }
 }

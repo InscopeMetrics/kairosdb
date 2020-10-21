@@ -23,23 +23,21 @@ import org.kairosdb.core.KairosRootConfig;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class OAuthModuleTest
-{
-	@Test
-	public void testReadingProperties()
-	{
-		KairosRootConfig props = new KairosRootConfig();
+public class OAuthModuleTest {
+    @Test
+    public void testReadingProperties() {
+        final KairosRootConfig props = new KairosRootConfig();
 
-		props.load(ImmutableMap.of("kairosdb.oauth.consumer.cust1", "ABC123"));
-		props.load(ImmutableMap.of("kairosdb.oauth.consumerNot.cust1", "XYZ"));
-		props.load(ImmutableMap.of("kairosdb.oauth.consumer.cust2", "EFG789"));
+        props.load(ImmutableMap.of("kairosdb.oauth.consumer.cust1", "ABC123"));
+        props.load(ImmutableMap.of("kairosdb.oauth.consumerNot.cust1", "XYZ"));
+        props.load(ImmutableMap.of("kairosdb.oauth.consumer.cust2", "EFG789"));
 
-		OAuthModule module = new OAuthModule(props);
+        final OAuthModule module = new OAuthModule(props);
 
-		ConsumerTokenStore tokenStore = module.getTokenStore();
+        final ConsumerTokenStore tokenStore = module.getTokenStore();
 
-		assertThat(tokenStore.getConsumerKeys().size(), is(2));
-		assertThat(tokenStore.getToken("cust1"), is("ABC123"));
-		assertThat(tokenStore.getToken("cust2"), is("EFG789"));
-	}
+        assertThat(tokenStore.getConsumerKeys().size(), is(2));
+        assertThat(tokenStore.getToken("cust1"), is("ABC123"));
+        assertThat(tokenStore.getToken("cust2"), is("EFG789"));
+    }
 }

@@ -21,39 +21,33 @@ import org.kairosdb.core.KairosRootConfig;
 
 import javax.inject.Singleton;
 
-public class OAuthModule extends ServletModule
-{
-	public static final String CONSUMER_PREFIX = "kairosdb.oauth.consumer.";
+public class OAuthModule extends ServletModule {
+    public static final String CONSUMER_PREFIX = "kairosdb.oauth.consumer.";
 
-	private ConsumerTokenStore m_tokenStore;
+    private final ConsumerTokenStore m_tokenStore;
 
-	public OAuthModule(KairosRootConfig props)
-	{
-		m_tokenStore = new ConsumerTokenStore();
+    public OAuthModule(final KairosRootConfig props) {
+        m_tokenStore = new ConsumerTokenStore();
 
-		for (String key : props)
-		{
-			if (key.startsWith(CONSUMER_PREFIX))
-			{
-				String consumerKey = key.substring(CONSUMER_PREFIX.length());
-				String consumerToken = props.getProperty(key);
+        for (final String key : props) {
+            if (key.startsWith(CONSUMER_PREFIX)) {
+                final String consumerKey = key.substring(CONSUMER_PREFIX.length());
+                final String consumerToken = props.getProperty(key);
 
-				m_tokenStore.addToken(consumerKey, consumerToken);
-			}
-		}
-	}
+                m_tokenStore.addToken(consumerKey, consumerToken);
+            }
+        }
+    }
 
-	public ConsumerTokenStore getTokenStore()
-	{
-		return (m_tokenStore);
-	}
+    public ConsumerTokenStore getTokenStore() {
+        return (m_tokenStore);
+    }
 
-	@Override
-	protected void configureServlets()
-	{
-		bind(ConsumerTokenStore.class).toInstance(m_tokenStore);
+    @Override
+    protected void configureServlets() {
+        bind(ConsumerTokenStore.class).toInstance(m_tokenStore);
 
-		bind(OAuthFilter.class).in(Singleton.class);
-		filter("/api/*").through(OAuthFilter.class);
-	}
+        bind(OAuthFilter.class).in(Singleton.class);
+        filter("/api/*").through(OAuthFilter.class);
+    }
 }

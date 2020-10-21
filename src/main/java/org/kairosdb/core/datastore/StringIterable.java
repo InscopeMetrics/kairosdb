@@ -15,6 +15,5 @@
  */
 package org.kairosdb.core.datastore;
 
-public abstract class StringIterable implements Iterable<String>
-{
+public abstract class StringIterable implements Iterable<String> {
 }

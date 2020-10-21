@@ -1,7 +1,6 @@
 package org.kairosdb.core.queue;
 
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import org.kairosdb.core.DataPoint;
@@ -11,80 +10,68 @@ import org.kairosdb.util.KDataInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
 import java.io.IOException;
 import java.util.Map;
+import javax.inject.Inject;
 
 /**
- Created by bhawkins on 10/25/16.
+ * Created by bhawkins on 10/25/16.
  */
-public class DataPointEventSerializer
-{
-	public static final Logger logger = LoggerFactory.getLogger(DataPointEventSerializer.class);
+public class DataPointEventSerializer {
+    public static final Logger logger = LoggerFactory.getLogger(DataPointEventSerializer.class);
 
-	private final KairosDataPointFactory m_kairosDataPointFactory;
+    private final KairosDataPointFactory m_kairosDataPointFactory;
 
-	@Inject
-	public DataPointEventSerializer(KairosDataPointFactory kairosDataPointFactory)
-	{
-		m_kairosDataPointFactory = kairosDataPointFactory;
-	}
+    @Inject
+    public DataPointEventSerializer(final KairosDataPointFactory kairosDataPointFactory) {
+        m_kairosDataPointFactory = kairosDataPointFactory;
+    }
 
-	public byte[] serializeEvent(DataPointEvent dataPointEvent)
-	{
-		//Todo: Create some adaptive value here, keep stats on if the buffer increases and slowely increase it
-		ByteArrayDataOutput dataOutput = ByteStreams.newDataOutput(64);
-		dataOutput.writeUTF(dataPointEvent.getMetricName());
-		dataOutput.writeInt(dataPointEvent.getTtl());
-		dataOutput.writeLong(dataPointEvent.getDataPoint().getTimestamp());
-		dataOutput.writeUTF(dataPointEvent.getDataPoint().getDataStoreDataType());
-		try
-		{
-			dataPointEvent.getDataPoint().writeValueToBuffer(dataOutput);
-		}
-		catch (IOException e)
-		{
-			logger.error("Error serializing DataPoint", e);
-		}
+    public byte[] serializeEvent(final DataPointEvent dataPointEvent) {
+        //Todo: Create some adaptive value here, keep stats on if the buffer increases and slowely increase it
+        final ByteArrayDataOutput dataOutput = ByteStreams.newDataOutput(64);
+        dataOutput.writeUTF(dataPointEvent.getMetricName());
+        dataOutput.writeInt(dataPointEvent.getTtl());
+        dataOutput.writeLong(dataPointEvent.getDataPoint().getTimestamp());
+        dataOutput.writeUTF(dataPointEvent.getDataPoint().getDataStoreDataType());
+        try {
+            dataPointEvent.getDataPoint().writeValueToBuffer(dataOutput);
+        } catch (final IOException e) {
+            logger.error("Error serializing DataPoint", e);
+        }
 
-		dataOutput.writeInt(dataPointEvent.getTags().size());
-		for (Map.Entry<String, String> entry : dataPointEvent.getTags().entrySet())
-		{
-			dataOutput.writeUTF(entry.getKey());
-			dataOutput.writeUTF(entry.getValue());
-		}
+        dataOutput.writeInt(dataPointEvent.getTags().size());
+        for (final Map.Entry<String, String> entry : dataPointEvent.getTags().entrySet()) {
+            dataOutput.writeUTF(entry.getKey());
+            dataOutput.writeUTF(entry.getValue());
+        }
 
-		return dataOutput.toByteArray();
-	}
+        return dataOutput.toByteArray();
+    }
 
-	DataPointEvent deserializeEvent(byte[] bytes)
-	{
-		DataPointEvent ret = null;
-		try
-		{
-			KDataInput dataInput = KDataInput.createInput(bytes);
-			String metricName = dataInput.readUTF();
-			int ttl = dataInput.readInt();
-			long timestamp = dataInput.readLong();
-			String storeType = dataInput.readUTF();
+    DataPointEvent deserializeEvent(final byte[] bytes) {
+        DataPointEvent ret = null;
+        try {
+            final KDataInput dataInput = KDataInput.createInput(bytes);
+            final String metricName = dataInput.readUTF();
+            final int ttl = dataInput.readInt();
+            final long timestamp = dataInput.readLong();
+            final String storeType = dataInput.readUTF();
 
-			DataPoint dataPoint = m_kairosDataPointFactory.createDataPoint(storeType, timestamp, dataInput);
+            final DataPoint dataPoint = m_kairosDataPointFactory.createDataPoint(storeType, timestamp, dataInput);
 
-			int tagCount = dataInput.readInt();
-			ImmutableSortedMap.Builder<String, String> builder = ImmutableSortedMap.naturalOrder();
-			for (int I = 0; I < tagCount; I++)
-			{
-				builder.put(dataInput.readUTF(), dataInput.readUTF());
-			}
+            final int tagCount = dataInput.readInt();
+            final ImmutableSortedMap.Builder<String, String> builder = ImmutableSortedMap.naturalOrder();
+            for (int I = 0; I < tagCount; I++) {
+                builder.put(dataInput.readUTF(), dataInput.readUTF());
+            }
 
-			ret = new DataPointEvent(metricName, builder.build(), dataPoint, ttl);
+            ret = new DataPointEvent(metricName, builder.build(), dataPoint, ttl);
 
-		}
-		catch (IOException | IllegalStateException e)
-		{
-			logger.error("Unable to deserialize event", e);
-		}
+        } catch (final IOException | IllegalStateException e) {
+            logger.error("Unable to deserialize event", e);
+        }
 
-		return ret;
-	}
+        return ret;
+    }
 }

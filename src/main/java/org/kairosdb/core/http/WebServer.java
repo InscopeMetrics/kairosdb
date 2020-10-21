@@ -49,246 +49,225 @@ import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
 
 
-public class WebServer implements KairosDBService
-{
-	public static final Logger logger = LoggerFactory.getLogger(WebServer.class);
+public class WebServer implements KairosDBService {
+    public static final Logger logger = LoggerFactory.getLogger(WebServer.class);
 
-	public static final String JETTY_ADDRESS_PROPERTY = "kairosdb.jetty.address";
-	public static final String JETTY_PORT_PROPERTY = "kairosdb.jetty.port";
-	public static final String JETTY_WEB_ROOT_PROPERTY = "kairosdb.jetty.static_web_root";
-	public static final String JETTY_AUTH_USER_PROPERTY = "kairosdb.jetty.basic_auth.user";
-	public static final String JETTY_AUTH_PASSWORD_PROPERTY = "kairosdb.jetty.basic_auth.password";
-	public static final String JETTY_SSL_PORT = "kairosdb.jetty.ssl.port";
-	public static final String JETTY_SSL_PROTOCOLS = "kairosdb.jetty.ssl.protocols";
-	public static final String JETTY_SSL_CIPHER_SUITES = "kairosdb.jetty.ssl.cipherSuites";
-	public static final String JETTY_SSL_KEYSTORE_PATH = "kairosdb.jetty.ssl.keystore.path";
-	public static final String JETTY_SSL_KEYSTORE_PASSWORD = "kairosdb.jetty.ssl.keystore.password";
-	public static final String JETTY_THREADS_QUEUE_SIZE_PROPERTY = "kairosdb.jetty.threads.queue_size";
-	public static final String JETTY_THREADS_MIN_PROPERTY = "kairosdb.jetty.threads.min";
-	public static final String JETTY_THREADS_MAX_PROPERTY = "kairosdb.jetty.threads.max";
-	public static final String JETTY_THREADS_KEEP_ALIVE_MS_PROPERTY = "kairosdb.jetty.threads.keep_alive_ms";
-	public static final String JETTY_SHOW_STACKTRACE = "kairosdb.jetty.show_stacktrace";
+    public static final String JETTY_ADDRESS_PROPERTY = "kairosdb.jetty.address";
+    public static final String JETTY_PORT_PROPERTY = "kairosdb.jetty.port";
+    public static final String JETTY_WEB_ROOT_PROPERTY = "kairosdb.jetty.static_web_root";
+    public static final String JETTY_AUTH_USER_PROPERTY = "kairosdb.jetty.basic_auth.user";
+    public static final String JETTY_AUTH_PASSWORD_PROPERTY = "kairosdb.jetty.basic_auth.password";
+    public static final String JETTY_SSL_PORT = "kairosdb.jetty.ssl.port";
+    public static final String JETTY_SSL_PROTOCOLS = "kairosdb.jetty.ssl.protocols";
+    public static final String JETTY_SSL_CIPHER_SUITES = "kairosdb.jetty.ssl.cipherSuites";
+    public static final String JETTY_SSL_KEYSTORE_PATH = "kairosdb.jetty.ssl.keystore.path";
+    public static final String JETTY_SSL_KEYSTORE_PASSWORD = "kairosdb.jetty.ssl.keystore.password";
+    public static final String JETTY_THREADS_QUEUE_SIZE_PROPERTY = "kairosdb.jetty.threads.queue_size";
+    public static final String JETTY_THREADS_MIN_PROPERTY = "kairosdb.jetty.threads.min";
+    public static final String JETTY_THREADS_MAX_PROPERTY = "kairosdb.jetty.threads.max";
+    public static final String JETTY_THREADS_KEEP_ALIVE_MS_PROPERTY = "kairosdb.jetty.threads.keep_alive_ms";
+    public static final String JETTY_SHOW_STACKTRACE = "kairosdb.jetty.show_stacktrace";
 
-	private InetAddress m_address;
-	private int m_port;
-	private String m_webRoot;
-	private Server m_server;
-	private String m_authUser = null;
-	private String m_authPassword = null;
-	private int m_sslPort;
-	private String[] m_cipherSuites;
-	private String[] m_protocols;
-	private String m_keyStorePath;
-	private String m_keyStorePassword;
-	private ExecutorThreadPool m_pool;
-	private boolean m_showStacktrace;
+    private final InetAddress m_address;
+    private final int m_port;
+    private final String m_webRoot;
+    private Server m_server;
+    private String m_authUser = null;
+    private String m_authPassword = null;
+    private int m_sslPort;
+    private String[] m_cipherSuites;
+    private String[] m_protocols;
+    private String m_keyStorePath;
+    private String m_keyStorePassword;
+    private ExecutorThreadPool m_pool;
+    private boolean m_showStacktrace;
+
+    public WebServer(final int port, final String webRoot)
+            throws UnknownHostException {
+        this(null, port, webRoot);
+    }
+
+    @Inject
+    public WebServer(
+            @Named(JETTY_ADDRESS_PROPERTY) final String address,
+            @Named(JETTY_PORT_PROPERTY) final int port,
+            @Named(JETTY_WEB_ROOT_PROPERTY) final String webRoot)
+            throws UnknownHostException {
+        checkNotNull(webRoot);
+
+        m_port = port;
+        m_webRoot = webRoot;
+        m_address = InetAddress.getByName(address);
+    }
+
+    private static SecurityHandler basicAuth(String username, String password, String realm) {
+
+        UserStore userStore = new UserStore();
+        userStore.addUser(username, Credential.getCredential(password), new String[]{"user"});
+        HashLoginService l = new HashLoginService();
+        l.setUserStore(userStore);
+        l.setName(realm);
+
+        Constraint constraint = new Constraint();
+        constraint.setName(Constraint.__BASIC_AUTH);
+        constraint.setRoles(new String[]{"user"});
+        constraint.setAuthenticate(true);
+
+        Constraint noConstraint = new Constraint();
+
+        ConstraintMapping healthcheckConstraintMapping = new ConstraintMapping();
+        healthcheckConstraintMapping.setConstraint(noConstraint);
+        healthcheckConstraintMapping.setPathSpec("/api/v1/health/check");
+
+        ConstraintMapping cm = new ConstraintMapping();
+        cm.setConstraint(constraint);
+        cm.setPathSpec("/*");
+
+        ConstraintSecurityHandler csh = new ConstraintSecurityHandler();
+        csh.setAuthenticator(new BasicAuthenticator());
+        csh.setRealmName("myrealm");
+        csh.addConstraintMapping(healthcheckConstraintMapping);
+        csh.addConstraintMapping(cm);
+        csh.setLoginService(l);
+
+        return csh;
+
+    }
+
+    @Inject(optional = true)
+    public void setAuthCredentials(@Named(JETTY_AUTH_USER_PROPERTY) final String user,
+                                   @Named(JETTY_AUTH_PASSWORD_PROPERTY) final String password) {
+        m_authUser = user;
+        m_authPassword = password;
+    }
+
+    @Inject(optional = true)
+    public void setSSLSettings(@Named(JETTY_SSL_PORT) final int sslPort,
+                               @Named(JETTY_SSL_KEYSTORE_PATH) final String keyStorePath,
+                               @Named(JETTY_SSL_KEYSTORE_PASSWORD) final String keyStorePassword) {
+        m_sslPort = sslPort;
+        m_keyStorePath = checkNotNullOrEmpty(keyStorePath);
+        m_keyStorePassword = checkNotNullOrEmpty(keyStorePassword);
+    }
+
+    @Inject(optional = true)
+    public void setSSLCipherSuites(@Named(JETTY_SSL_CIPHER_SUITES) final String cipherSuites) {
+        checkNotNull(cipherSuites);
+        m_cipherSuites = cipherSuites.split("\\s*,\\s*");
+    }
+
+    @Inject(optional = true)
+    public void setSSLProtocols(@Named(JETTY_SSL_PROTOCOLS) final String protocols) {
+        m_protocols = protocols.split("\\s*,\\s*");
+    }
+
+    @Inject(optional = true)
+    public void setThreadPool(@Named(JETTY_THREADS_QUEUE_SIZE_PROPERTY) final int maxQueueSize,
+                              @Named(JETTY_THREADS_MIN_PROPERTY) final int minThreads,
+                              @Named(JETTY_THREADS_MAX_PROPERTY) final int maxThreads,
+                              @Named(JETTY_THREADS_KEEP_ALIVE_MS_PROPERTY) final long keepAliveMs) {
+        final LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(maxQueueSize);
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(minThreads, maxThreads, keepAliveMs, TimeUnit.MILLISECONDS, queue);
+    m_pool = new ExecutorThreadPool(threadPoolExecutor);
+    }
+
+    @Inject
+    public void setJettyShowStacktrace(@Named(JETTY_SHOW_STACKTRACE) boolean showStacktrace) {
+        m_showStacktrace = showStacktrace;
+    }
+
+    @Override
+    public void start() throws KairosDBException {
+        try {
+            if (m_pool != null)
+                m_server = new Server(m_pool);
+            else
+                m_server = new Server();
 
 
-	public WebServer(int port, String webRoot)
-			throws UnknownHostException
-	{
-		this(null, port, webRoot);
-	}
 
-	@Inject
-	public WebServer(@Named(JETTY_ADDRESS_PROPERTY) String address,
-			@Named(JETTY_PORT_PROPERTY) int port,
-			@Named(JETTY_WEB_ROOT_PROPERTY) String webRoot)
-			throws UnknownHostException
-	{
-		checkNotNull(webRoot);
+            //Error handler
+            ErrorHandler errorHandler = new ErrorHandler();
+            errorHandler.setShowStacks(m_showStacktrace);
+            m_server.addBean(errorHandler);
 
-		m_port = port;
-		m_webRoot = webRoot;
-		m_address = InetAddress.getByName(address);
-	}
+            if (m_port > 0)
+            {
+                ServerConnector http = new ServerConnector(m_server);
+                http.setHost(m_address.getHostName());
+                http.setPort(m_port);
+                m_server.addConnector(http);
+            }
+            if (m_keyStorePath != null && !m_keyStorePath.isEmpty()) {
+                logger.info("Using SSL");HttpConfiguration httpConfig = new HttpConfiguration();
+                httpConfig.setSecureScheme("https");
+                httpConfig.setSecurePort(m_sslPort);
+                httpConfig.addCustomizer(new SecureRequestCustomizer());
+                final SslContextFactory sslContextFactory = new SslContextFactory();
+                sslContextFactory.setKeyStorePath(m_keyStorePath);
+                sslContextFactory.setKeyStorePassword(m_keyStorePassword);
 
-	@Inject(optional = true)
-	public void setAuthCredentials(@Named(JETTY_AUTH_USER_PROPERTY) String user,
-	                               @Named(JETTY_AUTH_PASSWORD_PROPERTY) String password)
-	{
-		m_authUser = user;
-		m_authPassword = password;
-	}
+                if (m_cipherSuites != null && m_cipherSuites.length > 0)
+                    sslContextFactory.setIncludeCipherSuites(m_cipherSuites);
 
-	@Inject(optional = true)
-	public void setSSLSettings(@Named(JETTY_SSL_PORT) int sslPort,
-	                           @Named(JETTY_SSL_KEYSTORE_PATH) String keyStorePath,
-	                           @Named(JETTY_SSL_KEYSTORE_PASSWORD) String keyStorePassword)
-	{
-		m_sslPort = sslPort;
-		m_keyStorePath = checkNotNullOrEmpty(keyStorePath);
-		m_keyStorePassword = checkNotNullOrEmpty(keyStorePassword);
-	}
+                if (m_protocols != null && m_protocols.length > 0)
+                    sslContextFactory.setIncludeProtocols(m_protocols);
 
-	@Inject(optional = true)
-	public void setSSLCipherSuites(@Named(JETTY_SSL_CIPHER_SUITES) String cipherSuites)
-	{
-		checkNotNull(cipherSuites);
-		m_cipherSuites = cipherSuites.split("\\s*,\\s*");
-	}
+                ServerConnector https = new ServerConnector(m_server, new SslConnectionFactory(sslContextFactory,"http/1.1"), new HttpConnectionFactory(httpConfig));
 
-	@Inject(optional = true)
-	public void setSSLProtocols(@Named(JETTY_SSL_PROTOCOLS) String protocols)
-	{
-		m_protocols = protocols.split("\\s*,\\s*");
-	}
+                https.setPort(m_sslPort);
+                m_server.addConnector(https);
+            }
 
-	@Inject(optional = true)
-	public void setThreadPool(@Named(JETTY_THREADS_QUEUE_SIZE_PROPERTY) int maxQueueSize,
-	                            @Named(JETTY_THREADS_MIN_PROPERTY) int minThreads,
-	                            @Named(JETTY_THREADS_MAX_PROPERTY) int maxThreads,
-	                            @Named(JETTY_THREADS_KEEP_ALIVE_MS_PROPERTY) long keepAliveMs)
-	{
-		LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(maxQueueSize);
-		ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(minThreads, maxThreads, keepAliveMs, TimeUnit.MILLISECONDS, queue);
-		m_pool = new ExecutorThreadPool(threadPoolExecutor);
-	}
+            final ServletContextHandler servletContextHandler =
+                    new ServletContextHandler();//As of Jetty 9.4 the default alias checker allows symbolic links
 
-	@Inject
-	public void setJettyShowStacktrace(@Named(JETTY_SHOW_STACKTRACE) boolean showStacktrace) {
-		m_showStacktrace = showStacktrace;
-	}
+            //Turn on basic auth if the user was specified
+            if (m_authUser != null) {
+                servletContextHandler.setSecurityHandler(basicAuth(m_authUser, m_authPassword, "kairos"));
+                servletContextHandler.setContextPath("/");
+            }
 
-	@Override
-	public void start() throws KairosDBException
-	{
-		try
-		{
-			if (m_pool != null)
-				m_server = new Server(m_pool);
-			else
-				m_server = new Server();
+            servletContextHandler.addFilter(GuiceFilter.class, "/api/*", null);
+            servletContextHandler.addServlet(DefaultServlet.class, "/api/*");
+            ServletHolder servletHolder = new ServletHolder("static", DefaultServlet.class);
+            servletHolder.setInitParameter("resourceBase",m_webRoot);
+            servletHolder.setInitParameter("dirAllowed","true");
+            servletContextHandler.addServlet(servletHolder,"/");
+            servletContextHandler.setWelcomeFiles(new String[]{"index.html"});
 
-			//Error handler
-			ErrorHandler errorHandler = new ErrorHandler();
-			errorHandler.setShowStacks(m_showStacktrace);
-			m_server.addBean(errorHandler);
+            //adding gzip handler
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setIncludedMimeTypes("application/json");
+            gzipHandler.addIncludedMethods("GET","POST");
+            gzipHandler.setIncludedPaths("/*");
 
-			if (m_port > 0)
-			{
-				ServerConnector http = new ServerConnector(m_server);
-				http.setHost(m_address.getHostName());
-				http.setPort(m_port);
-				m_server.addConnector(http);
-			}
+            //chain handlers
+            gzipHandler.setHandler(servletContextHandler);
 
-			if (m_keyStorePath != null && !m_keyStorePath.isEmpty())
-			{
-				logger.info("Using SSL");
-				HttpConfiguration httpConfig = new HttpConfiguration();
-				httpConfig.setSecureScheme("https");
-				httpConfig.setSecurePort(m_sslPort);
-				httpConfig.addCustomizer(new SecureRequestCustomizer());
-				SslContextFactory sslContextFactory = new SslContextFactory();
-				sslContextFactory.setKeyStorePath(m_keyStorePath);
-				sslContextFactory.setKeyStorePassword(m_keyStorePassword);
+            final HandlerList handlers = new HandlerList();
+            handlers.setHandlers(new Handler[]{gzipHandler, new DefaultHandler()}); //DefaultHandler only called if other handlers aren't called.
+            m_server.setHandler(handlers);
 
-				if (m_cipherSuites != null && m_cipherSuites.length > 0)
-					sslContextFactory.setIncludeCipherSuites(m_cipherSuites);
+            m_server.start();
+        } catch (final Exception e) {
+            throw new KairosDBException(e);
+        }
+    }
 
-				if (m_protocols != null && m_protocols.length > 0)
-					sslContextFactory.setIncludeProtocols(m_protocols);
+    @Override
+    public void stop() {
+        try {
+            if (m_server != null) {
+                m_server.stop();
+                m_server.join();
+            }
+        } catch (final Exception e) {
+            logger.error("Error stopping web server", e);
+        }
+    }
 
-				ServerConnector https = new ServerConnector(m_server, new SslConnectionFactory(sslContextFactory,"http/1.1"), new HttpConnectionFactory(httpConfig));
-
-				https.setPort(m_sslPort);
-				m_server.addConnector(https);
-			}
-
-			ServletContextHandler servletContextHandler = new ServletContextHandler();
-			//As of Jetty 9.4 the default alias checker allows symbolic links
-
-			//Turn on basic auth if the user was specified
-			if (m_authUser != null)
-			{
-				servletContextHandler.setSecurityHandler(basicAuth(m_authUser, m_authPassword, "kairos"));
-				servletContextHandler.setContextPath("/");
-			}
-
-			servletContextHandler.addFilter(GuiceFilter.class, "/api/*", null);
-			servletContextHandler.addServlet(DefaultServlet.class, "/api/*");
-			ServletHolder servletHolder = new ServletHolder("static", DefaultServlet.class);
-			servletHolder.setInitParameter("resourceBase",m_webRoot);
-			servletHolder.setInitParameter("dirAllowed","true");
-			servletContextHandler.addServlet(servletHolder,"/");
-			servletContextHandler.setWelcomeFiles(new String[]{"index.html"});
-
-			//adding gzip handler
-			GzipHandler gzipHandler = new GzipHandler();
-			gzipHandler.setIncludedMimeTypes("application/json");
-			gzipHandler.addIncludedMethods("GET","POST");
-			gzipHandler.setIncludedPaths("/*");
-
-			//chain handlers
-			gzipHandler.setHandler(servletContextHandler);
-
-			HandlerList handlers = new HandlerList();
-			handlers.setHandlers(new Handler[]{gzipHandler, new DefaultHandler()}); //DefaultHandler only called if other handlers aren't called.
-			m_server.setHandler(handlers);
-
-			m_server.start();
-		}
-		catch (Exception e)
-		{
-			throw new KairosDBException(e);
-		}
-	}
-
-	@Override
-	public void stop()
-	{
-		try
-		{
-			if (m_server != null)
-			{
-				m_server.stop();
-				m_server.join();
-			}
-		}
-		catch (Exception e)
-		{
-			logger.error("Error stopping web server", e);
-		}
-	}
-
-	public InetAddress getAddress()
-	{
-		return m_address;
-	}
-
-	private static SecurityHandler basicAuth(String username, String password, String realm)
-	{
-
-		UserStore userStore = new UserStore();
-		userStore.addUser(username, Credential.getCredential(password), new String[]{"user"});
-		HashLoginService l = new HashLoginService();
-		l.setUserStore(userStore);
-		l.setName(realm);
-
-		Constraint constraint = new Constraint();
-		constraint.setName(Constraint.__BASIC_AUTH);
-		constraint.setRoles(new String[]{"user"});
-		constraint.setAuthenticate(true);
-
-		Constraint noConstraint = new Constraint();
-
-		ConstraintMapping healthcheckConstraintMapping = new ConstraintMapping();
-		healthcheckConstraintMapping.setConstraint(noConstraint);
-		healthcheckConstraintMapping.setPathSpec("/api/v1/health/check");
-
-		ConstraintMapping cm = new ConstraintMapping();
-		cm.setConstraint(constraint);
-		cm.setPathSpec("/*");
-
-		ConstraintSecurityHandler csh = new ConstraintSecurityHandler();
-		csh.setAuthenticator(new BasicAuthenticator());
-		csh.setRealmName("myrealm");
-		csh.addConstraintMapping(healthcheckConstraintMapping);
-		csh.addConstraintMapping(cm);
-		csh.setLoginService(l);
-
-		return csh;
-
-	}
+    public InetAddress getAddress() {
+        return m_address;
+    }
 }

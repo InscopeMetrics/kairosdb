@@ -20,23 +20,19 @@ package org.kairosdb.core.aggregator;
 import org.kairosdb.core.datastore.Duration;
 import org.kairosdb.core.datastore.TimeUnit;
 
-public class Sampling extends Duration
-{
-	public Sampling()
-	{
-		super();
-	}
+public class Sampling extends Duration {
+    public Sampling() {
+        super();
+    }
 
-	public Sampling(int value, TimeUnit unit)
-	{
-		super(value, unit);
-	}
+    public Sampling(final int value, final TimeUnit unit) {
+        super(value, unit);
+    }
 
 
-	@Override
-	public String toString()
-	{
-		return "Sampling{" +
-				"} " + super.toString();
-	}
+    @Override
+    public String toString() {
+        return "Sampling{" +
+                "} " + super.toString();
+    }
 }

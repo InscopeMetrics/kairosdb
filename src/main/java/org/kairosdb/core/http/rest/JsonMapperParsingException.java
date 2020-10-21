@@ -20,26 +20,23 @@ import java.io.IOException;
 /**
  * Wraps JsonProcessingExceptions to provide more information about parsing errors.
  */
-public class JsonMapperParsingException extends IOException
-{
-	private static final long serialVersionUID = -451714144157806559L;
+public class JsonMapperParsingException extends IOException {
+    private static final long serialVersionUID = -451714144157806559L;
 
-	private Class<?> type;
+    private final Class<?> type;
 
-	public JsonMapperParsingException(Class<?> type, Throwable cause)
-	{
-		super(String.format("Invalid json for Java type %s", type.getSimpleName()), cause);
+    public JsonMapperParsingException(final Class<?> type, final Throwable cause) {
+        super(String.format("Invalid json for Java type %s", type.getSimpleName()), cause);
 
-		this.type = type;
-	}
+        this.type = type;
+    }
 
-	/**
-	 * Returns the type of object that failed Json parsing.
-	 *
-	 * @return object type of object that failed Json parsing
-	 */
-	public Class<?> getType()
-	{
-		return type;
-	}
+    /**
+     * Returns the type of object that failed Json parsing.
+     *
+     * @return object type of object that failed Json parsing
+     */
+    public Class<?> getType() {
+        return type;
+    }
 }

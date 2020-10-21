@@ -12,37 +12,30 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class DatastoreQueryHealthCheck extends HealthCheck implements HealthStatus
-{
-	static final String NAME = "Datastore-Query";
-	private final KairosDatastore datastore;
+public class DatastoreQueryHealthCheck extends HealthCheck implements HealthStatus {
+    static final String NAME = "Datastore-Query";
+    private final KairosDatastore datastore;
 
-	@Inject
-	public DatastoreQueryHealthCheck(KairosDatastore datastore)
-	{
-		this.datastore = checkNotNull(datastore);
-	}
+    @Inject
+    public DatastoreQueryHealthCheck(final KairosDatastore datastore) {
+        this.datastore = checkNotNull(datastore);
+    }
 
-	@Override
-	public String getName()
-	{
-		return NAME;
-	}
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
-	@Override
-	protected Result check() throws Exception
-	{
-		// TODO(ville): Make the query configurable
-		try (DatastoreQuery query = datastore.createQuery(
-				new QueryMetric(System.currentTimeMillis() - (10 * 60 * 1000),
-						0, "jvm/threads/thread_count")))
-		{
-			List<DataPointGroup> results = query.execute();
-			return Result.healthy();
-		}
-		catch (DatastoreException e)
-		{
-			return Result.unhealthy(e);
-		}
-	}
+    @Override
+    protected Result check() throws Exception {
+        // TODO(ville): Make the query configurable
+        try (final DatastoreQuery query = datastore.createQuery(
+                new QueryMetric(System.currentTimeMillis() - (10 * 60 * 1000),
+                        0, "jvm/threads/thread_count"))) {
+            final List<DataPointGroup> results = query.execute();
+            return Result.healthy();
+        } catch (final DatastoreException e) {
+            return Result.unhealthy(e);
+        }
+    }
 }

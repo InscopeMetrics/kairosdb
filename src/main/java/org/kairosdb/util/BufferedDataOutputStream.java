@@ -1,70 +1,63 @@
 package org.kairosdb.util;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 /**
- Created by bhawkins on 12/10/13.
+ * Created by bhawkins on 12/10/13.
  */
-public class BufferedDataOutputStream extends DataOutputStream
-{
-	private WrappedOutputStream m_wrappedOutputStream;
+public class BufferedDataOutputStream extends DataOutputStream {
+    private WrappedOutputStream m_wrappedOutputStream;
 
-	public static BufferedDataOutputStream create(RandomAccessFile file, long startPosition)
-	{
-		WrappedOutputStream outputStream = new WrappedOutputStream(file, startPosition);
-		BufferedDataOutputStream ret = new BufferedDataOutputStream(outputStream);
-		ret.setWrappedOutputStream(outputStream);
+    private BufferedDataOutputStream(final WrappedOutputStream outputStream) {
+        super(new BufferedOutputStream(outputStream));
+    }
 
-		return ret;
-	}
+    public static BufferedDataOutputStream create(final RandomAccessFile file, final long startPosition) {
+        final WrappedOutputStream outputStream = new WrappedOutputStream(file, startPosition);
+        final BufferedDataOutputStream ret = new BufferedDataOutputStream(outputStream);
+        ret.setWrappedOutputStream(outputStream);
 
-	private BufferedDataOutputStream(WrappedOutputStream outputStream)
-	{
-		super(new BufferedOutputStream(outputStream));
-	}
+        return ret;
+    }
 
-	private void setWrappedOutputStream(WrappedOutputStream outputStream)
-	{
-		m_wrappedOutputStream = outputStream;
-	}
+    private void setWrappedOutputStream(final WrappedOutputStream outputStream) {
+        m_wrappedOutputStream = outputStream;
+    }
 
-	public long getPosition()
-	{
-		return m_wrappedOutputStream.getPosition();
-	}
+    public long getPosition() {
+        return m_wrappedOutputStream.getPosition();
+    }
 
-	private static class WrappedOutputStream extends OutputStream
-	{
-		private FileChannel m_file;
-		private long m_position;
+    private static class WrappedOutputStream extends OutputStream {
+        private final FileChannel m_file;
+        private long m_position;
 
-		public WrappedOutputStream(RandomAccessFile file, long startPosition)
-		{
-			m_file = file.getChannel();
-			m_position = startPosition;
-		}
+        public WrappedOutputStream(final RandomAccessFile file, final long startPosition) {
+            m_file = file.getChannel();
+            m_position = startPosition;
+        }
 
-		public long getPosition()
-		{
-			return m_position;
-		}
+        public long getPosition() {
+            return m_position;
+        }
 
-		@Override
-		public void write(int b) throws IOException
-		{
-		}
+        @Override
+        public void write(final int b) throws IOException {
+        }
 
-		@Override
-		public void write(byte[] src, int offset, int length) throws IOException
-		{
-			ByteBuffer buffer = ByteBuffer.wrap(src, offset, length);
-			while (buffer.hasRemaining())
-			{
-				int written = m_file.write(buffer, m_position);
-				m_position += written;
-			}
-		}
-	}
+        @Override
+        public void write(final byte[] src, final int offset, final int length) throws IOException {
+            final ByteBuffer buffer = ByteBuffer.wrap(src, offset, length);
+            while (buffer.hasRemaining()) {
+                final int written = m_file.write(buffer, m_position);
+                m_position += written;
+            }
+        }
+    }
 }

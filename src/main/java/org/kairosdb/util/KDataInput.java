@@ -6,21 +6,17 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- Created by bhawkins on 12/10/13.
+ * Created by bhawkins on 12/10/13.
  */
-public interface KDataInput extends DataInput
-{
-	public static KDataInput createInput(byte[] buf)
-	{
-		return (new KDataInputStream(new ByteArrayInputStream(buf)));
-	}
+public interface KDataInput extends DataInput {
+    static KDataInput createInput(byte[] buf) {
+        return (new KDataInputStream(new ByteArrayInputStream(buf)));
+    }
 
-	public static KDataInput createInput(ByteBuffer buf)
-	{
-		return new ByteBufferDataInput(buf);
-	}
+    static KDataInput createInput(final ByteBuffer buf) {
+        return new ByteBufferDataInput(buf);
+    }
 
-	public int read(byte[] b) throws IOException;
-
+    int read(byte[] b) throws IOException;
 
 }

@@ -24,7 +24,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.kairosdb.core.KairosFeatureProcessor;
 import org.kairosdb.core.KairosRootConfig;
-import org.kairosdb.core.aggregator.*;
+import org.kairosdb.core.aggregator.Sampling;
+import org.kairosdb.core.aggregator.SaveAsAggregator;
+import org.kairosdb.core.aggregator.SumAggregator;
+import org.kairosdb.core.aggregator.TestAggregatorFactory;
+import org.kairosdb.core.aggregator.TrimAggregator;
 import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
 import org.kairosdb.core.datastore.Duration;
 import org.kairosdb.core.datastore.QueryMetric;
@@ -44,7 +48,9 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
 
 public class QueryParserTest

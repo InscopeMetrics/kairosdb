@@ -15,17 +15,14 @@
  */
 package org.kairosdb.core.exception;
 
-public class UnknownAggregator extends DatastoreException
-{
-	private static final long serialVersionUID = -7275801555902180106L;
+public class UnknownAggregator extends DatastoreException {
+    private static final long serialVersionUID = -7275801555902180106L;
 
-	public UnknownAggregator(String message)
-	{
-		super(message);
-	}
+    public UnknownAggregator(final String message) {
+        super(message);
+    }
 
-	public UnknownAggregator(String message, Throwable cause)
-	{
-		super(message, cause);
-	}
+    public UnknownAggregator(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

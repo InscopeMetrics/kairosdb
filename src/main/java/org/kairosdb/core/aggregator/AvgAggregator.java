@@ -25,61 +25,50 @@ import java.util.Collections;
 import java.util.Iterator;
 
 /**
- * Converts all longs to double. This will cause a loss of precision for very large long values.
+ * Converts all longs to double. This will cause a loss of precision for very
+ * large long values.
  */
 @FeatureComponent(
-		name = "avg",
-		label = "AVG",
-		description = "Averages the data points together."
-)
-public class AvgAggregator extends RangeAggregator
-{
-	DoubleDataPointFactory m_dataPointFactory;
+        name = "avg",
+        label = "AVG",
+        description = "Averages the data points together.")
+public class AvgAggregator extends RangeAggregator {
+    DoubleDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public AvgAggregator(DoubleDataPointFactory dataPointFactory) throws KairosDBException
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public AvgAggregator(final DoubleDataPointFactory dataPointFactory) throws KairosDBException {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new AvgDataPointAggregator());
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new AvgDataPointAggregator());
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	private class AvgDataPointAggregator implements RangeSubAggregator
-	{
+    private class AvgDataPointAggregator implements RangeSubAggregator {
 
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			int count = 0;
-			double sum = 0;
-			while (dataPointRange.hasNext())
-			{
-				DataPoint dp = dataPointRange.next();
-				if (dp.isDouble())
-				{
-					sum += dp.getDoubleValue();
-					count++;
-				}
-			}
-
-			return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, sum / count));
-		}
-	}
-
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            int count = 0;
+            double sum = 0;
+            while (dataPointRange.hasNext()) {
+                DataPoint dp = dataPointRange.next();
+                if (dp.isDouble()) {
+                    sum += dp.getDoubleValue();
+                    count++;
+                }
+            }
+            return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, sum / count));
+        }
+    }
 }

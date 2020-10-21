@@ -8,11 +8,9 @@ import org.kairosdb.plugin.GroupBy;
 
 import java.util.Arrays;
 
-public class KairosFeatureProcessor extends GenericFeatureProcessor
-{
+public class KairosFeatureProcessor extends GenericFeatureProcessor {
     @Inject
-    public KairosFeatureProcessor(FeatureProcessingFactory<Aggregator> aggregatorFactory, FeatureProcessingFactory<GroupBy> groupByFactory)
-    {
+    public KairosFeatureProcessor(final FeatureProcessingFactory<Aggregator> aggregatorFactory, final FeatureProcessingFactory<GroupBy> groupByFactory) {
         super(Arrays.asList(
                 groupByFactory,
                 aggregatorFactory

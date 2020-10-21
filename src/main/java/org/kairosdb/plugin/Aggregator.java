@@ -17,9 +17,10 @@ package org.kairosdb.plugin;
 
 import org.kairosdb.core.datastore.DataPointGroup;
 
-public interface Aggregator
-{
-	DataPointGroup aggregate(DataPointGroup dataPointGroup);
-	boolean canAggregate(String groupType);
-	String getAggregatedGroupType(String groupType);
+public interface Aggregator {
+    DataPointGroup aggregate(DataPointGroup dataPointGroup);
+
+    boolean canAggregate(String groupType);
+
+    String getAggregatedGroupType(String groupType);
 }

@@ -28,46 +28,39 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonResponse
-{
-	private String json;
-	private String statusString;
-	private int statusCode;
-	private Map<String, String> headers = new HashMap<String, String>();
+public class JsonResponse {
+    private String json;
+    private final String statusString;
+    private final int statusCode;
+    private final Map<String, String> headers = new HashMap<String, String>();
 
-	public JsonResponse(HttpResponse response) throws IOException
-	{
-		Header[] allHeaders = response.getAllHeaders();
-		for (Header header : allHeaders)
-		{
-			headers.put(header.getName(), header.getValue());
-		}
+    public JsonResponse(final HttpResponse response) throws IOException {
+        final Header[] allHeaders = response.getAllHeaders();
+        for (final Header header : allHeaders) {
+            headers.put(header.getName(), header.getValue());
+        }
 
-		statusString = response.getStatusLine().getReasonPhrase();
-		statusCode = response.getStatusLine().getStatusCode();
-		HttpEntity entity = response.getEntity();
+        statusString = response.getStatusLine().getReasonPhrase();
+        statusCode = response.getStatusLine().getStatusCode();
+        final HttpEntity entity = response.getEntity();
 
-		if (entity != null)
-			json = CharStreams.toString(new InputStreamReader(entity.getContent(), Charsets.UTF_8));
-	}
+        if (entity != null)
+            json = CharStreams.toString(new InputStreamReader(entity.getContent(), Charsets.UTF_8));
+    }
 
-	public String getJson()
-	{
-		return json;
-	}
+    public String getJson() {
+        return json;
+    }
 
-	public String getStatusString()
-	{
-		return statusString;
-	}
+    public String getStatusString() {
+        return statusString;
+    }
 
-	public int getStatusCode()
-	{
-		return statusCode;
-	}
+    public int getStatusCode() {
+        return statusCode;
+    }
 
-	public String getHeader(String name)
-	{
-		return headers.get(name);
-	}
+    public String getHeader(final String name) {
+        return headers.get(name);
+    }
 }

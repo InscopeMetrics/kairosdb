@@ -4,16 +4,13 @@ import com.google.inject.Inject;
 
 import java.io.File;
 
-public class DiskUtilsImpl implements DiskUtils
-{
-	@Inject
-	public DiskUtilsImpl()
-	{
-	}
+public class DiskUtilsImpl implements DiskUtils {
+    @Inject
+    public DiskUtilsImpl() {
+    }
 
-	@Override
-	public long percentAvailable(File file)
-	{
-		return Math.round(((double) file.getFreeSpace() / file.getTotalSpace()) * 100);
-	}
+    @Override
+    public long percentAvailable(File file) {
+        return Math.round(((double) file.getFreeSpace() / file.getTotalSpace()) * 100);
+    }
 }

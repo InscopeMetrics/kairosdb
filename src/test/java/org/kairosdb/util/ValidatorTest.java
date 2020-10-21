@@ -15,7 +15,11 @@
  */
 package org.kairosdb.util;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import org.junit.Test;
 import org.kairosdb.core.http.rest.json.ValidationErrors;
 
@@ -24,141 +28,117 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-public class ValidatorTest
-{
+public class ValidatorTest {
 
-	@Test
-	public void test_validateNotNullOrEmpty_valid() throws ValidationException
-	{
-		Validator.validateNotNullOrEmpty("name", "the name");
-	}
+    @Test
+    public void test_validateNotNullOrEmpty_valid() throws ValidationException {
+        Validator.validateNotNullOrEmpty("name", "the name");
+    }
 
-	@Test
-	public void test_validateNotNullOrEmpty_empty_invalid() throws ValidationException
-	{
-		try
-		{
-			Validator.validateNotNullOrEmpty("name", "");
-			fail("Expected ValidationException");
-		}
-		catch (ValidationException e)
-		{
-			assertThat(e.getMessage(), equalTo("name may not be empty."));
-		}
-	}
+    @Test
+    public void test_validateNotNullOrEmpty_empty_invalid() throws ValidationException {
+        try {
+            Validator.validateNotNullOrEmpty("name", "");
+            fail("Expected ValidationException");
+        } catch (final ValidationException e) {
+            assertThat(e.getMessage(), equalTo("name may not be empty."));
+        }
+    }
 
-	@Test
-	public void test_validateNotNullOrEmpty_null_invalid() throws ValidationException
-	{
-		try
-		{
-			Validator.validateNotNullOrEmpty("name", null);
-			fail("Expected ValidationException");
-		}
-		catch (ValidationException e)
-		{
-			assertThat(e.getMessage(), equalTo("name may not be null."));
-		}
-	}
+    @Test
+    public void test_validateNotNullOrEmpty_null_invalid() throws ValidationException {
+        try {
+            Validator.validateNotNullOrEmpty("name", null);
+            fail("Expected ValidationException");
+        } catch (final ValidationException e) {
+            assertThat(e.getMessage(), equalTo("name may not be null."));
+        }
+    }
 
-	@Test
-	public void test_validateMin_valid() throws ValidationException
-	{
-		Validator.validateMin("name", 2, 1);
-	}
+    @Test
+    public void test_validateMin_valid() throws ValidationException {
+        Validator.validateMin("name", 2, 1);
+    }
 
-	@Test
-	public void test_validateMin_invalid() throws ValidationException
-	{
-		try
-		{
-			Validator.validateMin("name", 10, 11);
-			fail("Expected ValidationException");
-		}
-		catch (ValidationException e)
-		{
-			assertThat(e.getMessage(), equalTo("name must be greater than or equal to 11."));
-		}
-	}
+    @Test
+    public void test_validateMin_invalid() throws ValidationException {
+        try {
+            Validator.validateMin("name", 10, 11);
+            fail("Expected ValidationException");
+        } catch (final ValidationException e) {
+            assertThat(e.getMessage(), equalTo("name must be greater than or equal to 11."));
+        }
+    }
 
 
-	@Test
-	public void test_isNotNullOrEmpty_string_valid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_string_valid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "name", "the name"), equalTo(true));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "name", "the name"), equalTo(true));
+    }
 
-	@Test
-	public void test_isNotNullOrEmpty_string_invalid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_string_invalid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "name", (String)null), equalTo(false));
-		assertThat(errors.getErrors(), hasItem("name may not be null."));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "name", (String) null), equalTo(false));
+        assertThat(errors.getErrors(), hasItem("name may not be null."));
+    }
 
 
-	@Test
-	public void test_isNotNullOrEmpty_JsonElement_null_value_invalid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_JsonElement_null_value_invalid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "value", (JsonElement)null), equalTo(false));
-		assertThat(errors.getErrors(), hasItem("value may not be null."));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "value", (JsonElement) null), equalTo(false));
+        assertThat(errors.getErrors(), hasItem("value may not be null."));
+    }
 
-	@Test
-	public void test_isNotNullOrEmpty_JsonElement_isJsonNull_value_invalid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_JsonElement_isJsonNull_value_invalid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "value", JsonNull.INSTANCE), equalTo(false));
-		assertThat(errors.getErrors(), hasItem("value may not be empty."));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "value", JsonNull.INSTANCE), equalTo(false));
+        assertThat(errors.getErrors(), hasItem("value may not be empty."));
+    }
 
-	@Test
-	public void test_isNotNullOrEmpty_JsonPrimitive_empty_value_invalid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_JsonPrimitive_empty_value_invalid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "value", new JsonPrimitive("")), equalTo(false));
-		assertThat(errors.getErrors(), hasItem("value may not be empty."));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "value", new JsonPrimitive("")), equalTo(false));
+        assertThat(errors.getErrors(), hasItem("value may not be empty."));
+    }
 
-	@Test
-	public void test_isNotNullOrEmpty_JsonArray_empty_value_invalid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_JsonArray_empty_value_invalid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "value", new JsonArray()), equalTo(false));
-		assertThat(errors.getErrors(), hasItem("value may not be an empty array."));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "value", new JsonArray()), equalTo(false));
+        assertThat(errors.getErrors(), hasItem("value may not be an empty array."));
+    }
 
-	@Test
-	public void test_isNotNullOrEmpty_JsonObject_empty_value_valid()
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isNotNullOrEmpty_JsonObject_empty_value_valid() {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isNotNullOrEmpty(errors, "value", new JsonObject()), equalTo(true));
-		assertThat(errors.getErrors().size(), equalTo(0));
-	}
+        assertThat(Validator.isNotNullOrEmpty(errors, "value", new JsonObject()), equalTo(true));
+        assertThat(errors.getErrors().size(), equalTo(0));
+    }
 
-	@Test
-	public void test_isGreaterThanOrEqualTo_valid() throws ValidationException
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isGreaterThanOrEqualTo_valid() throws ValidationException {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isGreaterThanOrEqualTo(errors, "name", 2, 1), equalTo(true));
-	}
+        assertThat(Validator.isGreaterThanOrEqualTo(errors, "name", 2, 1), equalTo(true));
+    }
 
-	@Test
-	public void test_isGreaterThanOrEqualTo_invalid() throws ValidationException
-	{
-		ValidationErrors errors = new ValidationErrors();
+    @Test
+    public void test_isGreaterThanOrEqualTo_invalid() throws ValidationException {
+        final ValidationErrors errors = new ValidationErrors();
 
-		assertThat(Validator.isGreaterThanOrEqualTo(errors, "name", 10, 11), equalTo(false));
-		assertThat(errors.getErrors(), hasItem("name must be greater than or equal to 11."));
-	}
+        assertThat(Validator.isGreaterThanOrEqualTo(errors, "name", 10, 11), equalTo(false));
+        assertThat(errors.getErrors(), hasItem("name must be greater than or equal to 11."));
+    }
 }

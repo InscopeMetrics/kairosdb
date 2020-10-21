@@ -34,275 +34,246 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class MetricsResourceTest extends ResourceBase
-{
-	private static final String ADD_METRIC_URL = "http://localhost:9001/api/v1/datapoints";
-	private static final String GET_METRIC_URL = "http://localhost:9001/api/v1/datapoints/query";
-	private static final String METRIC_NAMES_URL = "http://localhost:9001/api/v1/metricnames";
-	private static final String TAG_NAMES_URL = "http://localhost:9001/api/v1/tagnames";
-	private static final String TAG_VALUES_URL = "http://localhost:9001/api/v1/tagvalues";
-	private static final String DELETE_DATAPOINTS_URL = "http://localhost:9001/api/v1/datapoints/delete";
-	private static final String DELETE_METRIC_URL = "http://localhost:9001/api/v1/metric/";
+public class MetricsResourceTest extends ResourceBase {
+    private static final String ADD_METRIC_URL = "http://localhost:9001/api/v1/datapoints";
+    private static final String GET_METRIC_URL = "http://localhost:9001/api/v1/datapoints/query";
+    private static final String METRIC_NAMES_URL = "http://localhost:9001/api/v1/metricnames";
+    private static final String TAG_NAMES_URL = "http://localhost:9001/api/v1/tagnames";
+    private static final String TAG_VALUES_URL = "http://localhost:9001/api/v1/tagvalues";
+    private static final String DELETE_DATAPOINTS_URL = "http://localhost:9001/api/v1/datapoints/delete";
+    private static final String DELETE_METRIC_URL = "http://localhost:9001/api/v1/metric/";
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    static void assertResponse(final JsonResponse response, final int responseCode, final String expectedContent) {
+        assertThat(response.getStatusCode(), equalTo(responseCode));
+        assertThat(response.getHeader("Content-Type"), startsWith("application/json"));
+        assertThat(response.getJson(), equalTo(expectedContent));
+    }
+
+    static void assertResponse(final JsonResponse response, final int responseCode) {
+        assertThat(response.getStatusCode(), equalTo(responseCode));
+        assertThat(response.getHeader("Content-Type"), startsWith("application/json"));
+        assertThat(response.getStatusString(), equalTo("No Content"));
+    }
 
     @Test
-	public void testAddEmptyBody() throws Exception
-	{
-		JsonResponse response = client.post("", ADD_METRIC_URL);
+    public void testAddEmptyBody() throws Exception {
+        final JsonResponse response = client.post("", ADD_METRIC_URL);
 
-		assertResponse(response, 400, "{\"errors\":[\"Invalid json. No content due to end of input.\"]}");
-	}
+        assertResponse(response, 400, "{\"errors\":[\"Invalid json. No content due to end of input.\"]}");
+    }
 
-	@Test
-	public void testAddSingleMetricLongValueSuccess() throws Exception
-	{
-		String json = Resources.toString(Resources.getResource("single-metric-long.json"), Charsets.UTF_8);
+    @Test
+    public void testAddSingleMetricLongValueSuccess() throws Exception {
+        final String json = Resources.toString(Resources.getResource("single-metric-long.json"), Charsets.UTF_8);
 
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		assertResponse(response, 204);
-	}
+        assertResponse(response, 204);
+    }
 
-	@Test
-	public void testAddSingleMetricDoubleValueSuccess() throws Exception
-	{
-		String json = Resources.toString(Resources.getResource("single-metric-double.json"), Charsets.UTF_8);
+    @Test
+    public void testAddSingleMetricDoubleValueSuccess() throws Exception {
+        final String json = Resources.toString(Resources.getResource("single-metric-double.json"), Charsets.UTF_8);
 
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		assertResponse(response, 204);
-	}
+        assertResponse(response, 204);
+    }
 
-	@Test
-	public void testAddMutipleDatapointSuccess() throws Exception
-	{
-		String json = Resources.toString(Resources.getResource("multiple-datapoints-metric.json"), Charsets.UTF_8);
+    @Test
+    public void testAddMutipleDatapointSuccess() throws Exception {
+        final String json = Resources.toString(Resources.getResource("multiple-datapoints-metric.json"), Charsets.UTF_8);
 
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		assertResponse(response, 204);
-	}
+        assertResponse(response, 204);
+    }
 
-	@Test
-	public void testAddMultipleMetricLongValueSuccess() throws Exception
-	{
-		String json = Resources.toString(Resources.getResource("multi-metric-long.json"), Charsets.UTF_8);
+    @Test
+    public void testAddMultipleMetricLongValueSuccess() throws Exception {
+        final String json = Resources.toString(Resources.getResource("multi-metric-long.json"), Charsets.UTF_8);
 
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		assertThat(response.getStatusCode(), equalTo(204));
-	}
+        assertThat(response.getStatusCode(), equalTo(204));
+    }
 
-	@Test
-	public void testAddMissingName() throws Exception
-	{
-		String json = Resources.toString(Resources.getResource("single-metric-missing-name.json"), Charsets.UTF_8);
+    @Test
+    public void testAddMissingName() throws Exception {
+        final String json = Resources.toString(Resources.getResource("single-metric-missing-name.json"), Charsets.UTF_8);
 
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		assertResponse(response, 400, "{\"errors\":[\"metric[0].name may not be empty.\"]}");
-	}
+        assertResponse(response, 400, "{\"errors\":[\"metric[0].name may not be empty.\"]}");
+    }
 
-	@Test
-	public void testAddTimestampZeroValid() throws Exception
-	{
-		String json = Resources.toString(Resources.getResource("multi-metric-timestamp-zero.json"), Charsets.UTF_8);
-
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+    @Test
+    public void testAddTimestampZeroValid() throws Exception {
+        final String json = Resources.toString(Resources.getResource("multi-metric-timestamp-zero.json"), Charsets.UTF_8);
 
-		assertResponse(response, 204);
-	}
-
-	@Test
-	public void testQuery() throws IOException
-	{
-		String json = Resources.toString(Resources.getResource("query-metric-absolute-dates.json"), Charsets.UTF_8);
-
-		JsonResponse response = client.post(json, GET_METRIC_URL);
-
-		assertResponse(response, 200,
-				"{\"queries\":" +
-						"[{\"sample_size\":10,\"results\":" +
-						"[{\"name\":\"abc.123\",\"group_by\":[{\"name\":\"type\",\"type\":\"number\"}],\"tags\":{\"server\":[\"server1\",\"server2\"]},\"values\":[[1,60.2],[2,30.200000000000003],[3,20.1]]}]}]}");
-	}
-
-	@Test
-	public void testQueryWithBeanValidationException() throws IOException
-	{
-		String json = Resources.toString(Resources.getResource("invalid-query-metric-relative-unit.json"), Charsets.UTF_8);
-
-		JsonResponse response = client.post(json, GET_METRIC_URL);
-
-		assertResponse(response, 400,
-				"{\"errors\":[\"query.bogus is not a valid time unit, must be one of MILLISECONDS,SECONDS,MINUTES,HOURS,DAYS,WEEKS,MONTHS,YEARS\"]}");
-	}
-
-	@Test
-	public void testQueryWithJsonMapperParsingException() throws IOException
-	{
-		String json = Resources.toString(Resources.getResource("invalid-query-metric-json.json"), Charsets.UTF_8);
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		JsonResponse response = client.post(json, GET_METRIC_URL);
+        assertResponse(response, 204);
+    }
 
-		assertResponse(response, 400,
-				"{\"errors\":[\"com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 2 column 22\"]}");
-	}
-
-	@Test
-	public void testMetricNames() throws IOException
-	{
-		JsonResponse response = client.get(METRIC_NAMES_URL);
-
-		assertResponse(response, 200, "{\"results\":[\"cpu\",\"memory\",\"disk\",\"network\"]}");
-	}
-
-	@Test
-	public void test_datastoreThrowsException() throws DatastoreException, IOException
-	{
-		Level previousLogLevel = LoggingUtils.setLogLevel(Level.OFF);
-
-		try
-		{
-			datastore.throwException(new DatastoreException("bogus"));
+    @Test
+    public void testQuery() throws IOException {
+        final String json = Resources.toString(Resources.getResource("query-metric-absolute-dates.json"), Charsets.UTF_8);
 
-			String json = Resources.toString(Resources.getResource("query-metric-absolute-dates.json"), Charsets.UTF_8);
+        final JsonResponse response = client.post(json, GET_METRIC_URL);
 
-			JsonResponse response = client.post(json, GET_METRIC_URL);
+        assertResponse(response, 200,
+                "{\"queries\":" +
+                        "[{\"sample_size\":10,\"results\":" +
+                        "[{\"name\":\"abc.123\",\"group_by\":[{\"name\":\"type\",\"type\":\"number\"}],\"tags\":{\"server\":[\"server1\",\"server2\"]},\"values\":[[1,60.2],[2,30.200000000000003],[3,20.1]]}]}]}");
+    }
 
-			datastore.throwException(null);
+    @Test
+    public void testQueryWithBeanValidationException() throws IOException {
+        final String json = Resources.toString(Resources.getResource("invalid-query-metric-relative-unit.json"), Charsets.UTF_8);
 
-			assertThat(response.getStatusCode(), equalTo(500));
-			assertThat(response.getJson(), equalTo("{\"errors\":[\"org.kairosdb.core.exception.DatastoreException: bogus\"]}"));
-			assertEquals(3, queuingManager.getAvailableThreads());
-		}
-		finally
-		{
-			LoggingUtils.setLogLevel(previousLogLevel);
-		}
-	}
+        final JsonResponse response = client.post(json, GET_METRIC_URL);
 
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
+        assertResponse(response, 400,
+                "{\"errors\":[\"query.bogus is not a valid time unit, must be one of MILLISECONDS,SECONDS,MINUTES,HOURS,DAYS,WEEKS,MONTHS,YEARS\"]}");
+    }
 
-	@Test
-	public void test_checkServerTypeStaticIngestDisabled() throws InvalidServerTypeException
-	{
-		thrown.expect(InvalidServerTypeException.class);
-		thrown.expectMessage("{\"errors\": [\"Forbidden: INGEST API methods are disabled on this KairosDB instance.\"]}");
-		MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.QUERY, MetricsResource.ServerType.DELETE), MetricsResource.ServerType.INGEST, "/datapoints", "POST");
-	}
+    @Test
+    public void testQueryWithJsonMapperParsingException() throws IOException {
+        final String json = Resources.toString(Resources.getResource("invalid-query-metric-json.json"), Charsets.UTF_8);
 
-	@Test
-	public void test_checkServerTypeStaticQueryDisabled() throws InvalidServerTypeException
-	{
-		thrown.expect(InvalidServerTypeException.class);
-		thrown.expectMessage("{\"errors\": [\"Forbidden: QUERY API methods are disabled on this KairosDB instance.\"]}");
-		MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.INGEST, MetricsResource.ServerType.DELETE), MetricsResource.ServerType.QUERY, "/datapoints/query", "POST");
-	}
+        final JsonResponse response = client.post(json, GET_METRIC_URL);
 
-	@Test
-	public void test_checkServerTypeStaticDeleteDisabled() throws InvalidServerTypeException
-	{
-		thrown.expect(InvalidServerTypeException.class);
-		thrown.expectMessage("{\"errors\": [\"Forbidden: DELETE API methods are disabled on this KairosDB instance.\"]}");
-		MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.INGEST, MetricsResource.ServerType.QUERY), MetricsResource.ServerType.DELETE, "/datapoints/delete", "POST");
-	}
+        assertResponse(response, 400,
+                "{\"errors\":[\"com.google.gson.stream.MalformedJsonException: Use JsonReader.setLenient(true) to accept malformed JSON at line 2 column 22\"]}");
+    }
 
-	@Test
-	public void test_checkServerTypeStaticIngestEnabled() throws InvalidServerTypeException
-	{
-		MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.INGEST), MetricsResource.ServerType.INGEST, "/datapoints", "POST");
-	}
+    @Test
+    public void testMetricNames() throws IOException {
+        final JsonResponse response = client.get(METRIC_NAMES_URL);
 
-	@Test
-	public void test_checkServerTypeStaticQueryEnabled() throws InvalidServerTypeException
-	{
-		MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.QUERY), MetricsResource.ServerType.QUERY, "/datapoints/query", "POST");
-	}
+        assertResponse(response, 200, "{\"results\":[\"cpu\",\"memory\",\"disk\",\"network\"]}");
+    }
 
-	@Test
-	public void test_checkServerTypeStaticDeleteEnabled() throws InvalidServerTypeException
-	{
-		MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.DELETE), MetricsResource.ServerType.DELETE, "/datapoints/delete", "POST");
-	}
+    @Test
+    public void test_datastoreThrowsException() throws DatastoreException, IOException
+    {
+        final Level previousLogLevel = LoggingUtils.setLogLevel(Level.OFF);
 
-	@Test
-	public void testAddMetricIngestDisabled() throws IOException
-	{
-		resource.setServerType("QUERY");
+        try {
+            datastore.throwException(new DatastoreException("bogus"));
 
-		String json = Resources.toString(Resources.getResource("single-metric-long.json"), Charsets.UTF_8);
+            final String json = Resources.toString(Resources.getResource("query-metric-absolute-dates.json"), Charsets.UTF_8);
 
-		JsonResponse response = client.post(json, ADD_METRIC_URL);
+            final JsonResponse response = client.post(json, GET_METRIC_URL);
 
-		assertResponse(response, 403, "{\"errors\": [\"Forbidden: INGEST API methods are disabled on this KairosDB instance.\"]}");
+            datastore.throwException(null);
 
-		resource.setServerType("INGEST,QUERY,DELETE");
+            assertThat(response.getStatusCode(), equalTo(500));
+            assertThat(response.getJson(), equalTo("{\"errors\":[\"org.kairosdb.core.exception.DatastoreException: bogus\"]}"));
+            assertEquals(3, queuingManager.getAvailableThreads());
+        } finally {
+            LoggingUtils.setLogLevel(previousLogLevel);
+        }
+    }
 
-	}
+    @Test
+    public void test_checkServerTypeStaticIngestDisabled() throws InvalidServerTypeException {
+        thrown.expect(InvalidServerTypeException.class);
+        thrown.expectMessage("{\"errors\": [\"Forbidden: INGEST API methods are disabled on this KairosDB instance.\"]}");
+        MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.QUERY, MetricsResource.ServerType.DELETE), MetricsResource.ServerType.INGEST, "/datapoints", "POST");
+    }
 
-	@Test
-	public void testGetMetricQueryDisabled() throws IOException
-	{
-		resource.setServerType("INGEST");
+    @Test
+    public void test_checkServerTypeStaticQueryDisabled() throws InvalidServerTypeException {
+        thrown.expect(InvalidServerTypeException.class);
+        thrown.expectMessage("{\"errors\": [\"Forbidden: QUERY API methods are disabled on this KairosDB instance.\"]}");
+        MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.INGEST, MetricsResource.ServerType.DELETE), MetricsResource.ServerType.QUERY, "/datapoints/query", "POST");
+    }
 
-		String json = Resources.toString(Resources.getResource("invalid-query-metric-relative-unit.json"), Charsets.UTF_8);
+    @Test
+    public void test_checkServerTypeStaticDeleteDisabled() throws InvalidServerTypeException {
+        thrown.expect(InvalidServerTypeException.class);
+        thrown.expectMessage("{\"errors\": [\"Forbidden: DELETE API methods are disabled on this KairosDB instance.\"]}");
+        MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.INGEST, MetricsResource.ServerType.QUERY), MetricsResource.ServerType.DELETE, "/datapoints/delete", "POST");
+    }
 
-		JsonResponse response = client.post(json, GET_METRIC_URL);
+    @Test
+    public void test_checkServerTypeStaticIngestEnabled() throws InvalidServerTypeException {
+        MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.INGEST), MetricsResource.ServerType.INGEST, "/datapoints", "POST");
+    }
 
-		assertResponse(response, 403, "{\"errors\": [\"Forbidden: QUERY API methods are disabled on this KairosDB instance.\"]}");
+    @Test
+    public void test_checkServerTypeStaticQueryEnabled() throws InvalidServerTypeException {
+        MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.QUERY), MetricsResource.ServerType.QUERY, "/datapoints/query", "POST");
+    }
 
-		resource.setServerType("INGEST,QUERY,DELETE");
-	}
+    @Test
+    public void test_checkServerTypeStaticDeleteEnabled() throws InvalidServerTypeException {
+        MetricsResource.checkServerTypeStatic(EnumSet.of(MetricsResource.ServerType.DELETE), MetricsResource.ServerType.DELETE, "/datapoints/delete", "POST");
+    }
 
-	@Test
-	public void testMetricNamesQueryDisabled() throws IOException
-	{
-		resource.setServerType("INGEST");
+    @Test
+    public void testAddMetricIngestDisabled() throws IOException {
+        resource.setServerType("QUERY");
 
-		JsonResponse response = client.get(METRIC_NAMES_URL);
+        final String json = Resources.toString(Resources.getResource("single-metric-long.json"), Charsets.UTF_8);
 
-		assertResponse(response, 403, "{\"errors\": [\"Forbidden: QUERY API methods are disabled on this KairosDB instance.\"]}");
+        final JsonResponse response = client.post(json, ADD_METRIC_URL);
 
-		resource.setServerType("INGEST,QUERY,DELETE");
-	}
+        assertResponse(response, 403, "{\"errors\": [\"Forbidden: INGEST API methods are disabled on this KairosDB instance.\"]}");
 
-	@Test
-	public void testDeleteDatapointsDeleteDisabled() throws IOException
-	{
-		resource.setServerType("INGEST");
+        resource.setServerType("INGEST,QUERY,DELETE");
 
-		String json = Resources.toString(Resources.getResource("query-metric-absolute-dates.json"), Charsets.UTF_8);
+    }
 
-		JsonResponse response = client.post(json, DELETE_DATAPOINTS_URL);
+    @Test
+    public void testGetMetricQueryDisabled() throws IOException {
+        resource.setServerType("INGEST");
 
-		assertResponse(response, 403, "{\"errors\": [\"Forbidden: DELETE API methods are disabled on this KairosDB instance.\"]}");
+        final String json = Resources.toString(Resources.getResource("invalid-query-metric-relative-unit.json"), Charsets.UTF_8);
 
-		resource.setServerType("INGEST,QUERY,DELETE");
-	}
+        final JsonResponse response = client.post(json, GET_METRIC_URL);
 
-	@Test
-	public void testDeleteMetricDeleteDisabled() throws IOException
-	{
-		resource.setServerType("INGEST");
+        assertResponse(response, 403, "{\"errors\": [\"Forbidden: QUERY API methods are disabled on this KairosDB instance.\"]}");
 
-		String metricName = "Some.Metric.Name";
+        resource.setServerType("INGEST,QUERY,DELETE");
+    }
 
-		JsonResponse response = client.delete(DELETE_METRIC_URL + metricName);
+    @Test
+    public void testMetricNamesQueryDisabled() throws IOException {
+        resource.setServerType("INGEST");
 
-		assertResponse(response, 403, "{\"errors\": [\"Forbidden: DELETE API methods are disabled on this KairosDB instance.\"]}");
-	}
+        final JsonResponse response = client.get(METRIC_NAMES_URL);
 
-	static void assertResponse(JsonResponse response, int expectedCode, String expectedContent)
-	{
-		assertThat(response.getStatusCode(), equalTo(expectedCode));
-		assertThat(response.getHeader("Content-Type"), startsWith("application/json"));
-		assertThat(response.getJson(), equalTo(expectedContent));
-	}
+        assertResponse(response, 403, "{\"errors\": [\"Forbidden: QUERY API methods are disabled on this KairosDB instance.\"]}");
 
-	static void assertResponse(JsonResponse response, int expectedCode)
-	{
-		assertThat(response.getStatusCode(), equalTo(expectedCode));
-		assertThat(response.getHeader("Content-Type"), startsWith("application/json"));
-		assertThat(response.getStatusString(), equalTo("No Content"));
-	}
+        resource.setServerType("INGEST,QUERY,DELETE");
+    }
+
+    @Test
+    public void testDeleteDatapointsDeleteDisabled() throws IOException {
+        resource.setServerType("INGEST");
+
+        final String json = Resources.toString(Resources.getResource("query-metric-absolute-dates.json"), Charsets.UTF_8);
+
+        final JsonResponse response = client.post(json, DELETE_DATAPOINTS_URL);
+
+        assertResponse(response, 403, "{\"errors\": [\"Forbidden: DELETE API methods are disabled on this KairosDB instance.\"]}");
+
+        resource.setServerType("INGEST,QUERY,DELETE");
+    }
+
+    @Test
+    public void testDeleteMetricDeleteDisabled() throws IOException {
+        resource.setServerType("INGEST");
+
+        final String metricName = "Some.Metric.Name";
+
+        final JsonResponse response = client.delete(DELETE_METRIC_URL + metricName);
+
+        assertResponse(response, 403, "{\"errors\": [\"Forbidden: DELETE API methods are disabled on this KairosDB instance.\"]}");
+    }
 }

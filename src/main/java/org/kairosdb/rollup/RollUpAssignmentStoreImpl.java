@@ -15,8 +15,7 @@ import java.util.Set;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class RollUpAssignmentStoreImpl implements RollUpAssignmentStore
-{
+public class RollUpAssignmentStoreImpl implements RollUpAssignmentStore {
     public static final Logger logger = LoggerFactory.getLogger(RollUpAssignmentStoreImpl.class);
 
     static final String SERVICE = "_Rollups";
@@ -25,106 +24,93 @@ public class RollUpAssignmentStoreImpl implements RollUpAssignmentStore
     private final ServiceKeyStore serviceKeyStore;
 
     @Inject
-    public RollUpAssignmentStoreImpl(ServiceKeyStore serviceKeyStore)
-    {
+    public RollUpAssignmentStoreImpl(final ServiceKeyStore serviceKeyStore) {
         this.serviceKeyStore = checkNotNull(serviceKeyStore, "serviceKeyStore cannot be null");
     }
 
     @Override
     public long getLastModifiedTime()
-            throws RollUpException
-    {
+            throws RollUpException {
         try {
-            Date lastModifiedTime = serviceKeyStore.getServiceKeyLastModifiedTime(SERVICE, SERVICE_KEY_ASSIGNMENTS);
+            final Date lastModifiedTime = serviceKeyStore.getServiceKeyLastModifiedTime(SERVICE, SERVICE_KEY_ASSIGNMENTS);
             if (lastModifiedTime != null) {
                 return lastModifiedTime.getTime();
             }
             return 0L;
-        }
-        catch (DatastoreException e) {
+        } catch (final DatastoreException e) {
             throw new RollUpException("Could not read from service keystore", e);
         }
     }
 
     @Override
     public Set<String> getAssignmentIds()
-            throws RollUpException
-    {
+            throws RollUpException {
         try {
-            Set<String> assignedIds = new HashSet<>();
-            Iterable<String> keys = serviceKeyStore.listKeys(SERVICE, SERVICE_KEY_ASSIGNMENTS);
-            for (String key : keys) {
+            final Set<String> assignedIds = new HashSet<>();
+            final Iterable<String> keys = serviceKeyStore.listKeys(SERVICE, SERVICE_KEY_ASSIGNMENTS);
+            for (final String key : keys) {
                 assignedIds.add(key);
             }
             return assignedIds;
-        }
-        catch (DatastoreException e) {
+        } catch (final DatastoreException e) {
             throw new RollUpException("Could not read from service keystore", e);
         }
     }
 
     @Override
     public Map<String, String> getAssignments()
-            throws RollUpException
-    {
+            throws RollUpException {
         try {
-            Map<String, String> assignments = new HashMap<>();
-            Iterable<String> keys = serviceKeyStore.listKeys(SERVICE, SERVICE_KEY_ASSIGNMENTS);
-            for (String key : keys) {
+            final Map<String, String> assignments = new HashMap<>();
+            final Iterable<String> keys = serviceKeyStore.listKeys(SERVICE, SERVICE_KEY_ASSIGNMENTS);
+            for (final String key : keys) {
                 assignments.put(key, serviceKeyStore.getValue(SERVICE, SERVICE_KEY_ASSIGNMENTS, key).getValue());
             }
             return assignments;
-        }
-        catch (DatastoreException e) {
+        } catch (final DatastoreException e) {
             throw new RollUpException("Could not read from service keystore", e);
         }
     }
 
     @Override
-    public Set<String> getAssignedIds(String host)
-            throws RollUpException
-    {
-        Set<String> assignedTasks = new HashSet<>();
+    public Set<String> getAssignedIds(final String host)
+            throws RollUpException {
+        final Set<String> assignedTasks = new HashSet<>();
         try {
-            Iterable<String> keys = serviceKeyStore.listKeys(SERVICE, SERVICE_KEY_ASSIGNMENTS);
-            for (String key : keys) {
-                String assigned = serviceKeyStore.getValue(SERVICE, SERVICE_KEY_ASSIGNMENTS, key).getValue();
+            final Iterable<String> keys = serviceKeyStore.listKeys(SERVICE, SERVICE_KEY_ASSIGNMENTS);
+            for (final String key : keys) {
+                final String assigned = serviceKeyStore.getValue(SERVICE, SERVICE_KEY_ASSIGNMENTS, key).getValue();
                 if (assigned.equals(host)) {
                     assignedTasks.add(key);
                 }
             }
             return assignedTasks;
-        }
-        catch (DatastoreException e) {
+        } catch (final DatastoreException e) {
             throw new RollUpException("Could not read from service keystore", e);
         }
     }
 
     @Override
-    public void setAssignment(String unassignedId, String hostName)
-            throws RollUpException
-    {
+    public void setAssignment(final String unassignedId, final String hostName)
+            throws RollUpException {
         checkNotNullOrEmpty(unassignedId, "unassignedId cannot be null or empty");
         checkNotNullOrEmpty(hostName, "hostName cannot be null or empty");
 
         try {
             serviceKeyStore.setValue(SERVICE, SERVICE_KEY_ASSIGNMENTS, unassignedId, hostName);
-        }
-        catch (DatastoreException e) {
+        } catch (final DatastoreException e) {
             throw new RollUpException("Could not write assignment to service keystore. Id: " + unassignedId + " value: " + hostName, e);
         }
     }
 
     @Override
-    public void removeAssignments(Set<String> ids)
-            throws RollUpException
-    {
+    public void removeAssignments(final Set<String> ids)
+            throws RollUpException {
         try {
-            for (String id : ids) {
+            for (final String id : ids) {
                 serviceKeyStore.deleteKey(SERVICE, SERVICE_KEY_ASSIGNMENTS, id);
             }
-        }
-        catch (DatastoreException e) {
+        } catch (final DatastoreException e) {
             throw new RollUpException("Could not delete ids.", e);
         }
     }

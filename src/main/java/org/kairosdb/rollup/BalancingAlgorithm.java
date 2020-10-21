@@ -3,12 +3,12 @@ package org.kairosdb.rollup;
 import java.util.Map;
 import java.util.Set;
 
-public interface BalancingAlgorithm
-{
+public interface BalancingAlgorithm {
 
     /**
      * Returns balanced server assignments.
-     * @param hosts list of hosts
+     *
+     * @param hosts  list of hosts
      * @param scores mapping between task id and scores
      * @return map of task id to host assigned
      */

@@ -22,145 +22,125 @@ import org.kairosdb.core.annotation.FeatureProperty;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.plugin.Aggregator;
 
-
 @FeatureComponent(
         name = "filter",
-		description = "Filters datapoints according to filter operation with a null data point."
-)
-public class FilterAggregator implements Aggregator
-{
-	public enum FilterOperation
-	{
-		LTE {
-			@Override
-			boolean compare(double a, double b) {
-				return a <= b;
-			}
-		},
+        description = "Filters datapoints according to filter operation with a null data point.")
+public class FilterAggregator implements Aggregator {
+    @FeatureProperty(
+            name = "filter_op",
+            label = "Filter operation",
+            description = "The operation performed for each data point.",
+            type = "enum",
+            options = {"lte", "lt", "gte", "gt", "equal"},
+            default_value = "equal")
+    private FilterOperation m_filterop;
+    @FeatureProperty(
+            label = "Threshold",
+            description = "The value the operation is performed on. If the operation is lt, then a null data point is returned if the data point is less than the threshold.")
+    private double m_threshold;
 
-		LT {
-			@Override
-			boolean compare(double a, double b) {
-				return a < b;
-			}
-		},
+    public FilterAggregator() {
+        m_threshold = 0.0;
+    }
 
-		GTE {
-			@Override
-			boolean compare(double a, double b) {
-				return a >= b;
-			}
-		},
+    public FilterAggregator(final FilterOperation filterop, final double threshold) {
+        m_filterop = filterop;
+        m_threshold = threshold;
+    }
 
-		GT {
-			@Override
-			boolean compare(double a, double b) {
-				return a > b;
-			}
-		},
+    /**
+     * Sets filter operation to apply to data points. Values can be LTE, LE, GTE, GT, or EQUAL.
+     *
+     * @param filterop
+     */
+    public void setFilterOp(final FilterOperation filterop) {
+        m_filterop = filterop;
+    }
 
-		EQUAL {
-			@Override
-			boolean compare(double a, double b) {
-				return a == b;
-			}
-		};
+    public void setThreshold(final double threshold) {
+        m_threshold = threshold;
+    }
 
-		abstract boolean compare(double a, double b);
-	}
+    public DataPointGroup aggregate(final DataPointGroup dataPointGroup) {
+        return new FilterDataPointAggregator(dataPointGroup);
+    }
 
-    public FilterAggregator()
-	{
-		m_threshold = 0.0;
-	}
+    public boolean canAggregate(final String groupType) {
+        return true;
+    }
 
-	public FilterAggregator(FilterOperation filterop, double threshold)
-	{
-		m_filterop = filterop;
-		m_threshold = threshold;
-	}
+    public String getAggregatedGroupType(final String groupType) {
+        return groupType;
+    }
 
-	@FeatureProperty(
-			name = "filter_op",
-			label = "Filter operation",
-			description = "The operation performed for each data point.",
-			type = "enum",
-			options = {"lte", "lt", "gte", "gt", "equal"},
-			default_value = "equal"
-	)
-	private FilterOperation m_filterop;
+    public enum FilterOperation {
+        LTE {
+            @Override
+            boolean compare(final double a, final double b) {
+                return a <= b;
+            }
+        },
 
-	@FeatureProperty(
-			label = "Threshold",
-			description = "The value the operation is performed on. If the operation is lt, then a null data point is returned if the data point is less than the threshold."
-	)
-	private double m_threshold;
+        LT {
+            @Override
+            boolean compare(final double a, final double b) {
+                return a < b;
+            }
+        },
 
-	/**
-	 Sets filter operation to apply to data points. Values can be LTE, LE, GTE, GT, or EQUAL.
+        GTE {
+            @Override
+            boolean compare(final double a, final double b) {
+                return a >= b;
+            }
+        },
 
-	 @param filterop
-	 */
-	public void setFilterOp(FilterOperation filterop)
-	{
-		m_filterop = filterop;
-	}
+        GT {
+            @Override
+            boolean compare(final double a, final double b) {
+                return a > b;
+            }
+        },
 
-	public void setThreshold(double threshold)
-	{
-		m_threshold = threshold;
-	}
+        EQUAL {
+            @Override
+            boolean compare(final double a, final double b) {
+                return a == b;
+            }
+        };
 
-	public DataPointGroup aggregate(DataPointGroup dataPointGroup)
-	{
-		return new FilterDataPointAggregator(dataPointGroup);
-	}
+        abstract boolean compare(final double a, final double b);
+    }
 
-	public boolean canAggregate(String groupType)
-	{
-		return true;
-	}
+    private class FilterDataPointAggregator extends AggregatedDataPointGroupWrapper {
+        public FilterDataPointAggregator(final DataPointGroup innerDataPointGroup) {
+            super(innerDataPointGroup);
+        }
 
-	public String getAggregatedGroupType(String groupType)
-	{
-		return groupType;
-	}
+        public boolean hasNext() {
+            boolean foundValidDp = false;
+            while (!foundValidDp && currentDataPoint != null) {
+                double x0 = currentDataPoint.getDoubleValue();
+                if (m_filterop.compare(x0, m_threshold))
+                    moveCurrentDataPoint();
+                else
+                    foundValidDp = true;
+            }
 
-	private class FilterDataPointAggregator extends AggregatedDataPointGroupWrapper
-	{
-		public FilterDataPointAggregator(DataPointGroup innerDataPointGroup)
-		{
-			super(innerDataPointGroup);
-		}
+            return foundValidDp;
+        }
 
-		public boolean hasNext()
-		{
-			boolean foundValidDp = false;
-			while (!foundValidDp && currentDataPoint != null)
-			{
-				double x0 = currentDataPoint.getDoubleValue();
-				if (m_filterop.compare(x0, m_threshold))
-					moveCurrentDataPoint();
-				else
-					foundValidDp = true;
-			}
+        public DataPoint next() {
+            DataPoint ret = currentDataPoint;
+            moveCurrentDataPoint();
+            return ret;
+        }
 
-			return foundValidDp;
-		}
-
-		public DataPoint next()
-		{
-			DataPoint ret = currentDataPoint;
-			moveCurrentDataPoint();
-			return ret;
-		}
-
-		private void moveCurrentDataPoint()
-		{
-			if (hasNextInternal())
-				currentDataPoint = nextInternal();
-			else
-				currentDataPoint = null;
-		}
-	}
+        private void moveCurrentDataPoint() {
+            if (hasNextInternal())
+                currentDataPoint = nextInternal();
+            else
+                currentDataPoint = null;
+        }
+    }
 }

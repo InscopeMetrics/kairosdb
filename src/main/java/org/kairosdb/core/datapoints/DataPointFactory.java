@@ -7,41 +7,32 @@ import org.kairosdb.util.KDataInput;
 import java.io.IOException;
 
 /**
- Implementation must be thread safe.
+ * Implementation must be thread safe.
  */
-public interface DataPointFactory
-{
-	/**
-	 This returns the type string that represents the data as it is packed in
-	 binary form.  The string returned from this call will be stored with the
-	 data and used to locate the appropriate factory to marshal the data when
-	 retrieving data from the datastore.
-	 @return
-	 */
-	public String getDataStoreType();
+public interface DataPointFactory {
+    /**
+     * This returns the type string that represents the data as it is packed in
+     * binary form.  The string returned from this call will be stored with the
+     * data and used to locate the appropriate factory to marshal the data when
+     * retrieving data from the datastore.
+     *
+     * @return
+     */
+    String getDataStoreType();
 
-	/**
-	 This really is for aggregation purposes.  We know if an aggregator can handle
-	 this type by checking the group type against the aggregator by calling
-	 Aggregator.canAggregate().
+    /**
+     * This really is for aggregation purposes.  We know if an aggregator can handle
+     * this type by checking the group type against the aggregator by calling
+     * Aggregator.canAggregate().
+     * <p>
+     * As of this writing there are two group types used inside Kairos 'number' and
+     * 'text'.  This is free formed and you can make up your own.
+     *
+     * @return
+     */
+    String getGroupType();
 
-	 As of this writing there are two group types used inside Kairos 'number' and
-	 'text'.  This is free formed and you can make up your own.
-	 @return
-	 */
-	public String getGroupType();
+    DataPoint getDataPoint(long timestamp, JsonElement json) throws IOException;
 
-	/**
-	 This returns the data type that is in the json serialized form of the datapoints
-	 returned by this factory.  The value returned by this method does not determine
-	 if this factory is used to deserialize json, that id determined by registering
-	 the factory in the kairosdb.properteis file.
-
-	 Example return values would be 'long', 'double' or 'string'
-	 @return
-	 */
-	//public String getAPIType();
-
-	DataPoint getDataPoint(long timestamp, JsonElement json) throws IOException;
-	DataPoint getDataPoint(long timestamp, KDataInput buffer) throws IOException;
+    DataPoint getDataPoint(long timestamp, KDataInput buffer) throws IOException;
 }

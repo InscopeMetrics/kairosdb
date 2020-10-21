@@ -9,136 +9,117 @@ import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.plugin.Aggregator;
 
 /**
- Trims off the first, last or both (first and last) data points.  When aggregating
- the first and last data points may not represent a full range and you may want
- to remove them for displaying in a graph or in conjunction with the save_as
- aggregator to save rollup data.
-
- Created by bhawkins on 8/28/15.
+ * Trims off the first, last or both (first and last) data points.  When aggregating
+ * the first and last data points may not represent a full range and you may want
+ * to remove them for displaying in a graph or in conjunction with the save_as
+ * aggregator to save rollup data.
+ * <p>
+ * Created by bhawkins on 8/28/15.
  */
 @FeatureComponent(
         name = "trim",
-		description = "Trims off the first, last or both (first and last) data points from the results."
-)
-public class TrimAggregator implements Aggregator
-{
-	public enum Trim
-	{
-		FIRST, LAST, BOTH
-	}
+        description = "Trims off the first, last or both (first and last) data points from the results.")
+public class TrimAggregator implements Aggregator {
+    @FeatureProperty(
+            name = "trim",
+            label = "Trim",
+            description = "Which data point to trim",
+            type = "enum",
+            default_value = "both")
+    private Trim m_trim;
 
-	@Inject
-	public TrimAggregator()
-	{
-	}
+    @Inject
+    public TrimAggregator() {
+    }
 
-	public TrimAggregator(Trim trim)
-	{
-		m_trim = trim;
-	}
+    public TrimAggregator(final Trim trim) {
+        m_trim = trim;
+    }
 
-	@FeatureProperty(
-			name = "trim",
-			label = "Trim",
-			description = "Which data point to trim",
-			type = "enum",
-			default_value = "both"
-	)
-	private Trim m_trim;
+    @Override
+    public DataPointGroup aggregate(final DataPointGroup dataPointGroup) {
+        return new TimDataPointAggregator(dataPointGroup);
+    }
 
-	@Override
-	public DataPointGroup aggregate(DataPointGroup dataPointGroup)
-	{
-		return new TimDataPointAggregator(dataPointGroup);
-	}
+    /**
+     * Sets which data points to trim off. Values can be FIRST, LAST or BOTH.
+     * Setting to trim FIRST will trim off the oldest data point unless order is
+     * descending.
+     *
+     * @param trim trim
+     */
+    public void setTrim(final Trim trim) {
+        m_trim = trim;
+    }
 
-	/**
-	 Sets which data points to trim off. Values can be FIRST, LAST or BOTH.
-	 Setting to trim FIRST will trim off the oldest data point unless order is
-	 descending.
-	 @param trim trim
-	 */
-	public void setTrim(Trim trim)
-	{
-		m_trim = trim;
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return true;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return true;
-	}
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-	@Override
-	public boolean equals(Object o)
-	{
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+        final TrimAggregator that = (TrimAggregator) o;
 
-		TrimAggregator that = (TrimAggregator) o;
+        return m_trim == that.m_trim;
 
-		return m_trim == that.m_trim;
+    }
 
-	}
+    @Override
+    public int hashCode() {
+        return m_trim != null ? m_trim.hashCode() : 0;
+    }
 
-	@Override
-	public int hashCode()
-	{
-		return m_trim != null ? m_trim.hashCode() : 0;
-	}
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("m_trim", m_trim)
+                .toString();
+    }
 
-	@Override
-	public String toString()
-	{
-		return MoreObjects.toStringHelper(this)
-				.add("m_trim", m_trim)
-				.toString();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return groupType;
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return groupType;
-	}
+    public enum Trim {
+        FIRST, LAST, BOTH
+    }
 
-	private class TimDataPointAggregator extends AggregatedDataPointGroupWrapper
-	{
-		public TimDataPointAggregator(DataPointGroup innerDataPointGroup)
-		{
-			super(innerDataPointGroup);
+    private class TimDataPointAggregator extends AggregatedDataPointGroupWrapper {
+        public TimDataPointAggregator(final DataPointGroup innerDataPointGroup) {
+            super(innerDataPointGroup);
 
-			if (m_trim == Trim.FIRST || m_trim == Trim.BOTH)
-			{
-				if (innerDataPointGroup.hasNext())
-					currentDataPoint = innerDataPointGroup.next();
-				else
-					currentDataPoint = null;
-			}
-		}
+            if (m_trim == Trim.FIRST || m_trim == Trim.BOTH) {
+                if (innerDataPointGroup.hasNext())
+                    currentDataPoint = innerDataPointGroup.next();
+                else
+                    currentDataPoint = null;
+            }
+        }
 
-		@Override
-		public boolean hasNext()
-		{
-			if (m_trim == Trim.BOTH || m_trim == Trim.LAST)
-			{
-				return currentDataPoint != null && hasNextInternal();
-			}
-			else
-				return super.hasNext();
-		}
+        @Override
+        public boolean hasNext() {
+            if (m_trim == Trim.BOTH || m_trim == Trim.LAST) {
+                return currentDataPoint != null && hasNextInternal();
+            } else
+                return super.hasNext();
+        }
 
-		@Override
-		public DataPoint next()
-		{
-			DataPoint ret = currentDataPoint;
-			if (hasNextInternal())
-				currentDataPoint = nextInternal();
-			else
-				currentDataPoint = null;
+        @Override
+        public DataPoint next() {
+            final DataPoint ret = currentDataPoint;
+            if (hasNextInternal())
+                currentDataPoint = nextInternal();
+            else
+                currentDataPoint = null;
 
-			return ret;
-		}
+            return ret;
+        }
 
 
-	}
+    }
 }

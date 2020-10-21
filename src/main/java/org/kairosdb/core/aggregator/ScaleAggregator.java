@@ -34,113 +34,97 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @FeatureComponent(
         name = "scale",
-		description = "Scales each data point by a factor."
+        description = "Scales each data point by a factor."
 )
-public class ScaleAggregator implements Aggregator
-{
-	@FeatureProperty(
-			label = "Factor",
-			description = "The value to scale each data point by.",
+public class ScaleAggregator implements Aggregator {
+    @FeatureProperty(
+            label = "Factor",
+            description = "The value to scale each data point by.",
             validations = {
-					@ValidationProperty(
-							expression = "value > 0",
-							message = "Factor must be greater than 0."
-					)
-			}
-	)
-	private double m_factor;
-	private DoubleDataPointFactory m_dataPointFactory;
+                    @ValidationProperty(
+                            expression = "value > 0",
+                            message = "Factor must be greater than 0."
+                    )
+            }
+    )
+    private double m_factor;
+    private final DoubleDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public ScaleAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public ScaleAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@Override
-	public DataPointGroup aggregate(DataPointGroup dataPointGroup)
-	{
-		checkNotNull(dataPointGroup);
+    @Override
+    public DataPointGroup aggregate(final DataPointGroup dataPointGroup) {
+        checkNotNull(dataPointGroup);
 
-		return new ScaleDataPointGroup(dataPointGroup);
-	}
+        return new ScaleDataPointGroup(dataPointGroup);
+    }
 
-	public void setFactor(double factor)
-	{
-		m_factor = factor;
-	}
+    public void setFactor(final double factor) {
+        m_factor = factor;
+    }
 
-	private class ScaleDataPointGroup implements DataPointGroup
-	{
-		private DataPointGroup m_innerDataPointGroup;
+    private class ScaleDataPointGroup implements DataPointGroup {
+        private final DataPointGroup m_innerDataPointGroup;
 
-		public ScaleDataPointGroup(DataPointGroup innerDataPointGroup)
-		{
-			m_innerDataPointGroup = innerDataPointGroup;
-		}
+        public ScaleDataPointGroup(final DataPointGroup innerDataPointGroup) {
+            m_innerDataPointGroup = innerDataPointGroup;
+        }
 
-		@Override
-		public boolean hasNext()
-		{
-			return (m_innerDataPointGroup.hasNext());
-		}
+        @Override
+        public boolean hasNext() {
+            return (m_innerDataPointGroup.hasNext());
+        }
 
-		@Override
-		public DataPoint next()
-		{
-			DataPoint dp = m_innerDataPointGroup.next();
+        @Override
+        public DataPoint next() {
+            DataPoint dp = m_innerDataPointGroup.next();
 
-			dp = m_dataPointFactory.createDataPoint(dp.getTimestamp(), dp.getDoubleValue() * m_factor);
+            dp = m_dataPointFactory.createDataPoint(dp.getTimestamp(), dp.getDoubleValue() * m_factor);
 
-			return (dp);
-		}
+            return (dp);
+        }
 
-		@Override
-		public void remove()
-		{
-			m_innerDataPointGroup.remove();
-		}
+        @Override
+        public void remove() {
+            m_innerDataPointGroup.remove();
+        }
 
-		@Override
-		public String getName()
-		{
-			return (m_innerDataPointGroup.getName());
-		}
+        @Override
+        public String getName() {
+            return (m_innerDataPointGroup.getName());
+        }
 
-		@Override
-		public List<GroupByResult> getGroupByResult()
-		{
-			return (m_innerDataPointGroup.getGroupByResult());
-		}
+        @Override
+        public List<GroupByResult> getGroupByResult() {
+            return (m_innerDataPointGroup.getGroupByResult());
+        }
 
-		@Override
-		public void close()
-		{
-			m_innerDataPointGroup.close();
-		}
+        @Override
+        public void close() {
+            m_innerDataPointGroup.close();
+        }
 
-		@Override
-		public Set<String> getTagNames()
-		{
-			return (m_innerDataPointGroup.getTagNames());
-		}
+        @Override
+        public Set<String> getTagNames() {
+            return (m_innerDataPointGroup.getTagNames());
+        }
 
-		@Override
-		public Set<String> getTagValues(String tag)
-		{
-			return (m_innerDataPointGroup.getTagValues(tag));
-		}
-	}
+        @Override
+        public Set<String> getTagValues(final String tag) {
+            return (m_innerDataPointGroup.getTagValues(tag));
+        }
+    }
 }

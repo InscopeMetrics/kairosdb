@@ -21,16 +21,16 @@ import org.kairosdb.core.exception.DatastoreException;
 import java.util.List;
 
 
-public interface DatastoreQuery extends AutoCloseable
-{
+public interface DatastoreQuery extends AutoCloseable {
 
-	public List<DataPointGroup> execute() throws DatastoreException;
+    List<DataPointGroup> execute() throws DatastoreException;
 
-	/**
-	 This is the number of data points before any aggregation is performed
-	 @return
-	 */
-	public int getSampleSize();
+    /**
+     * This is the number of data points before any aggregation is performed
+     *
+     * @return
+     */
+    int getSampleSize();
 
-	public void close();
+    void close();
 }

@@ -20,139 +20,125 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- This cache serves two purposes.
- 1.  Cache recently inserted data
- 2.  Create a unique store of cached data.
-
- The primary use of this class is to store row keys so we know if the row key
- index needs to be updated or not.  Because it uniquely stores row keys we
- can use the same row key object over and over.  With row keys we store the
- serialized form of the key so we only have to serialize a row key once.
-
- The data type must implement hashcode and equal methods.
+ * This cache serves two purposes.
+ * 1.  Cache recently inserted data
+ * 2.  Create a unique store of cached data.
+ * <p>
+ * The primary use of this class is to store row keys so we know if the row key
+ * index needs to be updated or not.  Because it uniquely stores row keys we
+ * can use the same row key object over and over.  With row keys we store the
+ * serialized form of the key so we only have to serialize a row key once.
+ * <p>
+ * The data type must implement hashcode and equal methods.
  */
-public class DataCache<T>
-{
-	private final LinkItem<T> m_front = new LinkItem<T>(null);
-	private final LinkItem<T> m_back = new LinkItem<T>(null);
+public class DataCache<T> {
+    private final LinkItem<T> m_front = new LinkItem<T>(null);
+    private final LinkItem<T> m_back = new LinkItem<T>(null);
 
-	private int m_maxSize;
+    private final int m_maxSize;
+    //Using a ConcurrentHashMap so we can use the putIfAbsent method.
+    private final ConcurrentHashMap<T, LinkItem<T>> m_hashMap;
 
+    public DataCache(final int cacheSize) {
 
-	private class LinkItem<T>
-	{
-		private LinkItem<T> m_prev;
-		private LinkItem<T> m_next;
+        m_hashMap = new ConcurrentHashMap<>();
+        m_maxSize = cacheSize;
 
-		private final T m_data;
+        m_front.m_next = m_back;
+        m_back.m_prev = m_front;
+    }
 
-		public LinkItem(T data)
-		{
-			m_data = data;
-		}
-	}
-
-	//Using a ConcurrentHashMap so we can use the putIfAbsent method.
-	private ConcurrentHashMap<T, LinkItem<T>> m_hashMap;
-
-	public DataCache(int cacheSize)
-	{
-		m_hashMap = new ConcurrentHashMap<>();
-		m_maxSize = cacheSize;
-
-		m_front.m_next = m_back;
-		m_back.m_prev = m_front;
-	}
-
-	/**
-	 returns null if item is not in cache.  If the return is not null the item
-	 from the cache is returned, this does not remove the item from cache
+    /**
+     * returns null if item is not in cache.  If the return is not null the item
+     * from the cache is returned, this does not remove the item from cache
 
 	 For example I have two copies of the string "Bob" that are different objects
 	 in variables b1 and b2.  If I stick b1 into the cache I'll get a null back as
 	 b1 was the first one in.  Then if I stick b2 into the cache I'll get b1 back -
 	 but this is the important bit b1 is still the one in the cache but it got bumped
 	 up in the usages so it wont age out.
+     *
+     * @param cacheData
+     * @return
+     */
+    public synchronized T get(final T cacheData) {
+        final LinkItem<T> mappedItem = getMappedItemAndUpdateLRU(cacheData);
 
-	 @param cacheData
-	 @return
-	 */
-	public synchronized T get(T cacheData)
-	{
-		final LinkItem<T> mappedItem = getMappedItemAndUpdateLRU(cacheData);
+        pruneCache();
 
-		pruneCache();
+        return (mappedItem == null ? null : mappedItem.m_data);
+    }
 
-		return (mappedItem == null ? null : mappedItem.m_data);
-	}
+    private synchronized LinkItem<T> getMappedItemAndUpdateLRU(final T cacheData) {
+        final LinkItem<T> mappedItem = m_hashMap.get(cacheData);
 
-	private synchronized LinkItem<T> getMappedItemAndUpdateLRU(T cacheData) {
-		final LinkItem<T> mappedItem = m_hashMap.get(cacheData);
+        if (mappedItem != null) {
+            //moves item to top of list
+            removeLRUItem(mappedItem);
+            addLRUItem(mappedItem);
+        }
 
-		if (mappedItem != null)
-		{
-			//moves item to top of list
-			removeLRUItem(mappedItem);
-			addLRUItem(mappedItem);
-		}
+        return mappedItem;
+    }
 
-		return mappedItem;
-	}
+    public synchronized void put(final T cacheData) {
+        final LinkItem<T> existing = m_hashMap.get(cacheData);
+        if (existing != null) {
+            return;
+        }
 
+        final LinkItem<T> li = new LinkItem<>(cacheData);
+        addLRUItem(li);
+        m_hashMap.put(cacheData, li);
+        pruneCache();
+    }
 
-	public synchronized void put(final T cacheData) {
-		final LinkItem<T> existing = m_hashMap.get(cacheData);
-		if (existing != null) {
-			return;
-		}
+    private synchronized void pruneCache() {
+        while (m_hashMap.size() > m_maxSize) {
+            final LinkItem<T> last = m_back.m_prev;
+            removeLRUItem(last);
 
-		final LinkItem<T> li = new LinkItem<>(cacheData);
-		addLRUItem(li);
-		m_hashMap.put(cacheData, li);
-		pruneCache();
-	}
+            m_hashMap.remove(last.m_data);
+        }
+    }
 
-	private synchronized void pruneCache() {
-		while (m_hashMap.size() > m_maxSize) {
-			LinkItem<T> last = m_back.m_prev;
-			removeLRUItem(last);
+    private synchronized void removeLRUItem(final LinkItem<T> li) {
+        li.m_prev.m_next = li.m_next;
+        li.m_next.m_prev = li.m_prev;
+    }
 
-			m_hashMap.remove(last.m_data);
-		}
-	}
+    private synchronized void addLRUItem(final LinkItem<T> li) {
+        li.m_prev = m_front;
+        li.m_next = m_front.m_next;
 
-	private synchronized void removeLRUItem(LinkItem<T> li)
-	{
-		li.m_prev.m_next = li.m_next;
-		li.m_next.m_prev = li.m_prev;
-	}
+        m_front.m_next = li;
+        li.m_next.m_prev = li;
+    }
 
-	private synchronized void addLRUItem(LinkItem<T> li)
-	{
-		li.m_prev = m_front;
-		li.m_next = m_front.m_next;
+    public synchronized Set<T> getCachedKeys() {
+        return (m_hashMap.keySet());
+    }
 
-		m_front.m_next = li;
-		li.m_next.m_prev = li;
-	}
-
-	public synchronized Set<T> getCachedKeys()
-	{
-		return (m_hashMap.keySet());
-	}
-
-	public synchronized void removeKey(T key)
-	{
-        LinkItem<T> li = m_hashMap.remove(key);
+    public synchronized void removeKey(final T key) {
+        final LinkItem<T> li = m_hashMap.remove(key);
         if (li != null)
             removeLRUItem(li);
-	}
+    }
 
-	public synchronized void clear()
-	{
+    public synchronized void clear() {
         m_front.m_next = m_back;
         m_back.m_prev = m_front;
 
         m_hashMap.clear();
-	}
+    }
+
+    private class LinkItem<T> {
+        private final T m_data;
+        private LinkItem<T> m_prev;
+        private LinkItem<T> m_next;
+
+        public LinkItem(final T data) {
+            m_data = data;
+        }
+    }
 }
