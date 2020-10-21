@@ -15,43 +15,46 @@
  */
 package org.kairosdb.core.http;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import org.kairosdb.core.DataPoint;
-import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class MonitorFilter implements Filter, KairosMetricReporter
+public class MonitorFilter implements Filter
 {
-	private static final Logger logger = LoggerFactory.getLogger(MonitorFilter.class);
-    
 	private final String hostname;
-	private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<String, AtomicInteger>();
+	private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<>();
 	private final LongDataPointFactory m_dataPointFactory;
 
 	@Inject
-	public MonitorFilter(@Named("HOSTNAME")String hostname, LongDataPointFactory dataPointFactory)
+	public MonitorFilter(
+			final @Named("HOSTNAME")String hostname,
+			final LongDataPointFactory dataPointFactory,
+			final PeriodicMetrics periodicMetrics)
 	{
 		this.hostname = checkNotNullOrEmpty(hostname);
 		m_dataPointFactory = dataPointFactory;
+
+		periodicMetrics.registerPolledMetric(m -> {
+			for (final String resource : counterMap.keySet()) {
+				m.recordGauge(
+					"rest_service/" + resource,
+						counterMap.get(resource).getAndSet(0));
+			}
+		});
 	}
 
 	@Override
-	public void init(FilterConfig filterConfig) throws ServletException
+	public void init(FilterConfig filterConfig)
 	{
 	}
 
@@ -59,23 +62,18 @@ public class MonitorFilter implements Filter, KairosMetricReporter
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException
 	{
 		String path = ((HttpServletRequest)servletRequest).getRequestURI();
-		int index = path.lastIndexOf('/');
-		if (index > -1)
-		{
-			String resourceName = path.substring(index + 1);
+		String resourceName = ((HttpServletRequest) servletRequest).getMethod() + path;
 
-			//do not store empty method e.g. /api/v1/datapoints/<--- trailing slash
-			if (resourceName.length() > 0)
+		if (resourceName.length() > 0)
+		{
+			AtomicInteger counter = counterMap.get(resourceName);
+			if (counter == null)
 			{
-				AtomicInteger counter = counterMap.get(resourceName);
-				if (counter == null)
-				{
-					counter = new AtomicInteger();
-					AtomicInteger mapValue = counterMap.putIfAbsent(resourceName, counter);
-					counter = (mapValue != null ? mapValue : counter);
-				}
-				counter.incrementAndGet();
+				counter = new AtomicInteger();
+				AtomicInteger mapValue = counterMap.putIfAbsent(resourceName, counter);
+				counter = (mapValue != null ? mapValue : counter);
 			}
+			counter.incrementAndGet();
 		}
 
 		filterChain.doFilter(servletRequest, servletResponse);
@@ -84,22 +82,5 @@ public class MonitorFilter implements Filter, KairosMetricReporter
 	@Override
 	public void destroy()
 	{
-	}
-
-	@Override
-	public List<DataPointSet> getMetrics(long now)
-	{
-		List<DataPointSet> ret = new ArrayList<DataPointSet>();
-		for (String resource : counterMap.keySet())
-		{
-			DataPointSet dps = new DataPointSet("kairosdb.protocol.http_request_count");
-			dps.addTag("host", hostname);
-			dps.addTag("method", resource);
-			dps.addDataPoint(m_dataPointFactory.createDataPoint(now, (long)counterMap.get(resource).getAndSet(0)));
-
-			ret.add(dps);
-		}
-
-		return (ret);
 	}
 }

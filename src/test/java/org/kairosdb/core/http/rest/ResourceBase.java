@@ -1,7 +1,14 @@
 package org.kairosdb.core.http.rest;
 
 
-import com.google.inject.*;
+import com.arpnetworking.metrics.Metrics;
+import com.arpnetworking.metrics.MetricsFactory;
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
+import com.google.inject.AbstractModule;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Singleton;
+import com.google.inject.TypeLiteral;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.name.Names;
 import com.google.inject.spi.InjectionListener;
@@ -44,6 +51,7 @@ import org.kairosdb.plugin.Aggregator;
 import org.kairosdb.plugin.GroupBy;
 import org.kairosdb.testing.Client;
 import org.kairosdb.util.SimpleStatsReporter;
+import org.mockito.Mockito;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.IOException;
@@ -67,8 +75,9 @@ public abstract class ResourceBase
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
+        final PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
         datastore = new TestDatastore();
-        queuingManager = new QueryQueuingManager(3, "localhost");
+        queuingManager = new QueryQueuingManager(periodicMetrics, 3);
 
         Injector injector = Guice.createInjector(new WebServletModule(new KairosRootConfig()), new AbstractModule()
         {
@@ -84,6 +93,11 @@ public abstract class ResourceBase
                         typeEncounter.register((InjectionListener<I>) i -> eventBus.register(i));
                     }
                 });
+
+                final MetricsFactory metricsFactory = Mockito.mock(MetricsFactory.class);
+                final Metrics metrics = Mockito.mock(Metrics.class);
+                Mockito.doReturn(metrics).when(metricsFactory).create();
+
                 bind(String.class).annotatedWith(Names.named(WebServer.JETTY_ADDRESS_PROPERTY)).toInstance("0.0.0.0");
                 bind(Integer.class).annotatedWith(Names.named(WebServer.JETTY_PORT_PROPERTY)).toInstance(9001);
                 bind(String.class).annotatedWith(Names.named(WebServer.JETTY_WEB_ROOT_PROPERTY)).toInstance("bogus");
@@ -103,6 +117,8 @@ public abstract class ResourceBase
                 bind(QueryPluginFactory.class).to(TestQueryPluginFactory.class);
                 bind(SimpleStatsReporter.class);
                 bind(String.class).annotatedWith(Names.named("kairosdb.server.type")).toInstance("ALL");
+                bind(MetricsFactory.class).toInstance(metricsFactory);
+                bind(PeriodicMetrics.class).toInstance(Mockito.mock(PeriodicMetrics.class));
 
                 KairosRootConfig props = new KairosRootConfig();
                 String configFileName = "kairosdb.properties";

@@ -1,5 +1,6 @@
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Statement;
@@ -7,22 +8,15 @@ import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.google.inject.Inject;
-import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class KairosRetryPolicy implements RetryPolicy, KairosMetricReporter
+public class KairosRetryPolicy implements RetryPolicy
 {
 	public static final Logger logger = LoggerFactory.getLogger(KairosRetryPolicy.class);
 
@@ -45,9 +39,10 @@ public class KairosRetryPolicy implements RetryPolicy, KairosMetricReporter
 	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
 
 	@Inject
-	public KairosRetryPolicy(@Named("request_retry_count") int retryCount)
+	public KairosRetryPolicy(@Named("request_retry_count") int retryCount, final PeriodicMetrics periodicMetrics)
 	{
 		m_retryCount = retryCount;
+		periodicMetrics.registerPolledMetric(this::recordMetrics);
 	}
 
 	@Override
@@ -114,32 +109,17 @@ public class KairosRetryPolicy implements RetryPolicy, KairosMetricReporter
 		logger.info("Closing KairosRetryPolicy");
 	}
 
-	@Override
-	public List<DataPointSet> getMetrics(long now)
+	private void recordMetrics(final PeriodicMetrics periodicMetrics)
 	{
-		List<DataPointSet> ret = new ArrayList<>();
-
-		Map<String, String> tags = new HashMap<>();
-		tags.put("host", m_hostName);
-		tags.put("cluster", m_clusterName);
-
-		tags.put("retry_type", "read_timeout");
-		ret.add(new DataPointSet("kairosdb.datastore.cassandra.retry_count", tags,
-				Collections.singletonList(m_longDataPointFactory.createDataPoint(now, m_readRetries.getAndSet(0)))));
-
-		tags.put("retry_type", "write_timeout");
-		ret.add(new DataPointSet("kairosdb.datastore.cassandra.retry_count", tags,
-				Collections.singletonList(m_longDataPointFactory.createDataPoint(now, m_writeRetries.getAndSet(0)))));
-
-		tags.put("retry_type", "unavailable");
-		ret.add(new DataPointSet("kairosdb.datastore.cassandra.retry_count", tags,
-				Collections.singletonList(m_longDataPointFactory.createDataPoint(now, m_unavailableRetries.getAndSet(0)))));
-
-		tags.put("retry_type", "request_error");
-		ret.add(new DataPointSet("kairosdb.datastore.cassandra.retry_count", tags,
-				Collections.singletonList(m_longDataPointFactory.createDataPoint(now, m_errorRetries.getAndSet(0)))));
-
-
-		return ret;
+		final int readTimeouts = m_readRetries.getAndSet(0);
+		final int writeTimeouts = m_writeRetries.getAndSet(0);
+		final int unavailable = m_unavailableRetries.getAndSet(0);
+		final int requestError = m_errorRetries.getAndSet(0);
+		final long totalRetries = readTimeouts + writeTimeouts + unavailable + requestError;
+		periodicMetrics.recordGauge("datastore/cassandra/retry_count", totalRetries);
+		periodicMetrics.recordGauge("datastore/cassandra/retry_count/read_timeout", readTimeouts);
+		periodicMetrics.recordGauge("datastore/cassandra/retry_count/write_timeout", writeTimeouts);
+		periodicMetrics.recordGauge("datastore/cassandra/retry_count/unavailable", unavailable);
+		periodicMetrics.recordGauge("datastore/cassandra/retry_count/request_error", requestError);
 	}
 }

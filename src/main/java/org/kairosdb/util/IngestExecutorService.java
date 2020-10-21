@@ -1,23 +1,18 @@
 package org.kairosdb.util;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.UnavailableException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.base.Stopwatch;
-import org.kairosdb.core.DataPointSet;
-import org.kairosdb.core.datapoints.DoubleDataPointFactory;
-import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Subscribe;
 import org.kairosdb.events.ShutdownEvent;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,28 +24,25 @@ import java.util.concurrent.TimeUnit;
 /**
  Created by bhawkins on 10/27/16.
  */
-public class IngestExecutorService implements KairosMetricReporter
+public class IngestExecutorService
 {
 	public static final String PERMIT_COUNT = "kairosdb.ingest_executor.thread_count";
 
+	private final PeriodicMetrics m_periodicMetrics;
 	private final ExecutorService m_internalExecutor;
 	private final ThreadGroup m_threadGroup;
 	//Original idea behind this is that the number of threads could
 	//adjust via incrementing or decrementing the semaphore count.
 	private final CongestionSemaphore m_semaphore;
-	private final SimpleStats m_ingestTimeStats = new SimpleStats();
 	private int m_permitCount = 10;
 	private final Retryer<Integer> m_retryer;
 
 	@Inject
-	private DoubleDataPointFactory m_dataPointFactory = new DoubleDataPointFactoryImpl();
-
-	@Inject
-	private SimpleStatsReporter m_simpleStatsReporter = new SimpleStatsReporter();
-
-	@Inject
-	public IngestExecutorService(@Named(PERMIT_COUNT) int permitCount)
+	public IngestExecutorService(
+			PeriodicMetrics periodicMetrics,
+			@Named(PERMIT_COUNT) int permitCount)
 	{
+		m_periodicMetrics = periodicMetrics;
 		m_permitCount = permitCount;
 		//m_congestionTimer = new CongestionTimer(m_permitCount);
 		m_semaphore = new CongestionSemaphore(m_permitCount);
@@ -117,18 +109,6 @@ public class IngestExecutorService implements KairosMetricReporter
 		}
 	}
 
-	@Override
-	public List<DataPointSet> getMetrics(long now)
-	{
-		List<DataPointSet> ret = new ArrayList<>();
-
-		m_simpleStatsReporter.reportStats(m_ingestTimeStats.getAndClear(), now,
-				"kairosdb.ingest_executor.write_time_micro", ret);
-
-		return ret;
-	}
-
-
 	private class IngestFutureTask extends FutureTask<Integer>
 	{
 		private final Stopwatch m_stopwatch;
@@ -149,7 +129,7 @@ public class IngestExecutorService implements KairosMetricReporter
 				super.run();
 				m_stopwatch.stop();
 
-				m_ingestTimeStats.addValue(m_stopwatch.elapsed(TimeUnit.MICROSECONDS));
+				m_periodicMetrics.recordGauge("ingest_executor/write_time_micro", m_stopwatch.elapsed(TimeUnit.MICROSECONDS));
 			}
 			finally
 			{

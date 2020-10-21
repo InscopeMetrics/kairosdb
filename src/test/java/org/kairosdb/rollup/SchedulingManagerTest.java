@@ -1,5 +1,6 @@
 package org.kairosdb.rollup;
 
+import com.arpnetworking.metrics.MetricsFactory;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,13 +26,15 @@ public class SchedulingManagerTest extends RollupTestBase
 	private	FilterEventBus mockEventBus;
 	@Mock
 	private RollupTaskStatusStore mockStatusStore;
+	@Mock
+	private MetricsFactory metricsFactory;
 
 	private SchedulingManager manager;
 
 	@Before
 	public void setup() throws RollUpException
 	{
-		manager = new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, mockExecutionService, mockEventBus, mockStatusStore,10, LOCAL_HOST, SERVER_GUID);
+		manager = new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, metricsFactory, mockExecutionService, mockEventBus, mockStatusStore,10, LOCAL_HOST, SERVER_GUID);
 	}
 
 	@Test
@@ -40,7 +43,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("taskStore cannot be null");
 
-		new SchedulingManager(null, assignmentStore, mockScheduler, mockDatastore, mockExecutionService, mockEventBus, mockStatusStore,10, LOCAL_HOST,SERVER_GUID);
+		new SchedulingManager(null, assignmentStore, mockScheduler, mockDatastore, metricsFactory, mockExecutionService, mockEventBus, mockStatusStore,10, LOCAL_HOST,SERVER_GUID);
 	}
 
 	@Test
@@ -49,7 +52,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("assignmentStore cannot be null");
 
-		new SchedulingManager(taskStore, null, mockScheduler, mockDatastore, mockExecutionService, mockEventBus,mockStatusStore,10, "hostname", SERVER_GUID);
+		new SchedulingManager(taskStore, null, mockScheduler, mockDatastore, metricsFactory, mockExecutionService, mockEventBus,mockStatusStore,10, "hostname", SERVER_GUID);
 	}
 
 	@Test
@@ -58,7 +61,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("scheduler cannot be null");
 
-		new SchedulingManager(taskStore, assignmentStore, null, mockDatastore, mockExecutionService, mockEventBus, mockStatusStore,10, "hostname", SERVER_GUID);
+		new SchedulingManager(taskStore, assignmentStore, null, mockDatastore, metricsFactory, mockExecutionService, mockEventBus, mockStatusStore,10, "hostname", SERVER_GUID);
 	}
 
 	@Test
@@ -67,7 +70,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("dataStore cannot be null");
 
-		new SchedulingManager(taskStore, assignmentStore, mockScheduler, null, mockExecutionService, mockEventBus, mockStatusStore,10, "hostname", SERVER_GUID);
+		new SchedulingManager(taskStore, assignmentStore, mockScheduler, null, metricsFactory, mockExecutionService, mockEventBus, mockStatusStore,10, "hostname", SERVER_GUID);
 	}
 
 	@Test
@@ -76,7 +79,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("executorService cannot be null");
 
-		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, null, mockEventBus, mockStatusStore,10, "hostname", SERVER_GUID);
+		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, metricsFactory, null, mockEventBus, mockStatusStore,10, "hostname", SERVER_GUID);
 	}
 
 	@Test
@@ -85,7 +88,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("hostname cannot be null or empty");
 
-		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, mockExecutionService, mockEventBus,mockStatusStore,10, null, SERVER_GUID);
+		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, metricsFactory, mockExecutionService, mockEventBus,mockStatusStore,10, null, SERVER_GUID);
 	}
 
 	@Test
@@ -94,7 +97,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(IllegalArgumentException.class);
 		expectedException.expectMessage("hostname cannot be null or empty");
 
-		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, mockExecutionService, mockEventBus,mockStatusStore,10, "", SERVER_GUID);
+		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, metricsFactory, mockExecutionService, mockEventBus,mockStatusStore,10, "", SERVER_GUID);
 	}
 
 	@Test
@@ -103,7 +106,7 @@ public class SchedulingManagerTest extends RollupTestBase
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("eventBus cannot be null");
 
-		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, mockExecutionService, null, mockStatusStore,10, "hostname", SERVER_GUID);
+		new SchedulingManager(taskStore, assignmentStore, mockScheduler, mockDatastore, metricsFactory, mockExecutionService, null, mockStatusStore,10, "hostname", SERVER_GUID);
 	}
 
 	@Test
@@ -116,9 +119,9 @@ public class SchedulingManagerTest extends RollupTestBase
 
 		manager.checkSchedulingChanges();
 
-		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK1, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore), SchedulingManager.createTrigger(TASK1));
-		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore), SchedulingManager.createTrigger(TASK2));
-		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK3, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore), SchedulingManager.createTrigger(TASK3));
+		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK1, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory), SchedulingManager.createTrigger(TASK1));
+		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory), SchedulingManager.createTrigger(TASK2));
+		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK3, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory), SchedulingManager.createTrigger(TASK3));
 	}
 
 	@Test
@@ -139,9 +142,9 @@ public class SchedulingManagerTest extends RollupTestBase
 
 		manager.checkSchedulingChanges();
 
-		JobDetailImpl job = SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore);
+		JobDetailImpl job = SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory);
 		verify(mockScheduler, times(1)).cancel(job.getKey());
-		verify(mockScheduler, times(2)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore), SchedulingManager.createTrigger(TASK2));
+		verify(mockScheduler, times(2)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory), SchedulingManager.createTrigger(TASK2));
 	}
 
 	@Test
@@ -159,9 +162,9 @@ public class SchedulingManagerTest extends RollupTestBase
 
 		manager.checkSchedulingChanges();
 
-		JobDetailImpl job = SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore);
+		JobDetailImpl job = SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory);
 		verify(mockScheduler, times(1)).cancel(job.getKey());
-		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore), SchedulingManager.createTrigger(TASK2));
+		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory), SchedulingManager.createTrigger(TASK2));
 	}
 
 	@Test
@@ -179,8 +182,8 @@ public class SchedulingManagerTest extends RollupTestBase
 
 		manager.checkSchedulingChanges();
 
-		JobDetailImpl job = SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore);
+		JobDetailImpl job = SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory);
 		verify(mockScheduler, times(1)).cancel(job.getKey());
-		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore), SchedulingManager.createTrigger(TASK2));
+		verify(mockScheduler, times(1)).schedule(SchedulingManager.createJobDetail(TASK2, mockDatastore, LOCAL_HOST, mockEventBus, mockStatusStore, metricsFactory), SchedulingManager.createTrigger(TASK2));
 	}
 }

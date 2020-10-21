@@ -15,6 +15,7 @@
  */
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -33,6 +34,7 @@ import org.kairosdb.datastore.DatastoreMetricQueryImpl;
 import org.kairosdb.datastore.DatastoreTestHelper;
 import org.kairosdb.events.DataPointEvent;
 import org.kairosdb.util.IngestExecutorService;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -248,11 +250,11 @@ public class CassandraDatastoreIT extends DatastoreTestHelper
 		KairosRootConfig config = new KairosRootConfig();
 		config.load(configMap);
 
+		PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
 		CassandraConfiguration configuration = new CassandraConfiguration(config);
-		CassandraClientImpl client = new CassandraClientImpl(configuration.getWriteCluster());
+		CassandraClientImpl client = new CassandraClientImpl(configuration.getWriteCluster(), periodicMetrics);
 		client.init();
 		m_clusterConnection = new ClusterConnection(client, EnumSet.of(ClusterConnection.Type.WRITE, ClusterConnection.Type.META));
-		BatchStats batchStats = new BatchStats();
 		DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>(1024);
 		DataCache<String> metricNameCache = new DataCache<>(1024);
 
@@ -262,7 +264,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper
 			public CQLBatch create()
 			{
 				return new CQLBatch(ConsistencyLevel.QUORUM, m_clusterConnection,
-						batchStats, client.getWriteLoadBalancingPolicy());
+						periodicMetrics, client.getWriteLoadBalancingPolicy());
 			}
 		};
 
@@ -272,8 +274,8 @@ public class CassandraDatastoreIT extends DatastoreTestHelper
 				m_clusterConnection,
 				Collections.emptyList(),
 				dataPointFactory,
-				new MemoryQueueProcessor(Executors.newSingleThreadExecutor(), 1000, 10000, 10, 500),
-				new IngestExecutorService(1),
+				new MemoryQueueProcessor(Executors.newSingleThreadExecutor(), periodicMetrics, 1000, 10000, 10, 500),
+				new IngestExecutorService(periodicMetrics, 1),
 				new CassandraModule.BatchHandlerFactory()
 				{
 					@Override
@@ -307,7 +309,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper
 				});
 
 		DatastoreTestHelper.s_datastore = new KairosDatastore(s_datastore,
-				new QueryQueuingManager(1, "hostname"),
+				new QueryQueuingManager(periodicMetrics, 1),
 				dataPointFactory, false);
 
 		DatastoreTestHelper.s_datastore.init();

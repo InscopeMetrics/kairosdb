@@ -1,7 +1,7 @@
 Custom Data
 ===========
 
-KairosDB provides a means for storing and aggregating custom data types.  By default KairosDB supports long, double and string values.
+KairosDB provides a means for storing and aggregating custom data types.  By default KairosDB supports long and double values.
 
 Steps for creating custom data type
 -----------------------------------

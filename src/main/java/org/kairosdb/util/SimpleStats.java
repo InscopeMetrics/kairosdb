@@ -1,5 +1,7 @@
 package org.kairosdb.util;
 
+import java.util.List;
+
 /**
  Created by bhawkins on 1/26/17.
  */
@@ -24,6 +26,20 @@ public class SimpleStats
 			m_max = Math.max(m_max, value);
 			m_sum += value;
 			m_count++;
+		}
+	}
+
+	public void addAllValues(final List<Long> values)
+	{
+		synchronized (m_dataLock)
+		{
+			for (final Long value : values) {
+				m_min = Math.min(m_min, value);
+				m_max = Math.max(m_max, value);
+				m_sum += value;
+
+			}
+			m_count += values.size();
 		}
 	}
 

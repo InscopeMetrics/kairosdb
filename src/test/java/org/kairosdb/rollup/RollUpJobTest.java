@@ -1,5 +1,6 @@
 package org.kairosdb.rollup;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.common.collect.ImmutableSortedMap;
 import org.junit.Before;
 import org.junit.Rule;
@@ -15,6 +16,7 @@ import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.eventbus.Subscribe;
 import org.kairosdb.plugin.Aggregator;
 import org.kairosdb.testing.ListDataPointGroup;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -41,8 +43,9 @@ public class RollUpJobTest
 	{
 		lastTimeStamp = dateFormat.parse("2013-JAN-18 4:55:12.22").getTime();
 
+		final PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
 		testDataStore = new TestDatastore();
-		datastore = new KairosDatastore(testDataStore, new QueryQueuingManager(1, "hostname"),
+		datastore = new KairosDatastore(testDataStore, new QueryQueuingManager(periodicMetrics, 1),
 				new TestDataPointFactory(), false);
 		datastore.init();
 	}
