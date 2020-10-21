@@ -30,58 +30,49 @@ import java.util.Iterator;
  */
 @FeatureComponent(
         name = "sum",
-		description = "Adds data points together."
+        description = "Adds data points together."
 )
-public class SumAggregator extends RangeAggregator
-{
-	public static final Logger logger = LoggerFactory.getLogger(SumAggregator.class);
+public class SumAggregator extends RangeAggregator {
+    public static final Logger logger = LoggerFactory.getLogger(SumAggregator.class);
 
-	private DoubleDataPointFactory m_dataPointFactory;
+    private final DoubleDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public SumAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public SumAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new SumDataPointAggregator());
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new SumDataPointAggregator());
+    }
 
-	private class SumDataPointAggregator implements RangeSubAggregator
-	{
+    private class SumDataPointAggregator implements RangeSubAggregator {
 
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			double sum = 0;
-			int counter = 0;
-			while (dataPointRange.hasNext())
-			{
-				sum += dataPointRange.next().getDoubleValue();
-				counter ++;
-			}
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            double sum = 0;
+            int counter = 0;
+            while (dataPointRange.hasNext()) {
+                sum += dataPointRange.next().getDoubleValue();
+                counter++;
+            }
 
-			if (logger.isDebugEnabled())
-			{
-				logger.debug("Aggregating "+counter+" values");
-			}
+            if (logger.isDebugEnabled()) {
+                logger.debug("Aggregating " + counter + " values");
+            }
 
-			return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, sum));
-		}
-	}
+            return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, sum));
+        }
+    }
 }

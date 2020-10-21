@@ -20,42 +20,31 @@ import org.json.JSONWriter;
 import org.kairosdb.core.formatter.FormatterException;
 
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+public class TypeGroupByResult implements GroupByResult {
+    private final String m_type;
 
-public class TypeGroupByResult implements GroupByResult
-{
-	private final String m_type;
+    public TypeGroupByResult(final String type) {
+        m_type = type;
+    }
 
-	public TypeGroupByResult(String type)
-	{
-		m_type = type;
-	}
+    public String getType() {
+        return m_type;
+    }
 
-	public String getType()
-	{
-		return m_type;
-	}
+    @Override
+    public String toJson() throws FormatterException {
+        final StringWriter stringWriter = new StringWriter();
+        final JSONWriter writer = new JSONWriter(stringWriter);
 
-	@Override
-	public String toJson() throws FormatterException
-	{
-		StringWriter stringWriter = new StringWriter();
-		JSONWriter writer = new JSONWriter(stringWriter);
-
-		try
-		{
-			writer.object();
-			writer.key("name").value("type");
-			writer.key("type").value(m_type);
-			writer.endObject();
-		}
-		catch (JSONException e)
-		{
-			throw new FormatterException(e);
-		}
-		return stringWriter.toString();
-	}
+        try {
+            writer.object();
+            writer.key("name").value("type");
+            writer.key("type").value(m_type);
+            writer.endObject();
+        } catch (final JSONException e) {
+            throw new FormatterException(e);
+        }
+        return stringWriter.toString();
+    }
 }

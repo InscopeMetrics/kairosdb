@@ -5,7 +5,6 @@ import org.apache.commons.lang3.ClassUtils;
 import org.kairosdb.core.processingstage.metadata.FeaturePropertyMetadata;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -14,17 +13,13 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-public class AnnotationUtils
-{
-    @SuppressWarnings("ConstantConditions")
-    public static List<FeaturePropertyMetadata> getPropertyMetadata(Class<?> clazz)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException
-    {
+public class AnnotationUtils {
+    public static List<FeaturePropertyMetadata> getPropertyMetadata(final Class<?> clazz) throws ClassNotFoundException {
         checkNotNull(clazz, "class cannot be null");
 
-        List<FeaturePropertyMetadata> properties = new ArrayList<>();
-        Field[] fields = clazz.getDeclaredFields();
-        for (Field field : fields) {
+        final List<FeaturePropertyMetadata> properties = new ArrayList<>();
+        final Field[] fields = clazz.getDeclaredFields();
+        for (final Field field : fields) {
             if (field.getAnnotation(FeatureProperty.class) != null) {
                 String type = getType(field);
                 String options = null;
@@ -33,13 +28,13 @@ public class AnnotationUtils
                     type = "enum";
                 }
 
-                FeatureProperty property = field.getAnnotation(FeatureProperty.class);
+                final FeatureProperty property = field.getAnnotation(FeatureProperty.class);
                 properties.add(new FeaturePropertyMetadata(field.getName(), type, options,
                         isEmpty(property.default_value()) ? getDefaultValue(field) : property.default_value(),
                         property));
             }
 
-            FeatureCompoundProperty annotation = field.getAnnotation(FeatureCompoundProperty.class);
+            final FeatureCompoundProperty annotation = field.getAnnotation(FeatureCompoundProperty.class);
             if (annotation != null) {
                 properties.add(new FeaturePropertyMetadata(field.getName(), annotation, getPropertyMetadata(field.getType())));
             }
@@ -50,11 +45,9 @@ public class AnnotationUtils
         }
 
         //noinspection Convert2Lambda
-        properties.sort(new Comparator<FeaturePropertyMetadata>()
-        {
+        properties.sort(new Comparator<FeaturePropertyMetadata>() {
             @Override
-            public int compare(FeaturePropertyMetadata o1, FeaturePropertyMetadata o2)
-            {
+            public int compare(final FeaturePropertyMetadata o1, final FeaturePropertyMetadata o2) {
                 return o1.getLabel().compareTo(o2.getLabel());
             }
         });
@@ -62,12 +55,10 @@ public class AnnotationUtils
         return properties;
     }
 
-    private static String getEnumAsString(Class<?> type)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException
-    {
-        StringBuilder builder = new StringBuilder();
-        Field[] declaredFields = type.getDeclaredFields();
-        for (Field declaredField : declaredFields) {
+    private static String getEnumAsString(final Class<?> type) {
+        final StringBuilder builder = new StringBuilder();
+        final Field[] declaredFields = type.getDeclaredFields();
+        for (final Field declaredField : declaredFields) {
             if (declaredField.isEnumConstant()) {
                 if (builder.length() > 0) {
                     builder.append(',');
@@ -79,27 +70,20 @@ public class AnnotationUtils
         return builder.toString();
     }
 
-    private static String getType(Field field)
-    {
-        if (Collection.class.isAssignableFrom(field.getType()) || field.getType().isArray())
-        {
+    private static String getType(final Field field) {
+        if (Collection.class.isAssignableFrom(field.getType()) || field.getType().isArray()) {
             return "array";
         }
         return field.getType().getSimpleName();
     }
 
-    private static String getDefaultValue(Field field)
-            throws ClassNotFoundException
-    {
-        if (field.getType().isAssignableFrom(String.class))
-        {
+    private static String getDefaultValue(final Field field)
+            throws ClassNotFoundException {
+        if (field.getType().isAssignableFrom(String.class)) {
             return "";
-        }
-        else if (Collection.class.isAssignableFrom(field.getType()) || field.getType().isArray())
-        {
+        } else if (Collection.class.isAssignableFrom(field.getType()) || field.getType().isArray()) {
             return "[]";
-        }
-        else {
+        } else {
             return String.valueOf(Defaults.defaultValue(ClassUtils.getClass(field.getType().getSimpleName())));
         }
     }

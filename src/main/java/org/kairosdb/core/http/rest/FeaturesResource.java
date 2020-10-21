@@ -20,42 +20,37 @@ import javax.ws.rs.core.Response;
 import static org.kairosdb.core.http.rest.MetricsResource.setHeaders;
 
 @Path("/api/v1/features")
-public class FeaturesResource
-{
-    private FeatureProcessor m_featureProcessor;
-    private Gson gson = new Gson();
+public class FeaturesResource {
+    private final FeatureProcessor m_featureProcessor;
+    private final Gson gson = new Gson();
 
     @Inject
-    public FeaturesResource(FeatureProcessor featureProcessor)
-    {
+    public FeaturesResource(final FeatureProcessor featureProcessor) {
         this.m_featureProcessor = featureProcessor;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
     @Path("{feature}")
-    public Response getFeature(@PathParam("feature") String feature)
-    {
-        FeatureProcessingFactory<?> featureProcessingFactory = m_featureProcessor.getFeatureProcessingFactory(feature);
-        if (featureProcessingFactory == null)
-        {
-            JsonResponseBuilder builder = new JsonResponseBuilder(Response.Status.NOT_FOUND);
+    public Response getFeature(@PathParam("feature") final String feature) {
+        final FeatureProcessingFactory<?> featureProcessingFactory = m_featureProcessor.getFeatureProcessingFactory(feature);
+        if (featureProcessingFactory == null) {
+            final JsonResponseBuilder builder = new JsonResponseBuilder(Response.Status.NOT_FOUND);
             builder.addError("Unknown feature '" + feature.toLowerCase() + "'");
             return builder.build();
         }
 
-        ImmutableList<FeatureProcessorMetadata> featureProcessorMetadata = featureProcessingFactory.getFeatureProcessorMetadata();
-        Response.ResponseBuilder responseBuilder = Response.status(Response.Status.OK).entity(gson.toJson(featureProcessorMetadata));
+        final ImmutableList<FeatureProcessorMetadata> featureProcessorMetadata = featureProcessingFactory.getFeatureProcessorMetadata();
+        final Response.ResponseBuilder responseBuilder = Response.status(Response.Status.OK).entity(gson.toJson(featureProcessorMetadata));
         setHeaders(responseBuilder);
         return responseBuilder.build();
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
-    public Response getFeatures()
-    {
-        ImmutableList<FeatureProcessingMetadata> processingChainMetadata = m_featureProcessor.getFeatureProcessingMetadata();
-        Response.ResponseBuilder responseBuilder = Response.status(Response.Status.OK).entity(gson.toJson(processingChainMetadata));
+    public Response getFeatures() {
+        final ImmutableList<FeatureProcessingMetadata> processingChainMetadata = m_featureProcessor.getFeatureProcessingMetadata();
+        final Response.ResponseBuilder responseBuilder = Response.status(Response.Status.OK).entity(gson.toJson(processingChainMetadata));
         setHeaders(responseBuilder);
         return responseBuilder.build();
     }

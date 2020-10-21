@@ -13,7 +13,6 @@ import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -33,14 +32,12 @@ public class FilterSubscriberTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testCreate_prioityNegative_invalid()
-    {
+    public void testCreate_prioityNegative_invalid() {
         FilterSubscriber.create(bus, this, getTestSubscriberMethod("recordingMethod"), -1);
     }
 
-   @Test(expected = IllegalArgumentException.class)
-    public void testCreate_prioityTooLarge_invalid()
-    {
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreate_prioityTooLarge_invalid() {
         FilterSubscriber.create(bus, this, getTestSubscriberMethod("recordingMethod"), 101);
     }
 
@@ -56,10 +53,10 @@ public class FilterSubscriberTest {
 
     @Test
     public void testInvokeSubscriberMethod_basicMethodCall() throws Throwable {
-        Method method = getTestSubscriberMethod("recordingMethod");
-        FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 0);
+        final Method method = getTestSubscriberMethod("recordingMethod");
+        final FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 0);
 
-        Object result = subscriber.invokeSubscriberMethod(FIXTURE_ARGUMENT);
+        final Object result = subscriber.invokeSubscriberMethod(FIXTURE_ARGUMENT);
 
         assertTrue("Subscriber must call provided method", methodCalled);
         assertTrue("Subscriber argument must be exactly the provided object.",
@@ -70,13 +67,13 @@ public class FilterSubscriberTest {
 
     @Test
     public void testInvokeSubscriberMethod_exceptionWrapping() throws Throwable {
-        Method method = getTestSubscriberMethod("exceptionThrowingMethod");
-        FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 100);
+        final Method method = getTestSubscriberMethod("exceptionThrowingMethod");
+        final FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 100);
 
         try {
             subscriber.invokeSubscriberMethod(FIXTURE_ARGUMENT);
             fail("Subscribers whose methods throw must throw InvocationTargetException");
-        } catch (InvocationTargetException expected) {
+        } catch (final InvocationTargetException expected) {
             assertThat(expected.getCause(), instanceOf(IntentionalException.class));
         }
     }
@@ -84,23 +81,22 @@ public class FilterSubscriberTest {
     @SuppressWarnings("EmptyCatchBlock")
     @Test
     public void testInvokeSubscriberMethod_errorPassthrough() throws Throwable {
-        Method method = getTestSubscriberMethod("errorThrowingMethod");
-        FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 10);
+        final Method method = getTestSubscriberMethod("errorThrowingMethod");
+        final FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 10);
 
         try {
             subscriber.dispatchEvent(FIXTURE_ARGUMENT);
             fail("Subscribers whose methods throw Errors must rethrow them");
-        } catch (JudgmentError expected) {
+        } catch (final JudgmentError expected) {
         }
     }
 
     @Test
-    public void test_dispatch()
-    {
-        Method method = getTestSubscriberMethod("recordingMethod");
-        FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 10);
+    public void test_dispatch() {
+        final Method method = getTestSubscriberMethod("recordingMethod");
+        final FilterSubscriber subscriber = FilterSubscriber.create(bus, this, method, 10);
 
-        Object result = subscriber.dispatchEvent(FIXTURE_ARGUMENT);
+        final Object result = subscriber.dispatchEvent(FIXTURE_ARGUMENT);
 
         assertTrue("Subscriber must call provided method", methodCalled);
         assertTrue("Subscriber argument must be exactly the provided object.",
@@ -109,10 +105,10 @@ public class FilterSubscriberTest {
         assertThat(result, equalTo(FIXTURE_ARGUMENT));
     }
 
-    private Method getTestSubscriberMethod(String name) {
+    private Method getTestSubscriberMethod(final String name) {
         try {
             return getClass().getDeclaredMethod(name, Object.class);
-        } catch (NoSuchMethodException e) {
+        } catch (final NoSuchMethodException e) {
             throw new AssertionError();
         }
     }
@@ -125,7 +121,7 @@ public class FilterSubscriberTest {
      */
     @SuppressWarnings("unused")
     @Subscribe
-    public Object recordingMethod(Object arg) {
+    public Object recordingMethod(final Object arg) {
         assertFalse(methodCalled);
         methodCalled = true;
         methodArgument = arg;
@@ -134,8 +130,20 @@ public class FilterSubscriberTest {
 
     @SuppressWarnings("unused")
     @Subscribe
-    public void exceptionThrowingMethod(Object arg) throws Exception {
+    public void exceptionThrowingMethod(final Object arg) throws Exception {
         throw new IntentionalException();
+    }
+
+    @SuppressWarnings("unused")
+    @Subscribe
+    public void errorThrowingMethod(final Object arg) {
+        throw new JudgmentError();
+    }
+
+    @SuppressWarnings("unused")
+    @Subscribe
+    @AllowConcurrentEvents
+    public void threadSafeMethod(final Object arg) {
     }
 
     /**
@@ -144,18 +152,6 @@ public class FilterSubscriberTest {
     private class IntentionalException extends Exception {
 
         private static final long serialVersionUID = -2500191180248181379L;
-    }
-
-    @SuppressWarnings("unused")
-    @Subscribe
-    public void errorThrowingMethod(Object arg) {
-        throw new JudgmentError();
-    }
-
-    @SuppressWarnings("unused")
-    @Subscribe
-    @AllowConcurrentEvents
-    public void threadSafeMethod(Object arg) {
     }
 
     /**

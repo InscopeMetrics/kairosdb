@@ -22,51 +22,48 @@ import com.google.inject.servlet.GuiceFilter;
 import com.sun.jersey.guice.JerseyServletModule;
 import com.sun.jersey.guice.spi.container.servlet.GuiceContainer;
 import org.eclipse.jetty.servlets.GzipFilter;
-import org.kairosdb.core.http.exceptionmapper.InvalidServerTypeExceptionMapper;
 import org.kairosdb.core.KairosRootConfig;
+import org.kairosdb.core.http.exceptionmapper.InvalidServerTypeExceptionMapper;
 import org.kairosdb.core.http.rest.FeaturesResource;
 import org.kairosdb.core.http.rest.MetadataResource;
 import org.kairosdb.core.http.rest.MetricsResource;
 
 import javax.ws.rs.core.MediaType;
 
-public class WebServletModule extends JerseyServletModule
-{
-	public WebServletModule(KairosRootConfig props)
-	{
-	}
+public class WebServletModule extends JerseyServletModule {
+    public WebServletModule(final KairosRootConfig props) {
+    }
 
-	@Override
-	protected void configureServlets()
-	{
-		binder().requireExplicitBindings();
-		bind(GuiceFilter.class);
+    @Override
+    protected void configureServlets() {
+        binder().requireExplicitBindings();
+        bind(GuiceFilter.class);
 
-		//Bind web server
-		bind(WebServer.class);
+        //Bind web server
+        bind(WebServer.class);
 
-		//Bind resource classes here
-		bind(MetricsResource.class).in(Scopes.SINGLETON);
+        //Bind resource classes here
+        bind(MetricsResource.class).in(Scopes.SINGLETON);
         bind(MetadataResource.class).in(Scopes.SINGLETON);
-		bind(FeaturesResource.class).in(Scopes.SINGLETON);
+        bind(FeaturesResource.class).in(Scopes.SINGLETON);
 
-		bind(GuiceContainer.class);
+        bind(GuiceContainer.class);
 
-		ImmutableMap<String, String> params = new ImmutableMap.Builder<String, String>()
-				.put("mimeTypes", MediaType.APPLICATION_JSON)
-				.put("methods", "GET,POST")
-				.build();
-		bind(GzipFilter.class).in(Scopes.SINGLETON);
-		filter("/*").through(GzipFilter.class, params);
+        final ImmutableMap<String, String> params = new ImmutableMap.Builder<String, String>()
+                .put("mimeTypes", MediaType.APPLICATION_JSON)
+                .put("methods", "GET,POST")
+                .build();
+        bind(GzipFilter.class).in(Scopes.SINGLETON);
+        filter("/*").through(GzipFilter.class, params);
 
-		bind(LoggingFilter.class).in(Scopes.SINGLETON);
-		filter("/*").through(LoggingFilter.class);
+        bind(LoggingFilter.class).in(Scopes.SINGLETON);
+        filter("/*").through(LoggingFilter.class);
 
-		// hook Jackson into Jersey as the POJO <-> JSON mapper
-		bind(JacksonJsonProvider.class).in(Scopes.SINGLETON);
-		serve("/*").with(GuiceContainer.class);
+        // hook Jackson into Jersey as the POJO <-> JSON mapper
+        bind(JacksonJsonProvider.class).in(Scopes.SINGLETON);
+        serve("/*").with(GuiceContainer.class);
 
-		//
-		bind(InvalidServerTypeExceptionMapper.class).in(Scopes.SINGLETON);
-	}
+        //
+        bind(InvalidServerTypeExceptionMapper.class).in(Scopes.SINGLETON);
+    }
 }

@@ -12,86 +12,56 @@ import static org.kairosdb.util.Util.packLong;
 import static org.kairosdb.util.Util.unpackLong;
 
 /**
- Created with IntelliJ IDEA.
- User: bhawkins
- Date: 12/9/13
- Time: 12:48 PM
- To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA.
+ * User: bhawkins
+ * Date: 12/9/13
+ * Time: 12:48 PM
+ * To change this template use File | Settings | File Templates.
  */
-public class LegacyDataPointFactory implements DataPointFactory
-{
-	public static final int LONG_VALUE = 0;
-	public static final int DOUBLE_VALUE = 1;
+public class LegacyDataPointFactory implements DataPointFactory {
+    public static final int LONG_VALUE = 0;
+    public static final int DOUBLE_VALUE = 1;
 
-	public static final String DATASTORE_TYPE = "kairos_legacy";
-	public static final String API_TYPE = "legacy";
+    public static final String DATASTORE_TYPE = "kairos_legacy";
 
-	/*public static ByteBuffer writeToByteBuffer(LegacyLongDataPoint dataPoint)
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(10);
+    public static void writeToByteBuffer(final DataOutput buffer, final LegacyLongDataPoint dataPoint) throws IOException {
+        final long value = dataPoint.getLongValue();
+        buffer.writeByte(LONG_VALUE);
+        packLong(value, buffer);
+    }
 
-		writeToByteBuffer(buffer, dataPoint);
+    public static void writeToByteBuffer(final DataOutput buffer, final LegacyDoubleDataPoint dataPoint) throws IOException {
+        buffer.writeByte(DOUBLE_VALUE);
+        buffer.writeDouble(dataPoint.getDoubleValue());
+    }
 
-		buffer.flip();
-		return (buffer);
-	}*/
+    @Override
+    public String getDataStoreType() {
+        return DATASTORE_TYPE;
+    }
 
-	public static void writeToByteBuffer(DataOutput buffer, LegacyLongDataPoint dataPoint) throws IOException
-	{
-		long value = dataPoint.getLongValue();
-		buffer.writeByte(LONG_VALUE);
-		packLong(value, buffer);
-	}
+    @Override
+    public String getGroupType() {
+        return GROUP_NUMBER;
+    }
 
-	/*public static ByteBuffer writeToByteBuffer(LegacyDoubleDataPoint dataPoint)
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(9);
+    @Override
+    public DataPoint getDataPoint(final long timestamp, final JsonElement json) {
+        // Should never be called for this factory
+        return null;
+    }
 
-		writeToByteBuffer(buffer, dataPoint);
+    @Override
+    public DataPoint getDataPoint(final long timestamp, final KDataInput buffer) throws IOException {
+        final DataPoint ret;
 
-		buffer.flip();
-		return (buffer);
-	}*/
+        final int type = buffer.readByte();
+        if (type == LONG_VALUE) {
+            ret = new LegacyLongDataPoint(timestamp, unpackLong(buffer));
+        } else {
+            ret = new LegacyDoubleDataPoint(timestamp, buffer.readDouble());
+        }
 
-	public static void writeToByteBuffer(DataOutput buffer, LegacyDoubleDataPoint dataPoint) throws IOException
-	{
-		buffer.writeByte(DOUBLE_VALUE);
-		buffer.writeDouble(dataPoint.getDoubleValue());
-	}
-
-	@Override
-	public String getDataStoreType()
-	{
-		return DATASTORE_TYPE;
-	}
-
-	@Override
-	public String getGroupType()
-	{
-		return GROUP_NUMBER;
-	}
-
-	@Override
-	public DataPoint getDataPoint(long timestamp, JsonElement json)
-	{
-		return null;  //Should never be called for this factory
-	}
-
-	@Override
-	public DataPoint getDataPoint(long timestamp, KDataInput buffer) throws IOException
-	{
-		DataPoint ret;
-
-		int type = buffer.readByte();
-		if (type == LONG_VALUE)
-		{
-			ret = new LegacyLongDataPoint(timestamp, unpackLong(buffer));
-		}
-		else
-		{
-			ret = new LegacyDoubleDataPoint(timestamp, buffer.readDouble());
-		}
-
-		return ret;
-	}
+        return ret;
+    }
 }

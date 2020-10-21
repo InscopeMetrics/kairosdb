@@ -26,91 +26,77 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 
-public class JsonResponse
-{
-	private Writer m_writer;
-	private JSONWriter m_jsonWriter;
+public class JsonResponse {
+    private final Writer m_writer;
+    private final JSONWriter m_jsonWriter;
 
-	public JsonResponse(Writer writer)
-	{
-		m_writer = writer;
-		m_jsonWriter = new JSONWriter(writer);
-	}
+    public JsonResponse(final Writer writer) {
+        m_writer = writer;
+        m_jsonWriter = new JSONWriter(writer);
+    }
 
-	public void begin() throws FormatterException
-	{
-		try
-		{
-			m_jsonWriter.object();
-			m_jsonWriter.key("queries").array();
-		}
-		catch (JSONException e)
-		{
-			throw new FormatterException(e);
-		}
-	}
+    public void begin() throws FormatterException {
+        try {
+            m_jsonWriter.object();
+            m_jsonWriter.key("queries").array();
+        } catch (final JSONException e) {
+            throw new FormatterException(e);
+        }
+    }
 
-	/**
-	 * Formats the query results
-	 *
-	 * @param queryResults results of the query
-	 * @param excludeTags if true do not include tag information
-	 * @param sampleSize   Passing a sample size of -1 will cause the attribute to not show up
-	 * @throws FormatterException
-	 */
-	public void formatQuery(List<DataPointGroup> queryResults, boolean excludeTags, int sampleSize) throws FormatterException
-	{
-		try
-		{
-			m_jsonWriter.object();
+    /**
+     * Formats the query results
+     *
+     * @param queryResults results of the query
+     * @param excludeTags  if true do not include tag information
+     * @param sampleSize   Passing a sample size of -1 will cause the attribute to not show up
+     * @throws FormatterException
+     */
+    public void formatQuery(final List<DataPointGroup> queryResults, final boolean excludeTags, final int sampleSize) throws FormatterException {
+        try {
+            m_jsonWriter.object();
 
-			if (sampleSize != -1)
-				m_jsonWriter.key("sample_size").value(sampleSize);
+            if (sampleSize != -1)
+                m_jsonWriter.key("sample_size").value(sampleSize);
 
-			m_jsonWriter.key("results").array();
+            m_jsonWriter.key("results").array();
 
-			//This loop must call close on each group at the end.
-			for (DataPointGroup group : queryResults)
-			{
-				final String metric = group.getName();
+            //This loop must call close on each group at the end.
+            for (final DataPointGroup group : queryResults) {
+                final String metric = group.getName();
 
-				m_jsonWriter.object();
-				m_jsonWriter.key("name").value(metric);
+                m_jsonWriter.object();
+                m_jsonWriter.key("name").value(metric);
 
-				if (!group.getGroupByResult().isEmpty())
-				{
-					m_jsonWriter.key("group_by");
-					m_jsonWriter.array();
-					boolean first = true;
-					for (GroupByResult groupByResult : group.getGroupByResult())
-					{
-						if (!first)
-							m_writer.write(",");
-						m_writer.write(groupByResult.toJson());
-						first = false;
-					}
-					m_jsonWriter.endArray();
-				}
+                if (!group.getGroupByResult().isEmpty()) {
+                    m_jsonWriter.key("group_by");
+                    m_jsonWriter.array();
+                    boolean first = true;
+                    for (final GroupByResult groupByResult : group.getGroupByResult()) {
+                        if (!first)
+                            m_writer.write(",");
+                        m_writer.write(groupByResult.toJson());
+                        first = false;
+                    }
+                    m_jsonWriter.endArray();
+                }
 
-				if (!excludeTags)
-				{
-					m_jsonWriter.key("tags").object();
+                if (!excludeTags) {
+                    m_jsonWriter.key("tags").object();
 
-					for (String tagName : group.getTagNames())
-					{
-						m_jsonWriter.key(tagName);
-						m_jsonWriter.value(group.getTagValues(tagName));
-					}
-					m_jsonWriter.endObject();
-				}
+                    for (final String tagName : group.getTagNames()) {
+                        m_jsonWriter.key(tagName);
+                        m_jsonWriter.value(group.getTagValues(tagName));
+                    }
+                    m_jsonWriter.endObject();
+                }
 
-				m_jsonWriter.key("values").array();
-				while (group.hasNext())
-				{
-					DataPoint dataPoint = group.next();
+                m_jsonWriter.key("values").array();
+                while (group.hasNext()) {
+                    final DataPoint dataPoint = group.next();
 
-					m_jsonWriter.array().value(dataPoint.getTimestamp());
-					dataPoint.writeValueToJson(m_jsonWriter);
+                    m_jsonWriter.array().value(dataPoint.getTimestamp());
+                    dataPoint.writeValueToJson(m_jsonWriter);
 
 					/*if (dataPoint.isInteger())
 					{
@@ -125,36 +111,28 @@ public class JsonResponse
 						}
 						m_jsonWriter.value(value);
 					}*/
-					m_jsonWriter.endArray();
-				}
-				m_jsonWriter.endArray();
-				m_jsonWriter.endObject();
+                    m_jsonWriter.endArray();
+                }
+                m_jsonWriter.endArray();
+                m_jsonWriter.endObject();
 
-				//Don't close the group the caller will do that.
-			}
+                //Don't close the group the caller will do that.
+            }
 
-			m_jsonWriter.endArray().endObject();
-		}
-		catch (JSONException e)
-		{
-			throw new FormatterException(e);
-		}
-		catch (IOException e)
-		{
-			throw new FormatterException(e);
-		}
-	}
+            m_jsonWriter.endArray().endObject();
+        } catch (final JSONException e) {
+            throw new FormatterException(e);
+        } catch (final IOException e) {
+            throw new FormatterException(e);
+        }
+    }
 
-	public void end() throws FormatterException
-	{
-		try
-		{
-			m_jsonWriter.endArray();
-			m_jsonWriter.endObject();
-		}
-		catch (JSONException e)
-		{
-			throw new FormatterException(e);
-		}
-	}
+    public void end() throws FormatterException {
+        try {
+            m_jsonWriter.endArray();
+            m_jsonWriter.endObject();
+        } catch (final JSONException e) {
+            throw new FormatterException(e);
+        }
+    }
 }

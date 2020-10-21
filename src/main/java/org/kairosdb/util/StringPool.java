@@ -19,25 +19,22 @@ package org.kairosdb.util;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- Created with IntelliJ IDEA.
- User: bhawkins
- Date: 10/16/13
- Time: 9:44 AM
- To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA.
+ * User: bhawkins
+ * Date: 10/16/13
+ * Time: 9:44 AM
+ * To change this template use File | Settings | File Templates.
  */
-public class StringPool
-{
-	private ConcurrentHashMap<String, String> m_stringPool;
+public class StringPool {
+    private final ConcurrentHashMap<String, String> m_stringPool;
 
-	public StringPool()
-	{
-		m_stringPool = new ConcurrentHashMap<String, String>();
-	}
+    public StringPool() {
+        m_stringPool = new ConcurrentHashMap<String, String>();
+    }
 
-	public String getString(String str)
-	{
-		String ret = m_stringPool.putIfAbsent(str, str);
+    public String getString(final String str) {
+        final String ret = m_stringPool.putIfAbsent(str, str);
 
-		return (ret == null) ? str : ret;
-	}
+        return (ret == null) ? str : ret;
+    }
 }

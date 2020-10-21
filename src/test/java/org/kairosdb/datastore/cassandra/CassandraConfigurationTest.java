@@ -2,9 +2,7 @@ package org.kairosdb.datastore.cassandra;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.typesafe.config.Config;
 import org.junit.Test;
-import org.kairosdb.core.KairosConfig;
 import org.kairosdb.core.KairosRootConfig;
 
 import java.text.ParseException;
@@ -30,22 +28,22 @@ public class CassandraConfigurationTest
 		ClusterConfiguration config = setHosts(ImmutableList.of("localhost:9000"));
 		assertEquals(ImmutableMap.of("localhost", 9000), config.getHostList());
 
-		config = setHosts(ImmutableList.of("localhost:9000", "otherhost:8000"));
-		assertEquals(ImmutableMap.of("localhost", 9000,
-				"otherhost", 8000), config.getHostList());
+        config = setHosts(ImmutableList.of("localhost:9000", "otherhost:8000"));
+        assertEquals(ImmutableMap.of("localhost", 9000,
+                "otherhost", 8000), config.getHostList());
 
-		config = setHosts(ImmutableList.of("localhost", "otherhost"));
-		assertEquals(ImmutableMap.of("localhost", 9042,
-				"otherhost", 9042), config.getHostList());
+        config = setHosts(ImmutableList.of("localhost", "otherhost"));
+        assertEquals(ImmutableMap.of("localhost", 9042,
+                "otherhost", 9042), config.getHostList());
 
-		config = setHosts(ImmutableList.of("localhost:", "otherhost"));
-		assertEquals(ImmutableMap.of("localhost", 9042,
-				"otherhost", 9042), config.getHostList());
+        config = setHosts(ImmutableList.of("localhost:", "otherhost"));
+        assertEquals(ImmutableMap.of("localhost", 9042,
+                "otherhost", 9042), config.getHostList());
 
-		config = setHosts(ImmutableList.of("localhost:"));
-		assertEquals(ImmutableMap.of("localhost", 9042), config.getHostList());
+        config = setHosts(ImmutableList.of("localhost:"));
+        assertEquals(ImmutableMap.of("localhost", 9042), config.getHostList());
 
-		config = setHosts(ImmutableList.of("localhost"));
-		assertEquals(ImmutableMap.of("localhost", 9042), config.getHostList());
-	}
+        config = setHosts(ImmutableList.of("localhost"));
+        assertEquals(ImmutableMap.of("localhost", 9042), config.getHostList());
+    }
 }

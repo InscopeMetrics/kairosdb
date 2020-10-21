@@ -29,92 +29,75 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class QueryQueuingManager
-{
-	public static final Logger logger = LoggerFactory.getLogger(QueryQueuingManager.class);
-	public static final String CONCURRENT_QUERY_THREAD = "kairosdb.datastore.concurrentQueryThreads";
-	public static final String QUERY_COLLISIONS_METRIC_NAME = "datastore/query_collisions";
+public class QueryQueuingManager {
+    public static final Logger logger = LoggerFactory.getLogger(QueryQueuingManager.class);
+    public static final String CONCURRENT_QUERY_THREAD = "kairosdb.datastore.concurrentQueryThreads";
+    public static final String QUERY_COLLISIONS_METRIC_NAME = "datastore/query_collisions";
 
-	private final Map<String, Thread> runningQueries = new HashMap<String, Thread>();
-	private final ReentrantLock lock = new ReentrantLock();
-	private final Semaphore semaphore;
+    private final Map<String, Thread> runningQueries = new HashMap<>();
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Semaphore semaphore;
 
-	private AtomicInteger collisions = new AtomicInteger();
+    private final AtomicInteger collisions = new AtomicInteger();
 
-	@Inject
-	public QueryQueuingManager(
-			final PeriodicMetrics periodicMetrics,
-			@Named(CONCURRENT_QUERY_THREAD) final int concurrentQueryThreads) {
-		checkArgument(concurrentQueryThreads > 0);
-		semaphore = new Semaphore(concurrentQueryThreads, true);
-		periodicMetrics.registerPolledMetric(m -> {
-			m.recordGauge(QUERY_COLLISIONS_METRIC_NAME, collisions.getAndSet(0));
-		});
-	}
+    @Inject
+    public QueryQueuingManager(
+            final PeriodicMetrics periodicMetrics,
+            @Named(CONCURRENT_QUERY_THREAD) final int concurrentQueryThreads) {
+        checkArgument(concurrentQueryThreads > 0);
+        semaphore = new Semaphore(concurrentQueryThreads, true);
+        periodicMetrics.registerPolledMetric(m -> {
+            m.recordGauge(QUERY_COLLISIONS_METRIC_NAME, collisions.getAndSet(0));
+        });
+    }
 
-	public void waitForTimeToRun(String queryHash) throws InterruptedException
-	{
-		boolean firstTime = true;
-		while(!acquireSemaphore(queryHash))
-		{
-			if (firstTime)
-			{
-				collisions.incrementAndGet();
-				firstTime = false;
-			}
-			Thread.sleep(100);
-		}
-	}
+    public void waitForTimeToRun(final String queryHash) throws InterruptedException {
+        boolean firstTime = true;
+        while (!acquireSemaphore(queryHash)) {
+            if (firstTime) {
+                collisions.incrementAndGet();
+                firstTime = false;
+            }
+            Thread.sleep(100);
+        }
+    }
 
-	public void done(String queryHash)
-	{
-		lock.lock();
-		try
-		{
-			runningQueries.remove(queryHash);
-		}
-		finally
-		{
-			lock.unlock();
-		}
-		semaphore.release();
-	}
+    public void done(final String queryHash) {
+        lock.lock();
+        try {
+            runningQueries.remove(queryHash);
+        } finally {
+            lock.unlock();
+        }
+        semaphore.release();
+    }
 
-	private boolean acquireSemaphore(String queryHash) throws InterruptedException
-	{
-		semaphore.acquire();
+    private boolean acquireSemaphore(final String queryHash) throws InterruptedException {
+        semaphore.acquire();
 
-		boolean hashConflict = false;
-		lock.lock();
-		try
-		{
-			hashConflict = runningQueries.containsKey(queryHash);
-			if (!hashConflict)
-			{
-				runningQueries.put(queryHash, Thread.currentThread());
-			}
-		}
-		finally
-		{
-			lock.unlock();
-		}
+        boolean hashConflict = false;
+        lock.lock();
+        try {
+            hashConflict = runningQueries.containsKey(queryHash);
+            if (!hashConflict) {
+                runningQueries.put(queryHash, Thread.currentThread());
+            }
+        } finally {
+            lock.unlock();
+        }
 
-		if (hashConflict)
-		{
-			semaphore.release();
-			return false;
-		}
-		else
-			return true;
-	}
+        if (hashConflict) {
+            semaphore.release();
+            return false;
+        } else
+            return true;
+    }
 
-	public int getQueryWaitingCount()
-	{
-		return semaphore.getQueueLength();
-	}
+    public int getQueryWaitingCount() {
+        return semaphore.getQueueLength();
+    }
 
-	public int getAvailableThreads()
-	{
-		return semaphore.availablePermits();
-	}
+    public int getAvailableThreads() {
+        return semaphore.availablePermits();
+    }
 }

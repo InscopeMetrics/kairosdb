@@ -36,8 +36,7 @@ import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
  * Manages Roll-up server assignments. Assignments identify which Kairos host executes what roll-ups.
  * Associates TaskId with Host guid
  */
-public class AssignmentManager implements KairosDBService
-{
+public class AssignmentManager implements KairosDBService {
     public static final Logger logger = LoggerFactory.getLogger(AssignmentManager.class);
     private static final String DELAY = "kairosdb.rollups.server_assignment.check_update_delay_millseconds";
 
@@ -57,13 +56,12 @@ public class AssignmentManager implements KairosDBService
 
 
     @Inject
-    public AssignmentManager(@Named(Main.KAIROSDB_SERVER_GUID) String guid,
-            RollUpTasksStore taskStore,
-            RollUpAssignmentStore assignmentStore,
-            RollupTaskStatusStore statusStore,
-            @Named(RollUpModule.ROLLUP_EXECUTOR) ScheduledExecutorService executorService, HostManager hostManager,
-            BalancingAlgorithm balancing, @Named(DELAY) long delay)
-    {
+    public AssignmentManager(@Named(Main.KAIROSDB_SERVER_GUID) final String guid,
+                             final RollUpTasksStore taskStore,
+                             final RollUpAssignmentStore assignmentStore,
+                             final RollupTaskStatusStore statusStore,
+                             @Named(RollUpModule.ROLLUP_EXECUTOR) final ScheduledExecutorService executorService, final HostManager hostManager,
+                             final BalancingAlgorithm balancing, @Named(DELAY) final long delay) {
         this.guid = checkNotNullOrEmpty(guid, "guid cannot be null or empty");
         this.assignmentStore = checkNotNull(assignmentStore, "assignmentStore cannot be null");
         this.taskStore = checkNotNull(taskStore, "taskStore cannot be null");
@@ -77,45 +75,88 @@ public class AssignmentManager implements KairosDBService
         executorService.scheduleWithFixedDelay(new updateAssignments(), 0, delay, java.util.concurrent.TimeUnit.MILLISECONDS);
     }
 
-    private class updateAssignments implements Runnable
-    {
-        @Override
-        public void run()
-        {
-            checkAssignmentChanges();
+    private static Set<String> getTasksForHostsNowInactive(final Map<String, String> previousAssignments, final Map<String, ServiceKeyValue> hosts) {
+        final SetView<String> inactiveHosts = Sets.difference(new HashSet<>(previousAssignments.values()), hosts.keySet());
+
+        final Set<String> removedTaskIds = new HashSet<>();
+        for (final Entry<String, String> assignment : previousAssignments.entrySet()) {
+            if (inactiveHosts.contains(assignment.getValue())) {
+                removedTaskIds.add(assignment.getKey());
+            }
+        }
+        return removedTaskIds;
+    }
+
+    private static Set<String> getMyAssignmentIds(final String guid, final Map<String, String> assignments) {
+        final Set<String> myIds = new HashSet<>();
+        for (final String host : assignments.values()) {
+            if (host.equals(guid)) {
+                myIds.add(host);
+            }
+        }
+        return myIds;
+    }
+
+    private static Map<String, Long> getScores(final Map<String, RollupTask> tasks) {
+        final Map<String, Long> scores = new HashMap<>();
+        for (final String id : tasks.keySet()) {
+            scores.put(id, score(tasks.get(id)));
+        }
+        return scores;
+    }
+
+    /**
+     * Returns a score for the task based on the execution interval.
+     * Score values are as follows:
+     * 1 second -> 120
+     * 1 minute -> 60
+     * 1 hour -> 1
+     * > 1 hour -> 1
+     */
+    @VisibleForTesting
+    static long score(final RollupTask task) {
+        final Duration executionInterval = task.getExecutionInterval();
+        if (executionInterval.getUnit().ordinal() > 2) {
+            // 1 hour or greater
+            return 1;
+        } else if (executionInterval.getUnit().equals(TimeUnit.MINUTES)) {
+            return 61 - executionInterval.getValue();
+        } else if (executionInterval.getUnit().equals(TimeUnit.SECONDS)) {
+            return 121 - executionInterval.getValue();
+        } else {
+            //noinspection ConstantConditions
+            throw new IllegalArgumentException("Invalid time unit " + executionInterval.getUnit());
         }
     }
 
     @VisibleForTesting
-    void checkAssignmentChanges()
-    {
+    void checkAssignmentChanges() {
         try {
-            long assignmentTime = assignmentStore.getLastModifiedTime();
-            long taskStoreTime = taskStore.getLastModifiedTime();
+            final long assignmentTime = assignmentStore.getLastModifiedTime();
+            final long taskStoreTime = taskStore.getLastModifiedTime();
 
             if (haveRollupsOrAssignmentsChanged(assignmentTime, taskStoreTime)) {
-                Map<String, String> previousAssignments = getAssignmentsCache();
-                Map<String, String> assignments = assignmentStore.getAssignments();
+                final Map<String, String> previousAssignments = getAssignmentsCache();
+                final Map<String, String> assignments = assignmentStore.getAssignments();
                 Map<String, String> newAssignments = new HashMap<>(assignments);
-                Map<String, RollupTask> tasks = taskStore.read();
-                Map<String, ServiceKeyValue> hosts = hostManager.getActiveKairosHosts();
+                final Map<String, RollupTask> tasks = taskStore.read();
+                final Map<String, ServiceKeyValue> hosts = hostManager.getActiveKairosHosts();
 
                 if (getMyAssignmentIds(guid, newAssignments).isEmpty() && tasks.size() > hosts.size()) {
                     logger.info("Server starting up. Reblanacing roll-up assignments");
                     newAssignments = balancing.rebalance(hosts.keySet(), getScores(tasks));
-                }
-                else {
+                } else {
                     logger.debug("Checking for roll-up assignment changes...");
                     // Remove assignments for task that have been removed
-                    SetView<String> removedTasks = Sets.difference(previousAssignments.keySet(), tasks.keySet());
-                    for (String taskToRemove : removedTasks) {
+                    final SetView<String> removedTasks = Sets.difference(previousAssignments.keySet(), tasks.keySet());
+                    for (final String taskToRemove : removedTasks) {
                         newAssignments.remove(taskToRemove);
                         statusStore.remove(taskToRemove);
                     }
 
                     // Remove assignments for hosts that are inactive
-                    Set<String> tasksForHostsRemoved = getTasksForHostsNowInactive(previousAssignments, hosts);
-                    for (String assignmentToRemove : tasksForHostsRemoved) {
+                    final Set<String> tasksForHostsRemoved = getTasksForHostsNowInactive(previousAssignments, hosts);
+                    for (final String assignmentToRemove : tasksForHostsRemoved) {
                         newAssignments.remove(assignmentToRemove);
                     }
 
@@ -132,138 +173,74 @@ public class AssignmentManager implements KairosDBService
                     assignmentsCache = newAssignments;
                     assignmentsLastModified = assignmentTime;
                     rollupsLastModified = taskStoreTime;
-                }
-                finally {
+                } finally {
                     lock.unlock();
                 }
             }
-        }
-        catch (Throwable e) {
+        } catch (final Throwable e) {
             logger.error("Failed to modify roll-up assignments", e);
         }
     }
 
-    private void saveChangesToAssignmentTable(Map<String, String> assignments, Map<String, String> newAssignments)
-            throws RollUpException
-    {
-        MapDifference<String, String> diff = Maps.difference(assignments, newAssignments);
+    private void saveChangesToAssignmentTable(final Map<String, String> assignments, final Map<String, String> newAssignments)
+            throws RollUpException {
+        final MapDifference<String, String> diff = Maps.difference(assignments, newAssignments);
         if (!diff.areEqual()) {
-            Map<String, String> remove = diff.entriesOnlyOnLeft();
-            Map<String, String> add = diff.entriesOnlyOnRight();
-            Map<String, ValueDifference<String>> entryDifferences = diff.entriesDiffering();
+            final Map<String, String> remove = diff.entriesOnlyOnLeft();
+            final Map<String, String> add = diff.entriesOnlyOnRight();
+            final Map<String, ValueDifference<String>> entryDifferences = diff.entriesDiffering();
 
             if (!remove.isEmpty()) {
                 assignmentStore.removeAssignments(remove.keySet());
             }
 
-            for (String id : add.keySet()) {
+            for (final String id : add.keySet()) {
                 assignmentStore.setAssignment(id, add.get(id));
             }
 
-            for (String id : entryDifferences.keySet()) {
+            for (final String id : entryDifferences.keySet()) {
                 assignmentStore.removeAssignments(ImmutableSet.of(id));
                 assignmentStore.setAssignment(id, entryDifferences.get(id).rightValue());
             }
         }
     }
 
-    private static Set<String> getTasksForHostsNowInactive(Map<String, String> previousAssignments, Map<String, ServiceKeyValue> hosts)
-    {
-        SetView<String> inactiveHosts = Sets.difference(new HashSet<>(previousAssignments.values()), hosts.keySet());
-
-        Set<String> removedTaskIds = new HashSet<>();
-        for (Entry<String, String> assignment : previousAssignments.entrySet()) {
-            if (inactiveHosts.contains(assignment.getValue())) {
-                removedTaskIds.add(assignment.getKey());
-            }
-        }
-        return removedTaskIds;
-    }
-
-    private Map<String, String> getAssignmentsCache()
-    {
+    private Map<String, String> getAssignmentsCache() {
         lock.lock();
         try {
             return ImmutableMap.copyOf(assignmentsCache);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
 
-    private boolean haveRollupsOrAssignmentsChanged(long assignmentTime, long taskStoreTime)
-            throws RollUpException
-    {
+    private boolean haveRollupsOrAssignmentsChanged(final long assignmentTime, final long taskStoreTime)
+            throws RollUpException {
         lock.lock();
         try {
             return assignmentsLastModified == 0 ||
                     rollupsLastModified == 0 ||
                     assignmentsLastModified != assignmentTime ||
                     rollupsLastModified != taskStoreTime;
-        }
-        finally {
+        } finally {
             lock.unlock();
-        }
-    }
-
-    private static Set<String> getMyAssignmentIds(String guid, Map<String, String> assignments)
-    {
-        Set<String> myIds = new HashSet<>();
-        for (String host: assignments.values()) {
-            if (host.equals(guid)) {
-                myIds.add(host);
-            }
-        }
-        return myIds;
-    }
-
-
-    private static Map<String, Long> getScores(Map<String, RollupTask> tasks)
-    {
-        Map<String, Long> scores = new HashMap<>();
-        for (String id : tasks.keySet()) {
-            scores.put(id, score(tasks.get(id)));
-        }
-        return scores;
-    }
-
-    /**
-     * Returns a score for the task based on the execution interval.
-     * Score values are as follows:
-     * 1 second -> 120
-     * 1 minute -> 60
-     * 1 hour -> 1
-     * > 1 hour -> 1
-     */
-    @VisibleForTesting
-    static long score(RollupTask task)
-    {
-        Duration executionInterval = task.getExecutionInterval();
-        if (executionInterval.getUnit().ordinal() > 2) {
-            // 1 hour or greater
-            return 1;
-        }
-        else if (executionInterval.getUnit().equals(TimeUnit.MINUTES)) {
-            return 61 - executionInterval.getValue();
-        }
-        else if (executionInterval.getUnit().equals(TimeUnit.SECONDS)) {
-            return 121 - executionInterval.getValue();
-        }
-        else {
-            //noinspection ConstantConditions
-            throw new IllegalArgumentException("Invalid time unit " + executionInterval.getUnit());
         }
     }
 
     @Override
     public void start()
-            throws KairosDBException
-    {
+            throws KairosDBException {
     }
 
     @Override
-    public void stop()
-    {
+    public void stop() {
         executorService.shutdown();
+    }
+
+    private class updateAssignments implements Runnable {
+        @Override
+        public void run() {
+            checkAssignmentChanges();
+        }
     }
 }

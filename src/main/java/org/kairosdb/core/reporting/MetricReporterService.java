@@ -19,8 +19,6 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.DataPointSet;
-import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.scheduler.KairosDBJob;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Publisher;
@@ -35,73 +33,58 @@ import java.util.List;
 
 import static org.quartz.TriggerBuilder.newTrigger;
 
-public class MetricReporterService implements KairosDBJob
-{
-	public static final Logger logger = LoggerFactory.getLogger(MetricReporterService.class);
+public class MetricReporterService implements KairosDBJob {
+    public static final Logger logger = LoggerFactory.getLogger(MetricReporterService.class);
 
-	public static final String HOSTNAME = "HOSTNAME";
-	public static final String SCHEDULE_PROPERTY = "kairosdb.reporter.schedule";
-	public static final String REPORTER_TTL = "kairosdb.reporter.ttl";
+    public static final String HOSTNAME = "HOSTNAME";
+    public static final String SCHEDULE_PROPERTY = "kairosdb.reporter.schedule";
+    public static final String REPORTER_TTL = "kairosdb.reporter.ttl";
+    private final String m_schedule;
+    private final int m_ttl;
+    private final Publisher<DataPointEvent> m_publisher;
+    private final KairosMetricReporterListProvider m_reporterProvider;
 
-	private Publisher<DataPointEvent> m_publisher;
-	private KairosMetricReporterListProvider m_reporterProvider;
-	private final String m_schedule;
-	private final int m_ttl;
+    @Inject
+    public MetricReporterService(final FilterEventBus eventBus,
+                                 final KairosMetricReporterListProvider reporterProvider,
+                                 @Named(SCHEDULE_PROPERTY) final String schedule,
+                                 @Named(REPORTER_TTL) final int ttl) {
+        m_reporterProvider = reporterProvider;
+        m_schedule = schedule;
+        m_ttl = ttl;
 
-	@Inject
-	private LongDataPointFactory m_dataPointFactory = new LongDataPointFactoryImpl();
+        m_publisher = eventBus.createPublisher(DataPointEvent.class);
+    }
 
-	@Inject
-	public MetricReporterService(FilterEventBus eventBus,
-			KairosMetricReporterListProvider reporterProvider,
-			@Named(SCHEDULE_PROPERTY) String schedule,
-			@Named(REPORTER_TTL) int ttl)
-	{
-		m_reporterProvider = reporterProvider;
-		m_schedule = schedule;
-		m_ttl = ttl;
+    @Override
+    public Trigger getTrigger() {
+        return (newTrigger()
+                .withIdentity(this.getClass().getSimpleName())
+                .withSchedule(CronScheduleBuilder.cronSchedule(m_schedule))
+                .build());
+    }
 
-		m_publisher = eventBus.createPublisher(DataPointEvent.class);
-	}
+    @Override
+    public void interrupt() {
+    }
 
-	@Override
-	public Trigger getTrigger()
-	{
-		return (newTrigger()
-				.withIdentity(this.getClass().getSimpleName())
-				.withSchedule(CronScheduleBuilder.cronSchedule(m_schedule))
-				.build());
-	}
-
-	@Override
-	public void interrupt()
-	{
-	}
-
-	@Override
-	public void execute(JobExecutionContext jobExecutionContext)
-	{
-		logger.debug("Reporting metrics");
-		long timestamp = System.currentTimeMillis();
-		try
-		{
-			for (KairosMetricReporter reporter : m_reporterProvider.get())
-			{
-				List<DataPointSet> dpList = reporter.getMetrics(timestamp);
-				for (DataPointSet dataPointSet : dpList)
-				{
-					for (DataPoint dataPoint : dataPointSet.getDataPoints())
-					{
-						m_publisher.post(new DataPointEvent(dataPointSet.getName(),
-								dataPointSet.getTags(), dataPoint, m_ttl));
-					}
-				}
-			}
-		}
-		catch (Throwable e)
-		{
-			// prevent the thread from dying
-			logger.error("Reporter service error", e);
-		}
-	}
+    @Override
+    public void execute(final JobExecutionContext jobExecutionContext) {
+        logger.debug("Reporting metrics");
+        final long timestamp = System.currentTimeMillis();
+        try {
+            for (final KairosMetricReporter reporter : m_reporterProvider.get()) {
+                final List<DataPointSet> dpList = reporter.getMetrics(timestamp);
+                for (final DataPointSet dataPointSet : dpList) {
+                    for (final DataPoint dataPoint : dataPointSet.getDataPoints()) {
+                        m_publisher.post(new DataPointEvent(dataPointSet.getName(),
+                                dataPointSet.getTags(), dataPoint, m_ttl));
+                    }
+                }
+            }
+        } catch (final Throwable e) {
+            // prevent the thread from dying
+            logger.error("Reporter service error", e);
+        }
+    }
 }

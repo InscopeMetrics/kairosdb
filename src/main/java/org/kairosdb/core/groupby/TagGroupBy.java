@@ -22,81 +22,73 @@ import org.kairosdb.core.annotation.FeatureProperty;
 import org.kairosdb.core.annotation.ValidationProperty;
 import org.kairosdb.plugin.GroupBy;
 
-import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.validation.constraints.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @FeatureComponent(
-		name = "tag",
-		description = "Groups data points by tag names."
+        name = "tag",
+        description = "Groups data points by tag names."
 )
-public class TagGroupBy implements GroupBy
-{
-	@NotNull
-	@NotEmpty()
+public class TagGroupBy implements GroupBy {
+    @NotNull
+    @NotEmpty()
     @FeatureProperty(
             label = "Tags",
             description = "A list of tags to group by.",
-			autocomplete = "tags",
+            autocomplete = "tags",
             validations = {
-            		@ValidationProperty(
-            				expression = "value.length > 0",
-							message = "Tags can't be empty."
-					)
-			}
+                    @ValidationProperty(
+                            expression = "value.length > 0",
+                            message = "Tags can't be empty."
+                    )
+            }
     )
-	private List<String> tags;
+    private List<String> tags;
 
-	public TagGroupBy()
-	{
-	}
+    public TagGroupBy() {
+    }
 
-	public TagGroupBy(List<String> tagNames)
-	{
-		checkNotNull(tagNames);
-		this.tags = new ArrayList<String>(tagNames);
-	}
+    public TagGroupBy(final List<String> tagNames) {
+        checkNotNull(tagNames);
+        this.tags = new ArrayList<String>(tagNames);
+    }
 
-	public TagGroupBy(String... tagNames)
-	{
-		this.tags = new ArrayList<String>();
-		Collections.addAll(this.tags, tagNames);
-	}
+    public TagGroupBy(final String... tagNames) {
+        this.tags = new ArrayList<String>();
+        Collections.addAll(this.tags, tagNames);
+    }
 
-	@Override
-	public int getGroupId(DataPoint dataPoint, Map<String, String> tags)
-	{
-		// Never used. Grouping by tags are done differently for performance reasons.
-		return 0;
-	}
+    @Override
+    public int getGroupId(final DataPoint dataPoint, final Map<String, String> tags) {
+        // Never used. Grouping by tags are done differently for performance reasons.
+        return 0;
+    }
 
-	@Override
-	public GroupByResult getGroupByResult(int id)
-	{
-		// Never used. Grouping by tags are done differently for performance reasons.
-		return null;
-	}
+    @Override
+    public GroupByResult getGroupByResult(final int id) {
+        // Never used. Grouping by tags are done differently for performance reasons.
+        return null;
+    }
 
-	@Override
-	public void setStartDate(long startDate)
-	{
-	}
+    @Override
+    public void setStartDate(final long startDate) {
+    }
 
-	/**
-	 * Returns the list of tag names to group by.
-	 * @return list of tag names to group by
-	 */
-	public List<String> getTagNames()
-	{
-		return Collections.unmodifiableList(tags);
-	}
+    /**
+     * Returns the list of tag names to group by.
+     *
+     * @return list of tag names to group by
+     */
+    public List<String> getTagNames() {
+        return Collections.unmodifiableList(tags);
+    }
 
-	public void setTags(List<String> tags)
-	{
-		this.tags = tags;
-	}
+    public void setTags(final List<String> tags) {
+        this.tags = tags;
+    }
 }

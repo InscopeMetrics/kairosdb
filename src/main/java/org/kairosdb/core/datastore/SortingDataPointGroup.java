@@ -24,83 +24,70 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class SortingDataPointGroup extends AbstractDataPointGroup
-{
-	private TournamentTree<DataPoint> m_tree;
-	//We keep this list so we can close the iterators
-	private List<DataPointGroup> m_taggedDataPointsList = new ArrayList<>();
+public class SortingDataPointGroup extends AbstractDataPointGroup {
+    private final TournamentTree<DataPoint> m_tree;
+    //We keep this list so we can close the iterators
+    private final List<DataPointGroup> m_taggedDataPointsList = new ArrayList<>();
 
-	public SortingDataPointGroup(String name, Order order)
-	{
-		super(name);
-		m_tree = new TournamentTree<>(new DataPointComparator(), order);
-	}
+    public SortingDataPointGroup(final String name, final Order order) {
+        super(name);
+        m_tree = new TournamentTree<>(new DataPointComparator(), order);
+    }
 
-	public SortingDataPointGroup(List<DataPointGroup> listDataPointGroup, Order order)
-	{
-		this(listDataPointGroup, null, order);
-	}
+    public SortingDataPointGroup(final List<DataPointGroup> listDataPointGroup, final Order order) {
+        this(listDataPointGroup, null, order);
+    }
 
-	public SortingDataPointGroup(List<DataPointGroup> listDataPointGroup, GroupByResult groupByResult,
-			Order order)
-	{
-		this(listDataPointGroup.size() == 0 ? "" : listDataPointGroup.get(0).getName(), order);
+    public SortingDataPointGroup(final List<DataPointGroup> listDataPointGroup, final GroupByResult groupByResult,
+                                 final Order order) {
+        this(listDataPointGroup.size() == 0 ? "" : listDataPointGroup.get(0).getName(), order);
 
-		if (groupByResult != null)
-			addGroupByResult(groupByResult);
+        if (groupByResult != null)
+            addGroupByResult(groupByResult);
 
-		for (DataPointGroup dataPointGroup : listDataPointGroup)
-		{
-			addIterator(dataPointGroup);
-		}
-	}
+        for (final DataPointGroup dataPointGroup : listDataPointGroup) {
+            addIterator(dataPointGroup);
+        }
+    }
 
-	public void addIterator(DataPointGroup taggedDataPoints)
-	{
-		m_tree.addIterator(taggedDataPoints);
-		addTags(taggedDataPoints);
-		m_taggedDataPointsList.add(taggedDataPoints);
-	}
+    public void addIterator(final DataPointGroup taggedDataPoints) {
+        m_tree.addIterator(taggedDataPoints);
+        addTags(taggedDataPoints);
+        m_taggedDataPointsList.add(taggedDataPoints);
+    }
 
 
-	@Override
-	public void close()
-	{
-		for (DataPointGroup taggedDataPoints : m_taggedDataPointsList)
-		{
-			taggedDataPoints.close();
-		}
-	}
+    @Override
+    public void close() {
+        for (final DataPointGroup taggedDataPoints : m_taggedDataPointsList) {
+            taggedDataPoints.close();
+        }
+    }
 
-	@Override
-	public boolean hasNext()
-	{
-		return m_tree.hasNext();
-	}
+    @Override
+    public boolean hasNext() {
+        return m_tree.hasNext();
+    }
 
-	@Override
-	public DataPoint next()
-	{
-		return m_tree.nextElement();
-	}
+    @Override
+    public DataPoint next() {
+        return m_tree.nextElement();
+    }
 
 
-	private static class DataPointComparator implements Comparator<DataPoint>
-	{
-		@Override
-		public int compare(DataPoint point1, DataPoint point2)
-		{
-			long ret = point1.getTimestamp() - point2.getTimestamp();
+    private static class DataPointComparator implements Comparator<DataPoint> {
+        @Override
+        public int compare(final DataPoint point1, final DataPoint point2) {
+            long ret = point1.getTimestamp() - point2.getTimestamp();
 
-			if (ret == 0L)
-				ret = Double.compare(point1.getDoubleValue(), point2.getDoubleValue());
+            if (ret == 0L)
+                ret = Double.compare(point1.getDoubleValue(), point2.getDoubleValue());
 
-			if (ret == 0L)
-			{  //Simple hack to break a tie.
-				ret = System.identityHashCode(point1) - System.identityHashCode(point2);
-			}
+            if (ret == 0L) {  //Simple hack to break a tie.
+                ret = System.identityHashCode(point1) - System.identityHashCode(point2);
+            }
 
-			return (ret < 0L ? -1 : 1);
-		}
-	}
+            return (ret < 0L ? -1 : 1);
+        }
+    }
 }

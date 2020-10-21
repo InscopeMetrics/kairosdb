@@ -17,44 +17,31 @@ import com.google.gson.JsonElement;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.util.KDataInput;
 
-import java.io.DataOutput;
 import java.io.IOException;
 
 import static org.kairosdb.core.DataPoint.GROUP_NUMBER;
 
-public class NullDataPointFactory implements DataPointFactory
-{
+public class NullDataPointFactory implements DataPointFactory {
 
-	public static final String DATASTORE_TYPE = "null";
-	public static final String API_TYPE = "null";
+    public static final String DATASTORE_TYPE = "null";
 
+    @Override
+    public String getDataStoreType() {
+        return DATASTORE_TYPE;
+    }
 
-	public static void writeToByteBuffer(DataOutput buffer, NullDataPoint dataPoint) throws IOException
-	{
-		buffer.writeByte(0x0);
-	}
+    @Override
+    public String getGroupType() {
+        return GROUP_NUMBER;
+    }
 
-	@Override
-	public String getDataStoreType()
-	{
-		return DATASTORE_TYPE;
-	}
+    @Override
+    public DataPoint getDataPoint(final long timestamp, final JsonElement json) {
+        return new NullDataPoint(timestamp);
+    }
 
-	@Override
-	public String getGroupType()
-	{
-		return GROUP_NUMBER;
-	}
-
-	@Override
-	public DataPoint getDataPoint(long timestamp, JsonElement json)
-	{
-		return new NullDataPoint(timestamp);
-	}
-
-	@Override
-	public DataPoint getDataPoint(long timestamp, KDataInput buffer) throws IOException
-	{
-		return new NullDataPoint(timestamp);
-	}
+    @Override
+    public DataPoint getDataPoint(final long timestamp, final KDataInput buffer) throws IOException {
+        return new NullDataPoint(timestamp);
+    }
 }

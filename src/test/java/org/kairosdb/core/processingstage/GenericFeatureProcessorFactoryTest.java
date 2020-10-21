@@ -4,7 +4,6 @@ import com.google.common.base.Defaults;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import org.apache.commons.lang3.ClassUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -29,68 +28,22 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.junit.Assert.assertEquals;
 import static org.kairosdb.core.aggregator.GuiceAggregatorFactoryTest.assertProperty;
 
-public class GenericFeatureProcessorFactoryTest
-{
+public class GenericFeatureProcessorFactoryTest {
     private static FeatureProcessingFactory<Aggregator> factory;
 
     @BeforeClass
     public static void factory_generation_valid()
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException
-    {
-        Injector injector = Guice.createInjector((Module) binder -> binder.bind(AAggregator.class));
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        final Injector injector = Guice.createInjector(binder -> binder.bind(AAggregator.class));
         GenericFeatureProcessorFactoryTest.factory = new AggregatorFactory(injector);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void factory_generation_invalid_metadata()
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException
-    {
-        Injector injector = Guice.createInjector((Module) binder -> binder.bind(InvalidAggregator.class));
-        FeatureProcessingFactory<Aggregator> factory = new AggregatorFactory(injector);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void factory_generation_invalid_injector()
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException
-    {
-        FeatureProcessingFactory<?> factory = new AggregatorFactory(null);
-    }
-
-    @Test
-    public void factory_getter_query_processor_family()
-    {
-        assertEquals("FeatureComponent family don't match", Aggregator.class, GenericFeatureProcessorFactoryTest.factory.getFeature());
-    }
-
-    @Test
-    public void factory_getter_query_processor_metadata()
-            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException
-    {
-        assertQueryProcessors(
-                ImmutableList.copyOf(factory_valid_metadata_generator()),
-                GenericFeatureProcessorFactoryTest.factory.getFeatureProcessorMetadata()
-        );
-    }
-
-    @Test
-    public void factory_new_query_processor()
-    {
-        assertEquals("FeatureComponent created was invalid",
-                AAggregator.class,
-                GenericFeatureProcessorFactoryTest.factory.createFeatureProcessor("A").getClass());
-    }
-
-
-
-    static String getEnumAsString(Class<?> type)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException
-    {
-        StringBuilder builder = new StringBuilder();
-        Field[] declaredFields = type.getDeclaredFields();
-        for (Field declaredField : declaredFields)
-        {
-            if (declaredField.isEnumConstant())
-            {
+    static String getEnumAsString(final Class<?> type)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        final StringBuilder builder = new StringBuilder();
+        final Field[] declaredFields = type.getDeclaredFields();
+        for (final Field declaredField : declaredFields) {
+            if (declaredField.isEnumConstant()) {
                 if (builder.length() > 0)
                     builder.append(',');
                 builder.append(declaredField.getName());
@@ -100,16 +53,14 @@ public class GenericFeatureProcessorFactoryTest
         return builder.toString();
     }
 
-    static String getType(Field field)
-    {
+    static String getType(final Field field) {
         if (Collection.class.isAssignableFrom(field.getType()) || field.getType().isArray())
             return "array";
         return field.getType().getSimpleName();
     }
 
-    static String getDefaultValue(Field field)
-            throws ClassNotFoundException
-    {
+    static String getDefaultValue(final Field field)
+            throws ClassNotFoundException {
         if (field.getType().isAssignableFrom(String.class))
             return "";
         else if (Collection.class.isAssignableFrom(field.getType()) || field.getType().isArray())
@@ -119,49 +70,41 @@ public class GenericFeatureProcessorFactoryTest
     }
 
     @SuppressWarnings("ConstantConditions")
-    static List<FeaturePropertyMetadata> getPropertyMetadata(Class<?> clazz)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException
-    {
+    static List<FeaturePropertyMetadata> getPropertyMetadata(final Class<?> clazz)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
         checkNotNull(clazz, "class cannot be null");
 
-        List<FeaturePropertyMetadata> properties = new ArrayList<>();
-        Field[] fields = clazz.getDeclaredFields();
-        for (Field field : fields)
-        {
-            if (field.getAnnotation(FeatureProperty.class) != null)
-            {
+        final List<FeaturePropertyMetadata> properties = new ArrayList<>();
+        final Field[] fields = clazz.getDeclaredFields();
+        for (final Field field : fields) {
+            if (field.getAnnotation(FeatureProperty.class) != null) {
                 String type = getType(field);
                 String options = null;
-                if (field.getType().isEnum())
-                {
+                if (field.getType().isEnum()) {
                     options = getEnumAsString(field.getType());
                     type = "enum";
                 }
 
-                FeatureProperty property = field.getAnnotation(FeatureProperty.class);
+                final FeatureProperty property = field.getAnnotation(FeatureProperty.class);
                 properties.add(new FeaturePropertyMetadata(field.getName(), type, options,
                         isEmpty(property.default_value()) ? getDefaultValue(field) : property.default_value(),
                         property));
             }
 
-            FeatureCompoundProperty annotation = field.getAnnotation(FeatureCompoundProperty.class);
-            if (annotation != null)
-            {
+            final FeatureCompoundProperty annotation = field.getAnnotation(FeatureCompoundProperty.class);
+            if (annotation != null) {
                 properties.add(new FeaturePropertyMetadata(field.getName(), annotation, getPropertyMetadata(field.getType())));
             }
         }
 
-        if (clazz.getSuperclass() != null)
-        {
+        if (clazz.getSuperclass() != null) {
             properties.addAll(getPropertyMetadata(clazz.getSuperclass()));
         }
 
         //noinspection Convert2Lambda
-        properties.sort(new Comparator<FeaturePropertyMetadata>()
-        {
+        properties.sort(new Comparator<FeaturePropertyMetadata>() {
             @Override
-            public int compare(FeaturePropertyMetadata o1, FeaturePropertyMetadata o2)
-            {
+            public int compare(final FeaturePropertyMetadata o1, final FeaturePropertyMetadata o2) {
                 return o1.getLabel().compareTo(o2.getLabel());
             }
         });
@@ -170,8 +113,7 @@ public class GenericFeatureProcessorFactoryTest
     }
 
     static FeatureProcessorMetadata[] factory_valid_metadata_generator()
-            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException
-    {
+            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         return new FeatureProcessorMetadata[]{
                 new FeatureProcessorMetadata(
                         "A",
@@ -182,14 +124,12 @@ public class GenericFeatureProcessorFactoryTest
         };
     }
 
-    static void assertQueryProcessors(ImmutableList<FeatureProcessorMetadata> expectedFeatureProcessorMetadata,
-                                      ImmutableList<FeatureProcessorMetadata> actualFeatureProcessorMetadata)
-    {
+    static void assertQueryProcessors(final ImmutableList<FeatureProcessorMetadata> expectedFeatureProcessorMetadata,
+                                      final ImmutableList<FeatureProcessorMetadata> actualFeatureProcessorMetadata) {
         assertEquals("FeatureComponent metadata quantity don't match", expectedFeatureProcessorMetadata.size(), actualFeatureProcessorMetadata.size());
-        for (int i = 0; i < actualFeatureProcessorMetadata.size(); i++)
-        {
-            FeatureProcessorMetadata expectedQueryProcessor = expectedFeatureProcessorMetadata.get(i);
-            FeatureProcessorMetadata actualQueryProcessorActual = actualFeatureProcessorMetadata.get(i);
+        for (int i = 0; i < actualFeatureProcessorMetadata.size(); i++) {
+            final FeatureProcessorMetadata expectedQueryProcessor = expectedFeatureProcessorMetadata.get(i);
+            final FeatureProcessorMetadata actualQueryProcessorActual = actualFeatureProcessorMetadata.get(i);
 
             assertEquals("FeatureComponent metadata name don't match", expectedQueryProcessor.getName(), actualQueryProcessorActual.getName());
             assertEquals("FeatureComponent metadata description don't match", expectedQueryProcessor.getDescription(), actualQueryProcessorActual.getDescription());
@@ -201,20 +141,52 @@ public class GenericFeatureProcessorFactoryTest
         }
     }
 
-    static void assertQueryProperties(ImmutableList<FeaturePropertyMetadata> expectedFeaturePropertyMetadata,
-                                      ImmutableList<FeaturePropertyMetadata> actualFeaturePropertyMetadata)
-    {
+    static void assertQueryProperties(final ImmutableList<FeaturePropertyMetadata> expectedFeaturePropertyMetadata,
+                                      final ImmutableList<FeaturePropertyMetadata> actualFeaturePropertyMetadata) {
         assertEquals("FeatureProperty metadata quantity don't match", expectedFeaturePropertyMetadata.size(), actualFeaturePropertyMetadata.size());
 
-        for (int i = 0; i < actualFeaturePropertyMetadata.size(); i++)
-        {
-            FeaturePropertyMetadata expectedQueryProperty = expectedFeaturePropertyMetadata.get(i);
-            FeaturePropertyMetadata actualQueryProperty = actualFeaturePropertyMetadata.get(i);
+        for (int i = 0; i < actualFeaturePropertyMetadata.size(); i++) {
+            final FeaturePropertyMetadata expectedQueryProperty = expectedFeaturePropertyMetadata.get(i);
+            final FeaturePropertyMetadata actualQueryProperty = actualFeaturePropertyMetadata.get(i);
 
             assertProperty(actualQueryProperty,
                     expectedQueryProperty.getName(), expectedQueryProperty.getLabel(), expectedQueryProperty.getDescription(),
                     expectedQueryProperty.getType(), expectedQueryProperty.getDefaultValue(),
                     expectedQueryProperty.getValidations());
         }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void factory_generation_invalid_metadata()
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        final Injector injector = Guice.createInjector(binder -> binder.bind(InvalidAggregator.class));
+        final FeatureProcessingFactory<Aggregator> factory = new AggregatorFactory(injector);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void factory_generation_invalid_injector()
+            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        final FeatureProcessingFactory<?> factory = new AggregatorFactory(null);
+    }
+
+    @Test
+    public void factory_getter_query_processor_family() {
+        assertEquals("FeatureComponent family don't match", Aggregator.class, GenericFeatureProcessorFactoryTest.factory.getFeature());
+    }
+
+    @Test
+    public void factory_getter_query_processor_metadata()
+            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        assertQueryProcessors(
+                ImmutableList.copyOf(factory_valid_metadata_generator()),
+                GenericFeatureProcessorFactoryTest.factory.getFeatureProcessorMetadata()
+        );
+    }
+
+    @Test
+    public void factory_new_query_processor() {
+        assertEquals("FeatureComponent created was invalid",
+                AAggregator.class,
+                GenericFeatureProcessorFactoryTest.factory.createFeatureProcessor("A").getClass());
     }
 }

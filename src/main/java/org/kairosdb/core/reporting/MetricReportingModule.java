@@ -49,6 +49,11 @@ import java.util.concurrent.TimeUnit;
 
 public class MetricReportingModule extends ServletModule {
     private static final JavaPropsMapper PROPERTIES_MAPPER = new JavaPropsMapper();
+    private static final String PERIOD_KEY = "kairosdb.reporter.period";
+    private static final String SINKS_KEY = "kairosdb.reporter.sinks";
+    private static final String SERVICE_TAG_KEY = "kairosdb.reporter.service";
+    private static final String CLUSTER_TAG_KEY = "kairosdb.reporter.cluster";
+    private static final String JVM_PERIOD_KEY = "kairosdb.reporter.jvm_period";
 
     static {
         // Shamelessly copied from ArpNetworking commons:
@@ -65,16 +70,49 @@ public class MetricReportingModule extends ServletModule {
         PROPERTIES_MAPPER.setDateFormat(new StdDateFormat());
     }
 
-    private static final String PERIOD_KEY = "kairosdb.reporter.period";
-    private static final String SINKS_KEY = "kairosdb.reporter.sinks";
-    private static final String SERVICE_TAG_KEY = "kairosdb.reporter.service";
-    private static final String CLUSTER_TAG_KEY = "kairosdb.reporter.cluster";
-    private static final String JVM_PERIOD_KEY = "kairosdb.reporter.jvm_period";
-
     private final Properties properties;
 
     public MetricReportingModule(final Properties properties) {
         this.properties = properties;
+    }
+
+    static List<Class<?>> parseSinkBuilders(final String sinkImplsAsString) {
+        final List<Class<?>> sinkBuilders = new ArrayList<>();
+        for (final String sinkImplAsString : sinkImplsAsString.split(",")) {
+            if (sinkImplAsString.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                @SuppressWarnings("unchecked") final Class<?> sinkBuilderClass = Class.forName(sinkImplAsString.trim() + "$Builder");
+                sinkBuilders.add(sinkBuilderClass);
+            } catch (final ClassNotFoundException e) {
+                throw new RuntimeException("Sink class not found: " + sinkImplAsString, e);
+            }
+        }
+        return sinkBuilders;
+    }
+
+    static Map<String, Sink> loadSinks(final List<Class<?>> sinkBuilders, final Properties properties) {
+        final JavaPropsSchema schema = new JavaPropsSchema()
+                .withFirstArrayOffset(0);
+        final Map<String, Sink> sinks = Maps.newHashMap();
+        for (int i = 0; i < sinkBuilders.size(); ++i) {
+            final Class<?> builderClass = sinkBuilders.get(i);
+            final String sinkKey = SINKS_KEY + "." + i;
+            try {
+                final Object builder = PROPERTIES_MAPPER.readPropertiesAs(
+                        properties,
+                        schema.withPrefix(sinkKey),
+                        builderClass);
+
+                @SuppressWarnings("unchecked") final com.arpnetworking.metrics.Sink sink =
+                        (com.arpnetworking.metrics.Sink) builderClass.getMethod("build").invoke(builder);
+                sinks.put(sinkKey, sink);
+            } catch (final Exception e) {
+                throw new RuntimeException(String.format("Unable to create sink %s from %s", builderClass, sinkKey), e);
+            }
+        }
+        return sinks;
     }
 
     @Override
@@ -143,46 +181,5 @@ public class MetricReportingModule extends ServletModule {
         Runtime.getRuntime().addShutdownHook(new Thread(executor::shutdown));
 
         return periodicMetrics;
-    }
-
-    static List<Class<?>> parseSinkBuilders(final String sinkImplsAsString) {
-        final List<Class<?>> sinkBuilders = new ArrayList<>();
-        for (final String sinkImplAsString : sinkImplsAsString.split(",")) {
-            if (sinkImplAsString.trim().isEmpty()) {
-                continue;
-            }
-            try {
-                @SuppressWarnings("unchecked")
-                final Class<?> sinkBuilderClass = Class.forName(sinkImplAsString.trim() + "$Builder");
-                sinkBuilders.add(sinkBuilderClass);
-            } catch (final ClassNotFoundException e) {
-                throw new RuntimeException("Sink class not found: " + sinkImplAsString, e);
-            }
-        }
-        return sinkBuilders;
-    }
-
-    static Map<String, Sink> loadSinks(final List<Class<?>> sinkBuilders, final Properties properties) {
-        final JavaPropsSchema schema = new JavaPropsSchema()
-                .withFirstArrayOffset(0);
-        final Map<String, Sink> sinks = Maps.newHashMap();
-        for (int i = 0; i < sinkBuilders.size(); ++i) {
-            final Class<?> builderClass = sinkBuilders.get(i);
-            final String sinkKey = SINKS_KEY + "." + i;
-            try {
-                final Object builder = PROPERTIES_MAPPER.readPropertiesAs(
-                        properties,
-                        schema.withPrefix(sinkKey),
-                        builderClass);
-
-                @SuppressWarnings("unchecked")
-                final com.arpnetworking.metrics.Sink sink =
-                        (com.arpnetworking.metrics.Sink) builderClass.getMethod("build").invoke(builder);
-                sinks.put(sinkKey, sink);
-            } catch (final Exception e) {
-                throw new RuntimeException(String.format("Unable to create sink %s from %s", builderClass, sinkKey), e);
-            }
-        }
-        return sinks;
     }
 }

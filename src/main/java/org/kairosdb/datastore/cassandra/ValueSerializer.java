@@ -18,72 +18,64 @@ package org.kairosdb.datastore.cassandra;
 
 import java.nio.ByteBuffer;
 
-public class ValueSerializer
-{
-	public static final byte FLOAT_VALUE = 0x1;
-	public static final byte DOUBLE_VALUE = 0x2;
+public class ValueSerializer {
+    public static final byte FLOAT_VALUE = 0x1;
+    public static final byte DOUBLE_VALUE = 0x2;
 
-	public static ByteBuffer toByteBuffer(long value)
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(8);
-		boolean writeRest = false;
+    public static ByteBuffer toByteBuffer(final long value) {
+        final ByteBuffer buffer = ByteBuffer.allocate(8);
+        boolean writeRest = false;
 
-		if (value != 0L)  //Short circuit for zero values
-		{
-			for (int I = 1; I <= 8; I++)
-			{
-				byte b = (byte)((value >>> (64 - (8 * I))) & 0xFF);
-				if (writeRest || b != 0)
-				{
-					buffer.put(b);
-					writeRest = true;
-				}
-			}
-		}
+        if (value != 0L)  //Short circuit for zero values
+        {
+            for (int I = 1; I <= 8; I++) {
+                final byte b = (byte) ((value >>> (64 - (8 * I))) & 0xFF);
+                if (writeRest || b != 0) {
+                    buffer.put(b);
+                    writeRest = true;
+                }
+            }
+        }
 
-		buffer.flip();
+        buffer.flip();
 
-		return (buffer);
-	}
+        return (buffer);
+    }
 
-	public static long getLongFromByteBuffer(ByteBuffer byteBuffer)
-	{
-		long ret = 0L;
+    public static long getLongFromByteBuffer(final ByteBuffer byteBuffer) {
+        long ret = 0L;
 
-		while (byteBuffer.hasRemaining())
-		{
-			ret <<= 8;
-			byte b = byteBuffer.get();
-			ret |= (b & 0xFF);
-		}
+        while (byteBuffer.hasRemaining()) {
+            ret <<= 8;
+            final byte b = byteBuffer.get();
+            ret |= (b & 0xFF);
+        }
 
-		return (ret);
-	}
+        return (ret);
+    }
 
 
-	public static ByteBuffer toByteBuffer(float value)
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(5);
+    public static ByteBuffer toByteBuffer(final float value) {
+        final ByteBuffer buffer = ByteBuffer.allocate(5);
 
-		buffer.put(FLOAT_VALUE);
-		buffer.putFloat(value);
+        buffer.put(FLOAT_VALUE);
+        buffer.putFloat(value);
 
-		buffer.flip();
+        buffer.flip();
 
-		return (buffer);
-	}
+        return (buffer);
+    }
 
 
-	public static double getDoubleFromByteBuffer(ByteBuffer byteBuffer)
-	{
-		byte flag = byteBuffer.get();
-		double ret = 0;
+    public static double getDoubleFromByteBuffer(final ByteBuffer byteBuffer) {
+        final byte flag = byteBuffer.get();
+        double ret = 0;
 
-		if (flag == FLOAT_VALUE)
-			ret = byteBuffer.getFloat();
-		else
-			ret = byteBuffer.getDouble();
+        if (flag == FLOAT_VALUE)
+            ret = byteBuffer.getFloat();
+        else
+            ret = byteBuffer.getDouble();
 
-		return (ret);
-	}
+        return (ret);
+    }
 }

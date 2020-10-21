@@ -25,51 +25,42 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class TagGroupByResult implements GroupByResult
-{
-	private Map<String, String> tagResults = new HashMap<String, String>();
-	private TagGroupBy groupBy;
+public class TagGroupByResult implements GroupByResult {
+    private Map<String, String> tagResults = new HashMap<String, String>();
+    private final TagGroupBy groupBy;
 
-	public TagGroupByResult(TagGroupBy groupBy, Map<String, String> tagResults)
-	{
-		this.groupBy = checkNotNull(groupBy);
-		this.tagResults = checkNotNull(tagResults);
-	}
+    public TagGroupByResult(final TagGroupBy groupBy, final Map<String, String> tagResults) {
+        this.groupBy = checkNotNull(groupBy);
+        this.tagResults = checkNotNull(tagResults);
+    }
 
-	public Map<String, String> getTagResults()
-	{
-		return tagResults;
-	}
+    public Map<String, String> getTagResults() {
+        return tagResults;
+    }
 
-	@Override
-	public String toJson() throws FormatterException
-	{
-		StringWriter stringWriter = new StringWriter();
-		JSONWriter writer = new JSONWriter(stringWriter);
+    @Override
+    public String toJson() throws FormatterException {
+        final StringWriter stringWriter = new StringWriter();
+        final JSONWriter writer = new JSONWriter(stringWriter);
 
-		try
-		{
-			writer.object();
-			writer.key("name").value("tag");
-			writer.key("tags").array();
-			for (String name : groupBy.getTagNames())
-			{
-				writer.value(name);
-			}
-			writer.endArray();
+        try {
+            writer.object();
+            writer.key("name").value("tag");
+            writer.key("tags").array();
+            for (final String name : groupBy.getTagNames()) {
+                writer.value(name);
+            }
+            writer.endArray();
 
-			writer.key("group").object();
-			for (String tagName : tagResults.keySet())
-			{
-				writer.key(tagName).value(tagResults.get(tagName));
-			}
-			writer.endObject();
-			writer.endObject();
-		}
-		catch (JSONException e)
-		{
-			throw new FormatterException(e);
-		}
-		return stringWriter.toString();
-	}
+            writer.key("group").object();
+            for (final String tagName : tagResults.keySet()) {
+                writer.key(tagName).value(tagResults.get(tagName));
+            }
+            writer.endObject();
+            writer.endObject();
+        } catch (final JSONException e) {
+            throw new FormatterException(e);
+        }
+        return stringWriter.toString();
+    }
 }

@@ -13,31 +13,29 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 /**
- Created by bhawkins on 10/25/16.
+ * Created by bhawkins on 10/25/16.
  */
-public class DataPointEventSerializerTest
-{
-	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
+public class DataPointEventSerializerTest {
+    private final LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
 
-	@Test
-	public void test_serializeDeserialize()
-	{
-		KairosDataPointFactory dataPointFactory = new TestDataPointFactory();
-		DataPointEventSerializer serializer = new DataPointEventSerializer(dataPointFactory);
+    @Test
+    public void test_serializeDeserialize() {
+        final KairosDataPointFactory dataPointFactory = new TestDataPointFactory();
+        final DataPointEventSerializer serializer = new DataPointEventSerializer(dataPointFactory);
 
-		ImmutableSortedMap<String, String> tags =
-				ImmutableSortedMap.<String, String>naturalOrder()
-						.put("tag1", "val1")
-						.put("tag2", "val2")
-						.put("tag3", "val3").build();
+        final ImmutableSortedMap<String, String> tags =
+                ImmutableSortedMap.<String, String>naturalOrder()
+                        .put("tag1", "val1")
+                        .put("tag2", "val2")
+                        .put("tag3", "val3").build();
 
-		DataPoint dataPoint = m_longDataPointFactory.createDataPoint(123L, 43);
-		DataPointEvent original = new DataPointEvent("new_metric", tags, dataPoint, 500);
+        final DataPoint dataPoint = m_longDataPointFactory.createDataPoint(123L, 43);
+        final DataPointEvent original = new DataPointEvent("new_metric", tags, dataPoint, 500);
 
-		byte[] bytes = serializer.serializeEvent(original);
+        final byte[] bytes = serializer.serializeEvent(original);
 
-		DataPointEvent processedEvent = serializer.deserializeEvent(bytes);
+        final DataPointEvent processedEvent = serializer.deserializeEvent(bytes);
 
-		assertThat(original, equalTo(processedEvent));
-	}
+        assertThat(original, equalTo(processedEvent));
+    }
 }

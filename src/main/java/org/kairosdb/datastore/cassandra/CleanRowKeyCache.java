@@ -10,41 +10,36 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 import static org.quartz.TriggerBuilder.newTrigger;
 
 /**
- Created with IntelliJ IDEA.
- User: bhawkins
- Date: 1/7/14
- Time: 2:58 PM
- To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA.
+ * User: bhawkins
+ * Date: 1/7/14
+ * Time: 2:58 PM
+ * To change this template use File | Settings | File Templates.
  */
-public class CleanRowKeyCache implements KairosDBJob
-{
-	private CassandraDatastore m_datastore;
+public class CleanRowKeyCache implements KairosDBJob {
+    private final CassandraDatastore m_datastore;
 
-	@Inject
-	public CleanRowKeyCache(CassandraDatastore datastore)
-	{
-		m_datastore = datastore;
-	}
+    @Inject
+    public CleanRowKeyCache(final CassandraDatastore datastore) {
+        m_datastore = datastore;
+    }
 
-	@Override
-	public Trigger getTrigger()
-	{
-		return newTrigger()
-				.withIdentity(this.getClass().getSimpleName())
-				.withSchedule(simpleSchedule()
-						.withIntervalInHours(1)
-						.repeatForever())
-				.build();
-	}
+    @Override
+    public Trigger getTrigger() {
+        return newTrigger()
+                .withIdentity(this.getClass().getSimpleName())
+                .withSchedule(simpleSchedule()
+                        .withIntervalInHours(1)
+                        .repeatForever())
+                .build();
+    }
 
-	@Override
-	public void interrupt()
-	{
-	}
+    @Override
+    public void interrupt() {
+    }
 
-	@Override
-	public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException
-	{
-		m_datastore.cleanRowKeyCache();
-	}
+    @Override
+    public void execute(final JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        m_datastore.cleanRowKeyCache();
+    }
 }

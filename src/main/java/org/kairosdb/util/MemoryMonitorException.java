@@ -17,18 +17,16 @@
 package org.kairosdb.util;
 
 /**
- Created with IntelliJ IDEA.
- User: bhawkins
- Date: 10/16/13
- Time: 4:01 PM
- To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA.
+ * User: bhawkins
+ * Date: 10/16/13
+ * Time: 4:01 PM
+ * To change this template use File | Settings | File Templates.
  */
-public class MemoryMonitorException extends RuntimeException
-{
-	private static final long serialVersionUID = -3536707538872036771L;
+public class MemoryMonitorException extends RuntimeException {
+    private static final long serialVersionUID = -3536707538872036771L;
 
-	public String getMessage()
-	{
-		return ("Insufficient memory to perform request");
-	}
+    public String getMessage() {
+        return ("Insufficient memory to perform request");
+    }
 }

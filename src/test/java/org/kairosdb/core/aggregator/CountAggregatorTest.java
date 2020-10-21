@@ -27,26 +27,22 @@ import org.kairosdb.testing.ListDataPointGroup;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class CountAggregatorTest
-{
+public class CountAggregatorTest {
     private CountAggregator aggregator;
 
     @Before
-    public void setup()
-    {
+    public void setup() {
         aggregator = new CountAggregator(new LongDataPointFactoryImpl());
     }
 
     @Test(expected = NullPointerException.class)
-    public void test_nullSet_invalid()
-    {
+    public void test_nullSet_invalid() {
         aggregator.aggregate(null);
     }
 
     @Test
-    public void test_longValues()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("group");
+    public void test_longValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
         group.addDataPoint(new LongDataPoint(1, 10));
         group.addDataPoint(new LongDataPoint(1, 20));
         group.addDataPoint(new LongDataPoint(1, 3));
@@ -55,7 +51,7 @@ public class CountAggregatorTest
         group.addDataPoint(new LongDataPoint(2, 5));
         group.addDataPoint(new LongDataPoint(3, 25));
 
-        DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
         DataPoint dataPoint = results.next();
         assertThat(dataPoint.getTimestamp(), equalTo(1L));
@@ -73,9 +69,8 @@ public class CountAggregatorTest
     }
 
     @Test
-    public void test_doubleValues()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("group");
+    public void test_doubleValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
         group.addDataPoint(new DoubleDataPoint(1, 10.0));
         group.addDataPoint(new DoubleDataPoint(1, 20.3));
         group.addDataPoint(new DoubleDataPoint(1, 3.0));
@@ -84,7 +79,7 @@ public class CountAggregatorTest
         group.addDataPoint(new DoubleDataPoint(2, 5.0));
         group.addDataPoint(new DoubleDataPoint(3, 25.1));
 
-        DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
         DataPoint dataPoint = results.next();
         assertThat(dataPoint.getTimestamp(), equalTo(1L));
@@ -102,9 +97,8 @@ public class CountAggregatorTest
     }
 
     @Test
-    public void test_mixedTypeValues()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("group");
+    public void test_mixedTypeValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
         group.addDataPoint(new DoubleDataPoint(1, 10.0));
         group.addDataPoint(new DoubleDataPoint(1, 20.3));
         group.addDataPoint(new LongDataPoint(1, 3));
@@ -113,7 +107,7 @@ public class CountAggregatorTest
         group.addDataPoint(new DoubleDataPoint(2, 5.0));
         group.addDataPoint(new DoubleDataPoint(3, 25.1));
 
-        DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
         DataPoint dataPoint = results.next();
         assertThat(dataPoint.getTimestamp(), equalTo(1L));

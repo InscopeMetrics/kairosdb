@@ -18,69 +18,62 @@ package org.kairosdb.core.http.rest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import javax.validation.ConstraintViolation;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.validation.ConstraintViolation;
 
 /**
  * Thrown when bean validation has errors.
  */
-public class BeanValidationException extends IOException
-{
-	private static final long serialVersionUID = -7717479821963988279L;
+public class BeanValidationException extends IOException {
+    private static final long serialVersionUID = -7717479821963988279L;
 
-	private ImmutableSet<ConstraintViolation<Object>> violations;
-	private String context;
+    private final ImmutableSet<ConstraintViolation<Object>> violations;
+    private final String context;
 
-	public BeanValidationException(Set<ConstraintViolation<Object>> violations)
-	{
-		this(violations, null);
-	}
+    public BeanValidationException(final Set<ConstraintViolation<Object>> violations) {
+        this(violations, null);
+    }
 
-	public BeanValidationException(ConstraintViolation<Object> violation, String context)
-	{
-		this(Collections.singleton(violation), context);
-	}
+    public BeanValidationException(final ConstraintViolation<Object> violation, final String context) {
+        this(Collections.singleton(violation), context);
+    }
 
-	public BeanValidationException(Set<ConstraintViolation<Object>> violations, String context)
-	{
-		super(messagesFor(violations, context).toString());
-		this.context = context;
-		this.violations = ImmutableSet.copyOf(violations);
-	}
+    public BeanValidationException(final Set<ConstraintViolation<Object>> violations, final String context) {
+        super(messagesFor(violations, context).toString());
+        this.context = context;
+        this.violations = ImmutableSet.copyOf(violations);
+    }
 
-	/**
-	 * Returns the bean validation error messages.
-	 *
-	 * @return validation error messages
-	 */
-	public List<String> getErrorMessages()
-	{
-		return messagesFor(violations, context);
-	}
+    private static List<String> messagesFor(final Set<ConstraintViolation<Object>> violations, final String context) {
+        final ImmutableList.Builder<String> messages = new ImmutableList.Builder<String>();
+        for (final ConstraintViolation<?> violation : violations) {
+            if (context != null && !context.isEmpty())
+                messages.add(context + "." + violation.getPropertyPath().toString() + " " + violation.getMessage());
+            else
+                messages.add(violation.getPropertyPath().toString() + " " + violation.getMessage());
+        }
 
-	/**
-	 * Returns the set of bean validation violations.
-	 *
-	 * @return set of bean validation violations
-	 */
-	public Set<ConstraintViolation<Object>> getViolations()
-	{
-		return violations;
-	}
+        return messages.build();
+    }
 
-	private static List<String> messagesFor(Set<ConstraintViolation<Object>> violations, String context)
-	{
-		ImmutableList.Builder<String> messages = new ImmutableList.Builder<String>();
-		for (ConstraintViolation<?> violation : violations) {
-			if (context != null && !context.isEmpty() )
-				messages.add(context + "." + violation.getPropertyPath().toString() + " " + violation.getMessage());
-			else
-				messages.add(violation.getPropertyPath().toString() + " " + violation.getMessage());
-		}
+    /**
+     * Returns the bean validation error messages.
+     *
+     * @return validation error messages
+     */
+    public List<String> getErrorMessages() {
+        return messagesFor(violations, context);
+    }
 
-		return messages.build();
-	}
+    /**
+     * Returns the set of bean validation violations.
+     *
+     * @return set of bean validation violations
+     */
+    public Set<ConstraintViolation<Object>> getViolations() {
+        return violations;
+    }
 }

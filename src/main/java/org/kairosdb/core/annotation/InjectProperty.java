@@ -7,10 +7,10 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-@Target({ METHOD, FIELD })
+@Target({METHOD, FIELD})
 @Retention(RUNTIME)
-public @interface InjectProperty
-{
-	String prop();
-	boolean optional() default false;
+public @interface InjectProperty {
+    String prop();
+
+    boolean optional() default false;
 }

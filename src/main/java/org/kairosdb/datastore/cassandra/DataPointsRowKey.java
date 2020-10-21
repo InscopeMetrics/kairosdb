@@ -22,125 +22,108 @@ import java.util.TreeMap;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class DataPointsRowKey
-{
-	private final String m_metricName;
-	private final String m_clusterName;
-	private final long m_timestamp;
-	private final String m_dataType;
-	private final SortedMap<String, String> m_tags;
-	private boolean m_endSearchKey; //Only used for end slice operations.  Serialization
-	//adds a 0xFF after the timestamp to make sure we get all data for that timestamp.
+public class DataPointsRowKey {
+    private final String m_metricName;
+    private final String m_clusterName;
+    private final long m_timestamp;
+    private final String m_dataType;
+    private final SortedMap<String, String> m_tags;
+    private boolean m_endSearchKey; //Only used for end slice operations.  Serialization
+    //adds a 0xFF after the timestamp to make sure we get all data for that timestamp.
 
-	private ByteBuffer m_serializedBuffer;
+    private ByteBuffer m_serializedBuffer;
 
-	public DataPointsRowKey(String metricName, String clusterName, long timestamp, String dataType)
-	{
-		this(metricName, clusterName, timestamp, dataType, new TreeMap<String, String>());
-	}
+    public DataPointsRowKey(final String metricName, final String clusterName, final long timestamp, final String dataType) {
+        this(metricName, clusterName, timestamp, dataType, new TreeMap<String, String>());
+    }
 
-	public DataPointsRowKey(String metricName, String clusterName, long timestamp, String datatype,
-			SortedMap<String, String> tags)
-	{
-		m_metricName = checkNotNullOrEmpty(metricName);
-		m_clusterName = checkNotNullOrEmpty(clusterName);
-		m_timestamp = timestamp;
-		m_dataType = checkNotNull(datatype);
-		m_tags = tags;
+    public DataPointsRowKey(final String metricName, final String clusterName, final long timestamp, final String datatype,
+                            final SortedMap<String, String> tags) {
+        m_metricName = checkNotNullOrEmpty(metricName);
+        m_clusterName = checkNotNullOrEmpty(clusterName);
+        m_timestamp = timestamp;
+        m_dataType = checkNotNull(datatype);
+        m_tags = tags;
 
-	}
+    }
 
-	public void addTag(String name, String value)
-	{
-		m_tags.put(name, value);
-	}
+    public void addTag(final String name, final String value) {
+        m_tags.put(name, value);
+    }
 
-	public String getMetricName()
-	{
-		return m_metricName;
-	}
+    public String getMetricName() {
+        return m_metricName;
+    }
 
-	public String getClusterName()
-	{
-		return m_clusterName;
-	}
+    public String getClusterName() {
+        return m_clusterName;
+    }
 
-	public SortedMap<String, String> getTags()
-	{
-		return m_tags;
-	}
+    public SortedMap<String, String> getTags() {
+        return m_tags;
+    }
 
-	public long getTimestamp()
-	{
-		return m_timestamp;
-	}
+    public long getTimestamp() {
+        return m_timestamp;
+    }
 
-	public boolean isEndSearchKey()
-	{
-		return m_endSearchKey;
-	}
+    public boolean isEndSearchKey() {
+        return m_endSearchKey;
+    }
 
-	public void setEndSearchKey(boolean endSearchKey)
-	{
-		m_endSearchKey = endSearchKey;
-	}
+    public void setEndSearchKey(final boolean endSearchKey) {
+        m_endSearchKey = endSearchKey;
+    }
 
-	/**
-	 If this returns "" (empty string)` then it is the old row key format and the data type
-	 is determined by the timestamp bit in the column.
-	 @return
-	 */
-	public String getDataType()
-	{
-		return m_dataType;
-	}
+    /**
+     * If this returns "" (empty string)` then it is the old row key format and the data type
+     * is determined by the timestamp bit in the column.
+     *
+     * @return
+     */
+    public String getDataType() {
+        return m_dataType;
+    }
 
-	@Override
-	public boolean equals(Object o)
-	{
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-		DataPointsRowKey that = (DataPointsRowKey) o;
+        final DataPointsRowKey that = (DataPointsRowKey) o;
 
-		if (m_timestamp != that.m_timestamp) return false;
-		if (m_dataType != null ? !m_dataType.equals(that.m_dataType) : that.m_dataType != null)
-			return false;
-		if (!m_metricName.equals(that.m_metricName)) return false;
-		if (!m_tags.equals(that.m_tags)) return false;
+        if (m_timestamp != that.m_timestamp) return false;
+        if (m_dataType != null ? !m_dataType.equals(that.m_dataType) : that.m_dataType != null)
+            return false;
+        if (!m_metricName.equals(that.m_metricName)) return false;
+        return m_tags.equals(that.m_tags);
+    }
 
-		return true;
-	}
+    @Override
+    public int hashCode() {
+        int result = m_metricName.hashCode();
+        result = 31 * result + (int) (m_timestamp ^ (m_timestamp >>> 32));
+        result = 31 * result + (m_dataType != null ? m_dataType.hashCode() : 0);
+        result = 31 * result + m_tags.hashCode();
+        return result;
+    }
 
-	@Override
-	public int hashCode()
-	{
-		int result = m_metricName.hashCode();
-		result = 31 * result + (int) (m_timestamp ^ (m_timestamp >>> 32));
-		result = 31 * result + (m_dataType != null ? m_dataType.hashCode() : 0);
-		result = 31 * result + m_tags.hashCode();
-		return result;
-	}
+    @Override
+    public String toString() {
+        return "DataPointsRowKey{" +
+                "m_metricName='" + m_metricName + '\'' +
+                ", m_clusterName='" + m_clusterName + '\'' +
+                ", m_timestamp=" + m_timestamp +
+                ", m_dataType='" + m_dataType + '\'' +
+                ", m_tags=" + m_tags +
+                '}';
+    }
 
-	@Override
-	public String toString()
-	{
-		return "DataPointsRowKey{" +
-				"m_metricName='" + m_metricName + '\'' +
-				", m_clusterName='" + m_clusterName+ '\'' +
-				", m_timestamp=" + m_timestamp +
-				", m_dataType='" + m_dataType + '\'' +
-				", m_tags=" + m_tags +
-				'}';
-	}
+    public ByteBuffer getSerializedBuffer() {
+        return m_serializedBuffer;
+    }
 
-	public ByteBuffer getSerializedBuffer()
-	{
-		return m_serializedBuffer;
-	}
-
-	public void setSerializedBuffer(ByteBuffer serializedBuffer)
-	{
-		m_serializedBuffer = serializedBuffer;
-	}
+    public void setSerializedBuffer(final ByteBuffer serializedBuffer) {
+        m_serializedBuffer = serializedBuffer;
+    }
 }

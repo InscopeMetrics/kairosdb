@@ -11,35 +11,28 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
-public class RollupTaskStatusStoreImplTest extends RollupTestBase
-{
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
+public class RollupTaskStatusStoreImplTest extends RollupTestBase {
     private static final String HOST1 = "host1";
     private static final String HOST2 = "host2";
     private static final String HOST3 = "host3";
-
     private static final Date DATE1 = new Date();
     private static final Date DATE2 = new Date();
     private static final Date DATE3 = new Date();
-
     private static final String ID1 = "ID1";
     private static final String ID2 = "ID2";
     private static final String ID3 = "ID3";
-
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
     private RollupTaskStatusStore store;
 
     @Before
-    public void setup()
-    {
+    public void setup() {
         store = new RollupTaskStatusStoreImpl(fakeServiceKeyStore);
     }
 
     @Test
     public void test_writeRead_nullId_Invalid()
-            throws RollUpException
-    {
+            throws RollUpException {
         expectedException.expect(NullPointerException.class);
         expectedException.expectMessage("id cannot be null or empty");
 
@@ -48,8 +41,7 @@ public class RollupTaskStatusStoreImplTest extends RollupTestBase
 
     @Test
     public void test_writeRead_emptyId_Invalid()
-            throws RollUpException
-    {
+            throws RollUpException {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("id cannot be null or empty");
 
@@ -58,11 +50,10 @@ public class RollupTaskStatusStoreImplTest extends RollupTestBase
 
     @Test
     public void test_writeReadRemove()
-            throws RollUpException
-    {
-        RollupTaskStatus status1 = new RollupTaskStatus(DATE1, HOST1);
-        RollupTaskStatus status2 = new RollupTaskStatus(DATE2, HOST2);
-        RollupTaskStatus status3 = new RollupTaskStatus(DATE3, HOST3);
+            throws RollUpException {
+        final RollupTaskStatus status1 = new RollupTaskStatus(DATE1, HOST1);
+        final RollupTaskStatus status2 = new RollupTaskStatus(DATE2, HOST2);
+        final RollupTaskStatus status3 = new RollupTaskStatus(DATE3, HOST3);
 
         store.write(ID1, status1);
         store.write(ID2, status2);

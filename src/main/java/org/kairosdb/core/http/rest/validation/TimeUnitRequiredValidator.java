@@ -21,16 +21,12 @@ import org.kairosdb.core.datastore.TimeUnit;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-public class TimeUnitRequiredValidator implements ConstraintValidator<TimeUnitRequired, String>
-{
-    public void initialize(TimeUnitRequired constraintAnnotation)
-    {
+public class TimeUnitRequiredValidator implements ConstraintValidator<TimeUnitRequired, String> {
+    public void initialize(final TimeUnitRequired constraintAnnotation) {
     }
 
-    public boolean isValid(String value, ConstraintValidatorContext context)
-    {
-        if (!TimeUnit.contains(value))
-        {
+    public boolean isValid(final String value, final ConstraintValidatorContext context) {
+        if (!TimeUnit.contains(value)) {
             context.disableDefaultConstraintViolation(); // disable violation message
             context.buildConstraintViolationWithTemplate("must be one of " + TimeUnit.toValueNames()).addConstraintViolation();  // add message
             return false;

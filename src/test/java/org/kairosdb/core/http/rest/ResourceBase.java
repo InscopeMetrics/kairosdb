@@ -50,27 +50,31 @@ import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.plugin.Aggregator;
 import org.kairosdb.plugin.GroupBy;
 import org.kairosdb.testing.Client;
-import org.kairosdb.util.SimpleStatsReporter;
 import org.mockito.Mockito;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
-public abstract class ResourceBase
-{
+public abstract class ResourceBase {
     private static final FilterEventBus eventBus = new FilterEventBus(new EventBusConfiguration(new KairosRootConfig()));
-    private static WebServer server;
-
     static QueryQueuingManager queuingManager;
     static Client client;
     static TestDatastore datastore;
     static MetricsResource resource;
+    private static WebServer server;
 
     @BeforeClass
-    public static void startup() throws Exception
-    {
+    public static void startup() throws Exception {
         //This sends jersey java util logging to logback
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
@@ -79,17 +83,13 @@ public abstract class ResourceBase
         datastore = new TestDatastore();
         queuingManager = new QueryQueuingManager(periodicMetrics, 3);
 
-        Injector injector = Guice.createInjector(new WebServletModule(new KairosRootConfig()), new AbstractModule()
-        {
+        final Injector injector = Guice.createInjector(new WebServletModule(new KairosRootConfig()), new AbstractModule() {
             @Override
-            protected void configure()
-            {
+            protected void configure() {
                 bind(FilterEventBus.class).toInstance(eventBus);
                 //Need to register an exception handler
-                bindListener(Matchers.any(), new TypeListener()
-                {
-                    public <I> void hear(TypeLiteral<I> typeLiteral, TypeEncounter<I> typeEncounter)
-                    {
+                bindListener(Matchers.any(), new TypeListener() {
+                    public <I> void hear(final TypeLiteral<I> typeLiteral, final TypeEncounter<I> typeEncounter) {
                         typeEncounter.register((InjectionListener<I>) i -> eventBus.register(i));
                     }
                 });
@@ -107,29 +107,28 @@ public abstract class ResourceBase
                 bind(KairosDatastore.class).in(Singleton.class);
                 bind(FeaturesResource.class).in(Singleton.class);
                 bind(FeatureProcessor.class).to(KairosFeatureProcessor.class);
-                bind(new TypeLiteral<FeatureProcessingFactory<Aggregator>>() {}).to(TestAggregatorFactory.class);
-                bind(new TypeLiteral<FeatureProcessingFactory<GroupBy>>() {}).to(TestGroupByFactory.class);                bind(QueryParser.class).in(Singleton.class);
+                bind(new TypeLiteral<FeatureProcessingFactory<Aggregator>>() {
+                }).to(TestAggregatorFactory.class);
+                bind(new TypeLiteral<FeatureProcessingFactory<GroupBy>>() {
+                }).to(TestGroupByFactory.class);
+                bind(QueryParser.class).in(Singleton.class);
                 bind(QueryQueuingManager.class).toInstance(queuingManager);
                 bindConstant().annotatedWith(Names.named("HOSTNAME")).to("HOST");
                 bindConstant().annotatedWith(Names.named("kairosdb.datastore.concurrentQueryThreads")).to(1);
                 bindConstant().annotatedWith(Names.named("kairosdb.query_cache.keep_cache_files")).to(false);
                 bind(KairosDataPointFactory.class).to(GuiceKairosDataPointFactory.class);
                 bind(QueryPluginFactory.class).to(TestQueryPluginFactory.class);
-                bind(SimpleStatsReporter.class);
                 bind(String.class).annotatedWith(Names.named("kairosdb.server.type")).toInstance("ALL");
                 bind(MetricsFactory.class).toInstance(metricsFactory);
                 bind(PeriodicMetrics.class).toInstance(Mockito.mock(PeriodicMetrics.class));
 
-                KairosRootConfig props = new KairosRootConfig();
+                final KairosRootConfig props = new KairosRootConfig();
                 String configFileName = "kairosdb.properties";
-                InputStream is = getClass().getClassLoader().getResourceAsStream(configFileName);
-                try
-                {
+                final InputStream is = getClass().getClassLoader().getResourceAsStream(configFileName);
+                try {
                     props.load(is, KairosRootConfig.ConfigFormat.fromFileName(configFileName));
                     is.close();
-                }
-                catch (IOException e)
-                {
+                } catch (final IOException e) {
                     e.printStackTrace();
                 }
 
@@ -160,25 +159,21 @@ public abstract class ResourceBase
     }
 
     @AfterClass
-    public static void tearDown()
-    {
-        if (server != null)
-        {
+    public static void tearDown() {
+        if (server != null) {
             server.stop();
         }
     }
 
-    public static class TestDatastore implements Datastore, ServiceKeyStore
-    {
+    public static class TestDatastore implements Datastore, ServiceKeyStore {
         private DatastoreException m_toThrow = null;
-        private Map<String, String> metadata = new TreeMap<>();
+        private final Map<String, String> metadata = new TreeMap<>();
 
         TestDatastore()
         {
         }
 
-        void throwException(DatastoreException toThrow)
-        {
+        void throwException(final DatastoreException toThrow) {
             m_toThrow = toThrow;
         }
 
@@ -188,31 +183,26 @@ public abstract class ResourceBase
         }
 
         @Override
-        public Iterable<String> getMetricNames(String prefix)
-        {
+        public Iterable<String> getMetricNames(final String prefix) {
             return Arrays.asList("cpu", "memory", "disk", "network");
         }
 
         @Override
-        public Iterable<String> getTagNames()
-        {
+        public Iterable<String> getTagNames() {
             return Arrays.asList("server1", "server2", "server3");
         }
 
         @Override
-        public Iterable<String> getTagValues()
-        {
+        public Iterable<String> getTagValues() {
             return Arrays.asList("larry", "moe", "curly");
         }
 
         @Override
-        public void queryDatabase(DatastoreMetricQuery query, QueryCallback queryCallback) throws DatastoreException
-        {
+        public void queryDatabase(final DatastoreMetricQuery query, final QueryCallback queryCallback) throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
 
-            try
-            {
+            try {
                 SortedMap<String, String> tags = new TreeMap<>();
                 tags.put("server", "server1");
 
@@ -235,57 +225,48 @@ public abstract class ResourceBase
                 dataPointWriter.addDataPoint(new DoubleDataPoint(3, 10.1));
 
                 dataPointWriter.close();
-            }
-            catch (IOException e)
-            {
+            } catch (final IOException e) {
                 throw new DatastoreException(e);
             }
         }
 
         @Override
-        public void deleteDataPoints(DatastoreMetricQuery deleteQuery)
-        {
+        public void deleteDataPoints(final DatastoreMetricQuery deleteQuery)  {
         }
 
         @Override
-        public TagSet queryMetricTags(DatastoreMetricQuery query)
-        {
+        public TagSet queryMetricTags(final DatastoreMetricQuery query)  {
             return null;
         }
 
         @Override
-        public long queryCardinality(DatastoreMetricQuery query)
-        {
+        public long queryCardinality(final DatastoreMetricQuery query) {
             return 0;
         }
 
         @Override
-        public void setValue(String service, String serviceKey, String key, String value) throws DatastoreException
-        {
+        public void setValue(final String service, final String serviceKey, final String key, final String value) throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
             metadata.put(service + "/" + serviceKey + "/" + key, value);
         }
 
         @Override
-        public ServiceKeyValue getValue(String service, String serviceKey, String key) throws DatastoreException
-        {
+        public ServiceKeyValue getValue(final String service, final String serviceKey, final String key) throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
             return new ServiceKeyValue(metadata.get(service + "/" + serviceKey + "/" + key), new Date());
         }
 
         @Override
-        public Iterable<String> listServiceKeys(String service)
-                throws DatastoreException
-        {
+        public Iterable<String> listServiceKeys(final String service)
+                throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
 
-            Set<String> keys = new HashSet<>();
-            for (String key : metadata.keySet()) {
-                if (key.startsWith(service))
-                {
+            final Set<String> keys = new HashSet<>();
+            for (final String key : metadata.keySet()) {
+                if (key.startsWith(service)) {
                     keys.add(key.split("/")[1]);
                 }
             }
@@ -293,15 +274,13 @@ public abstract class ResourceBase
         }
 
         @Override
-        public Iterable<String> listKeys(String service, String serviceKey) throws DatastoreException
-        {
+        public Iterable<String> listKeys(final String service, final String serviceKey) throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
 
-            List<String> keys = new ArrayList<>();
-            for (String key : metadata.keySet()) {
-                if (key.startsWith(service + "/" + serviceKey))
-                {
+            final List<String> keys = new ArrayList<>();
+            for (final String key : metadata.keySet()) {
+                if (key.startsWith(service + "/" + serviceKey)) {
                     keys.add(key.split("/")[2]);
                 }
             }
@@ -309,15 +288,13 @@ public abstract class ResourceBase
         }
 
         @Override
-        public Iterable<String> listKeys(String service, String serviceKey, String keyStartsWith) throws DatastoreException
-        {
+        public Iterable<String> listKeys(final String service, final String serviceKey, final String keyStartsWith) throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
 
-            List<String> keys = new ArrayList<>();
-            for (String key : metadata.keySet()) {
-                if (key.startsWith(service + "/" + serviceKey +  "/" + keyStartsWith))
-                {
+            final List<String> keys = new ArrayList<>();
+            for (final String key : metadata.keySet()) {
+                if (key.startsWith(service + "/" + serviceKey + "/" + keyStartsWith)) {
                     keys.add(key.split("/")[2]);
                 }
             }
@@ -325,9 +302,8 @@ public abstract class ResourceBase
         }
 
         @Override
-        public void deleteKey(String service, String serviceKey, String key)
-                throws DatastoreException
-        {
+        public void deleteKey(final String service, final String serviceKey, final String key)
+                throws DatastoreException {
             if (m_toThrow != null)
                 throw m_toThrow;
 
@@ -335,8 +311,8 @@ public abstract class ResourceBase
         }
 
         @Override
-        public Date getServiceKeyLastModifiedTime(String service, String serviceKey)
-        {
+        public Date getServiceKeyLastModifiedTime(final String service, final String serviceKey)
+                 {
             return null;
         }
     }

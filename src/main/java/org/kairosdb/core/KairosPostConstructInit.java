@@ -1,6 +1,5 @@
 package org.kairosdb.core;
 
-public interface KairosPostConstructInit
-{
-	void init();
+public interface KairosPostConstructInit {
+    void init();
 }

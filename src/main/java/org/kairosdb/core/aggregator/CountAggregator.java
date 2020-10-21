@@ -25,50 +25,41 @@ import java.util.Iterator;
 
 @FeatureComponent(
         name = "count",
-		description = "Counts the number of data points."
-)
-public class CountAggregator extends RangeAggregator
-{
-	LongDataPointFactory m_dataPointFactory;
+        description = "Counts the number of data points.")
+public class CountAggregator extends RangeAggregator {
+    LongDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public CountAggregator(LongDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public CountAggregator(final LongDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new CountDataPointAggregator());
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new CountDataPointAggregator());
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return true;
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return true;
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	private class CountDataPointAggregator implements RangeSubAggregator
-	{
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			long count = 0;
-			while (dataPointRange.hasNext())
-			{
-				count++;
+    private class CountDataPointAggregator implements RangeSubAggregator {
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            long count = 0;
+            while (dataPointRange.hasNext()) {
+                count++;
 
-				dataPointRange.next();
-			}
+                dataPointRange.next();
+            }
 
-			return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, count));
-		}
-	}
+            return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, count));
+        }
+    }
 }

@@ -21,60 +21,51 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.bval.constraints.NotEmpty;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
-public class NewMetricRequest
-{
-	@NotNull
-	@NotEmpty
-	private String name;
+public class NewMetricRequest {
+    @NotNull
+    @NotEmpty
+    private final String name;
 
-	private Map<String, String> tags;
+    private final Map<String, String> tags;
 
-	@Valid
-	@JsonDeserialize(using = DataPointDeserializer.class)
-	private List<DataPointRequest> datapoints = new ArrayList<DataPointRequest>();
+    @Valid
+    @JsonDeserialize(using = DataPointDeserializer.class)
+    private final List<DataPointRequest> datapoints = new ArrayList<>();
 
-	@JsonCreator
-	public NewMetricRequest(@JsonProperty("name") String name,
-			@JsonProperty("tags") Map<String, String> tags)
-	{
-		this.name = name;
-		this.tags = tags;
-	}
+    @JsonCreator
+    public NewMetricRequest(
+            @JsonProperty("name") final String name,
+            @JsonProperty("tags") final Map<String, String> tags) {
+        this.name = name;
+        this.tags = tags;
+    }
 
-	@JsonProperty
-	public String getName()
-	{
-		return name;
-	}
+    @JsonProperty
+    public String getName() {
+        return name;
+    }
 
-	public void addDataPoint(DataPointRequest dataPoint)
-	{
-		this.datapoints.add(dataPoint);
-	}
+    public void addDataPoint(final DataPointRequest dataPoint) {
+        this.datapoints.add(dataPoint);
+    }
 
-	public List<DataPointRequest> getDatapoints()
-	{
-		return Collections.unmodifiableList(datapoints);
-	}
+    public List<DataPointRequest> getDatapoints() {
+        return Collections.unmodifiableList(datapoints);
+    }
 
-	@JsonProperty
-	public Map<String, String> getTags()
-	{
-		if (tags != null)
-		{
-			return Collections.unmodifiableMap(tags);
-		}
-		else
-		{
-			return Collections.unmodifiableMap(Collections.<String, String>emptyMap());
-		}
-	}
+    @JsonProperty
+    public Map<String, String> getTags() {
+        if (tags != null) {
+            return Collections.unmodifiableMap(tags);
+        } else {
+            return Collections.unmodifiableMap(Collections.emptyMap());
+        }
+    }
 }

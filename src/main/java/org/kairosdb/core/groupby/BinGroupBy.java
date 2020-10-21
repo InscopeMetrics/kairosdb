@@ -30,101 +30,88 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- Groups data points by bin values. Data points are a range of values specified by bins.
- Bins array needs to be in ascending order.
+ * Groups data points by bin values. Data points are a range of values specified by bins.
+ * Bins array needs to be in ascending order.
  */
 @FeatureComponent(
-		name = "bin",
-		description = "Groups data points by bins or buckets."
+        name = "bin",
+        description = "Groups data points by bins or buckets."
 )
-public class BinGroupBy implements GroupBy
-{
+public class BinGroupBy implements GroupBy {
     @FeatureProperty(
             label = "Bin Values",
             description = "List of bin values. For example, if the list of bins is 10, 20, 30, then values less than 10 are placed in the first group, values between 10-19 into the second group, and so forth.",
             validations = {
-            		@ValidationProperty(
-            				expression = "value.length > 0",
-							message = "The list can't be empty."
-					),
-					@ValidationProperty(
-							expression = "value.every((n) => !isNaN(parseFloat(n)) && isFinite(n))",
-							message = "The list must contain only numbers."
-					)
-			}
+                    @ValidationProperty(
+                            expression = "value.length > 0",
+                            message = "The list can't be empty."
+                    ),
+                    @ValidationProperty(
+                            expression = "value.every((n) => !isNaN(parseFloat(n)) && isFinite(n))",
+                            message = "The list must contain only numbers."
+                    )
+            }
     )
-	private double[] bins;
+    private double[] bins;
 
-	public BinGroupBy()
-	{
-	}
+    public BinGroupBy() {
+    }
 
-	public BinGroupBy(double[] bins)
-	{
-		checkArgument(bins.length > 0);
+    public BinGroupBy(final double[] bins) {
+        checkArgument(bins.length > 0);
 
-		this.bins = bins;
-	}
+        this.bins = bins;
+    }
 
-	@Override
-	public int getGroupId(DataPoint dataPoint, Map<String, String> tags)
-	{
-		double dataValue = 0;
-		if (dataPoint.isLong())
-			dataValue = dataPoint.getLongValue();
-		else if (dataPoint.isDouble())
-			dataValue = dataPoint.getDoubleValue();
-		else
-			return -1;
-		if (dataValue < bins[0])
-			return 0;
-		for (int i = 0; i < bins.length - 1; i++)
-		{
-			if (dataValue >= bins[i] && dataValue < bins[i + 1])
-				return i + 1;
-		}
-		return bins.length;
-	}
+    @Override
+    public int getGroupId(final DataPoint dataPoint, final Map<String, String> tags) {
+        double dataValue = 0;
+        if (dataPoint.isLong())
+            dataValue = dataPoint.getLongValue();
+        else if (dataPoint.isDouble())
+            dataValue = dataPoint.getDoubleValue();
+        else
+            return -1;
+        if (dataValue < bins[0])
+            return 0;
+        for (int i = 0; i < bins.length - 1; i++) {
+            if (dataValue >= bins[i] && dataValue < bins[i + 1])
+                return i + 1;
+        }
+        return bins.length;
+    }
 
-	@Override
-	public GroupByResult getGroupByResult(final int id)
-	{
-		return new GroupByResult()
-		{
-			@Override
-			public String toJson() throws FormatterException
-			{
-				StringWriter stringWriter = new StringWriter();
-				try
-				{
-					JSONWriter writer = new JSONWriter(stringWriter);
+    @Override
+    public GroupByResult getGroupByResult(final int id) {
+        return new GroupByResult() {
+            @Override
+            public String toJson() throws FormatterException {
+                final StringWriter stringWriter = new StringWriter();
+                try {
+                    final JSONWriter writer = new JSONWriter(stringWriter);
 
-					writer.object();
-					writer.key("name").value("bin");
-					writer.key("bins").value(bins);
+                    writer.object();
+                    writer.key("name").value("bin");
+                    writer.key("bins").value(bins);
 
-					writer.key("group").object();
-					writer.key("bin_number").value(id);
-					writer.endObject();
-					writer.endObject();
-				}
-				catch (JSONException e)
-				{
-					throw new FormatterException(e);
-				}
+                    writer.key("group").object();
+                    writer.key("bin_number").value(id);
+                    writer.endObject();
+                    writer.endObject();
+                } catch (final JSONException e) {
+                    throw new FormatterException(e);
+                }
 
-				return stringWriter.toString();
-			}
-		};
-	}
+                return stringWriter.toString();
+            }
+        };
+    }
 
-	@Override
-	public void setStartDate(long startDate)
-	{
-	}
+    @Override
+    public void setStartDate(final long startDate) {
+    }
 
-	public void setBins(double[] bins)
-	{
-		this.bins = bins;
-	}
+    public void setBins(final double[] bins) {
+        this.bins = bins;
+    }
 }

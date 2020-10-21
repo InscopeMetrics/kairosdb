@@ -18,22 +18,18 @@ package org.kairosdb.core.exception;
 /**
  * Wraps exceptions from the data stores.
  */
-public class DatastoreException extends KairosDBException
-{
-	private static final long serialVersionUID = 6507025891306414920L;
+public class DatastoreException extends KairosDBException {
+    private static final long serialVersionUID = 6507025891306414920L;
 
-	public DatastoreException(String message)
-	{
-		super(message);
-	}
+    public DatastoreException(final String message) {
+        super(message);
+    }
 
-	public DatastoreException(String message, Throwable cause)
-	{
-		super(message, cause);
-	}
+    public DatastoreException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 
-	public DatastoreException(Throwable cause)
-	{
-		super(cause);
-	}
+    public DatastoreException(final Throwable cause) {
+        super(cause);
+    }
 }

@@ -25,167 +25,131 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.core.http.rest.MetricsResource.setHeaders;
 
 @Path("/api/v1/metadata")
-public class MetadataResource
-{
-	private static final Logger logger = LoggerFactory.getLogger(MetadataResource.class);
+public class MetadataResource {
+    private static final Logger logger = LoggerFactory.getLogger(MetadataResource.class);
 
-	private final ServiceKeyStore m_keyStore;
-	private final JsonFormatter jsonFormatter = new JsonFormatter();
+    private final ServiceKeyStore m_keyStore;
+    private final JsonFormatter jsonFormatter = new JsonFormatter();
 
-	@SuppressWarnings("ConstantConditions")
-	@Inject
-	public MetadataResource(ServiceKeyStore keyStore)
-	{
-		this.m_keyStore = checkNotNull(keyStore, "m_keyStore cannot be null");
-	}
+    @SuppressWarnings("ConstantConditions")
+    @Inject
+    public MetadataResource(final ServiceKeyStore keyStore) {
+        this.m_keyStore = checkNotNull(keyStore, "m_keyStore cannot be null");
+    }
 
-	@GET
-	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
-	@Path("/{service}")
-	public Response listServiceKeys(@PathParam("service") String service)
-	{
-		try
-		{
-			checkLocalService(service);
-			Iterable<String> keys = m_keyStore.listServiceKeys(service);
-			ResponseBuilder responseBuilder = Response.status(Status.OK).entity(
-					new ValuesStreamingOutput(jsonFormatter, keys));
-			setHeaders(responseBuilder);
-			return responseBuilder.build();
-		}
-		catch (NotAuthorizedException e)
-		{
-			logger.error("Attempt to access a local service.");
-			return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
-		}
-		catch (Exception e)
-		{
-			logger.error("Failed to get keys.", e);
-			return setHeaders(Response.status(Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
-		}
-	}
+    @GET
+    @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
+    @Path("/{service}")
+    public Response listServiceKeys(@PathParam("service") final String service) {
+        try {
+            checkLocalService(service);
+            final Iterable<String> keys = m_keyStore.listServiceKeys(service);
+            final ResponseBuilder responseBuilder = Response.status(Status.OK).entity(
+                    new ValuesStreamingOutput(jsonFormatter, keys));
+            setHeaders(responseBuilder);
+            return responseBuilder.build();
+        } catch (final NotAuthorizedException e) {
+            logger.error("Attempt to access a local service.");
+            return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
+        } catch (final Exception e) {
+            logger.error("Failed to get keys.", e);
+            return setHeaders(Response.status(Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
+        }
+    }
 
-	@GET
-	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
-	@Path("/{service}/{serviceKey}")
-	public Response listKeys(@PathParam("service") String service,
-			@PathParam("serviceKey") String serviceKey, @QueryParam("startsWith") String startsWidth)
-	{
-		try
-		{
-			checkLocalService(service);
-			Iterable<String> keys;
-			keys = Strings.isNullOrEmpty(startsWidth) ?
-					m_keyStore.listKeys(service, serviceKey) :
-					m_keyStore.listKeys(service, serviceKey, startsWidth);
+    @GET
+    @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
+    @Path("/{service}/{serviceKey}")
+    public Response listKeys(@PathParam("service") final String service,
+                             @PathParam("serviceKey") final String serviceKey, @QueryParam("startsWith") final String startsWidth) {
+        try {
+            checkLocalService(service);
+            final Iterable<String> keys;
+            keys = Strings.isNullOrEmpty(startsWidth) ?
+                    m_keyStore.listKeys(service, serviceKey) :
+                    m_keyStore.listKeys(service, serviceKey, startsWidth);
 
-			ResponseBuilder responseBuilder = Response.status(Status.OK).entity(
-					new ValuesStreamingOutput(jsonFormatter, keys));
-			setHeaders(responseBuilder);
-			return responseBuilder.build();
-		}
-		catch (NotAuthorizedException e)
-		{
-			logger.error("Attempt to access a local service.");
-			return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
-		}
-		catch (Exception e)
-		{
-			logger.error("Failed to get keys.", e);
-			return setHeaders(Response.status(Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
-		}
-	}
+            final ResponseBuilder responseBuilder = Response.status(Status.OK).entity(
+                    new ValuesStreamingOutput(jsonFormatter, keys));
+            setHeaders(responseBuilder);
+            return responseBuilder.build();
+        } catch (final NotAuthorizedException e) {
+            logger.error("Attempt to access a local service.");
+            return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
+        } catch (final Exception e) {
+            logger.error("Failed to get keys.", e);
+            return setHeaders(Response.status(Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
+        }
+    }
 
-	@GET
-	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
-	@Path("/{service}/{serviceKey}/{key}")
-	public Response getValue(@PathParam("service") String service, @PathParam("serviceKey")
-			String serviceKey, @PathParam("key") String key)
-	{
-		try
-		{
-			checkLocalService(service);
-			String value = m_keyStore.getValue(service, serviceKey, key).getValue();
-			ResponseBuilder responseBuilder = Response.status(Response.Status.OK).entity(value);
-			setHeaders(responseBuilder);
-			return responseBuilder.build();
-		}
-		catch (NotAuthorizedException e)
-		{
-			logger.error("Attempt to access a local service.");
-			return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
-		}
-		catch (Exception e)
-		{
-			logger.error("Failed to retrieve value.", e);
-			return setHeaders(Response.status(Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
-		}
-	}
+    @GET
+    @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
+    @Path("/{service}/{serviceKey}/{key}")
+    public Response getValue(@PathParam("service") final String service, @PathParam("serviceKey") final
+    String serviceKey, @PathParam("key") final String key) {
+        try {
+            checkLocalService(service);
+            final String value = m_keyStore.getValue(service, serviceKey, key).getValue();
+            final ResponseBuilder responseBuilder = Response.status(Response.Status.OK).entity(value);
+            setHeaders(responseBuilder);
+            return responseBuilder.build();
+        } catch (final NotAuthorizedException e) {
+            logger.error("Attempt to access a local service.");
+            return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
+        } catch (final Exception e) {
+            logger.error("Failed to retrieve value.", e);
+            return setHeaders(Response.status(Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
+        }
+    }
 
-	@POST
-	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
-	@Path("/{service}/{serviceKey}/{key}")
-	public Response setValue(@PathParam("service") String service, @PathParam("serviceKey") String serviceKey,
-			@PathParam("key") String key, String value)
-	{
-		try
-		{
-			checkLocalService(service);
-			m_keyStore.setValue(service, serviceKey, key, value);
-			return setHeaders(Response.status(Response.Status.NO_CONTENT)).build();
-		}
-		catch (NotAuthorizedException e)
-		{
-			logger.error("Attempt to access a local service.");
-			return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
-		}
-		catch (Exception e)
-		{
-			logger.error("Failed to add value.", e);
-			return setHeaders(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
-		}
-	}
+    @POST
+    @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
+    @Path("/{service}/{serviceKey}/{key}")
+    public Response setValue(@PathParam("service") final String service, @PathParam("serviceKey") final String serviceKey,
+                             @PathParam("key") final String key, final String value) {
+        try {
+            checkLocalService(service);
+            m_keyStore.setValue(service, serviceKey, key, value);
+            return setHeaders(Response.status(Response.Status.NO_CONTENT)).build();
+        } catch (final NotAuthorizedException e) {
+            logger.error("Attempt to access a local service.");
+            return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
+        } catch (final Exception e) {
+            logger.error("Failed to add value.", e);
+            return setHeaders(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
+        }
+    }
 
-	@DELETE
-	@Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
-	@Path("/{service}/{serviceKey}/{key}")
-	public Response deleteKey(@PathParam("service") String service, @PathParam("serviceKey") String serviceKey,
-			@PathParam("key") String key)
-	{
-		try
-		{
-			checkLocalService(service);
-			m_keyStore.deleteKey(service, serviceKey, key);
-			return setHeaders(Response.status(Response.Status.NO_CONTENT)).build();
-		}
-		catch (NotAuthorizedException e)
-		{
-			logger.error("Attempt to access a local service.");
-			return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
-		}
-		catch (Exception e)
-		{
-			logger.error("Failed to delete key.", e);
-			return setHeaders(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
-		}
-	}
+    @DELETE
+    @Produces(MediaType.APPLICATION_JSON + "; charset=UTF-8")
+    @Path("/{service}/{serviceKey}/{key}")
+    public Response deleteKey(@PathParam("service") final String service, @PathParam("serviceKey") final String serviceKey,
+                              @PathParam("key") final String key) {
+        try {
+            checkLocalService(service);
+            m_keyStore.deleteKey(service, serviceKey, key);
+            return setHeaders(Response.status(Response.Status.NO_CONTENT)).build();
+        } catch (final NotAuthorizedException e) {
+            logger.error("Attempt to access a local service.");
+            return setHeaders(Response.status(Status.UNAUTHORIZED)).build();
+        } catch (final Exception e) {
+            logger.error("Failed to delete key.", e);
+            return setHeaders(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
+        }
+    }
 
-	private void checkLocalService(String service)
-			throws NotAuthorizedException
-	{
-		if (service.startsWith("_"))
-		{
-			throw new NotAuthorizedException("Attempt to access an unauthorized service");
-		}
-	}
+    private void checkLocalService(final String service)
+            throws NotAuthorizedException {
+        if (service.startsWith("_")) {
+            throw new NotAuthorizedException("Attempt to access an unauthorized service");
+        }
+    }
 
-	private class NotAuthorizedException extends Exception
-	{
-		private static final long serialVersionUID = -9178572502364424189L;
+    private class NotAuthorizedException extends Exception {
+        private static final long serialVersionUID = -9178572502364424189L;
 
-		NotAuthorizedException(String message)
-		{
-			super(message);
-		}
-	}
+        NotAuthorizedException(final String message) {
+            super(message);
+        }
+    }
 }

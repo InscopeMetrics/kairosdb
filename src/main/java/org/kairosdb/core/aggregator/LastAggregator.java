@@ -24,61 +24,50 @@ import java.util.Collections;
 import java.util.Iterator;
 
 /**
- Converts all longs to double. This will cause a loss of precision for very large long values.
+ * Converts all longs to double. This will cause a loss of precision for very large long values.
  */
 @FeatureComponent(
         name = "last",
-		description = "Returns the last value data point for the time range."
-)
-public class LastAggregator extends RangeAggregator
-{
-	private DoubleDataPointFactory m_dataPointFactory;
+        description = "Returns the last value data point for the time range.")
+public class LastAggregator extends RangeAggregator {
+    private final DoubleDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public LastAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public LastAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return true;
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return true;
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new LastDataPointAggregator());
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new LastDataPointAggregator());
+    }
 
-	private class LastDataPointAggregator implements RangeSubAggregator
-	{
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			DataPoint last = null;
-			Long lastTime = 0L;
-			while (dataPointRange.hasNext())
-			{
-				last = dataPointRange.next();
-			}
+    private class LastDataPointAggregator implements RangeSubAggregator {
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            DataPoint last = null;
+            while (dataPointRange.hasNext()) {
+                last = dataPointRange.next();
+            }
 
-			if (last != null)
-			{
-				if (m_alignStartTime || m_alignEndTime)
-					last.setTimestamp(returnTime);
+            if (last != null) {
+                if (m_alignStartTime || m_alignEndTime)
+                    last.setTimestamp(returnTime);
 
-				return Collections.singletonList(last);
-			}
+                return Collections.singletonList(last);
+            }
 
-			return Collections.emptyList();
-		}
-	}
+            return Collections.emptyList();
+        }
+    }
 }

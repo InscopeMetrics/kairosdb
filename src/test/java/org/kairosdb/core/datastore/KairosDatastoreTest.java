@@ -35,7 +35,11 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
@@ -45,407 +49,377 @@ import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.junit.Assert.assertThat;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class KairosDatastoreTest
-{
-	private FeatureProcessingFactory<Aggregator> aggFactory;
+public class KairosDatastoreTest {
+    private final FeatureProcessingFactory<Aggregator> aggFactory;
 
-	@Mock
+    @Mock
     private PeriodicMetrics periodicMetrics;
 
-	public KairosDatastoreTest() throws KairosDBException
-	{
-		initMocks(this);
-		aggFactory = new TestAggregatorFactory();
-	}
+    public KairosDatastoreTest() throws KairosDBException {
+        initMocks(this);
+        aggFactory = new TestAggregatorFactory();
+    }
 
-	@Test(expected = NullPointerException.class)
-	public void test_query_nullMetricInvalid() throws KairosDBException
-	{
-		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
-				new TestDataPointFactory(), false);
+    @Test(expected = NullPointerException.class)
+    public void test_query_nullMetricInvalid() throws KairosDBException {
+        final TestDatastore testds = new TestDatastore();
+        final KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory(), false);
 
-		datastore.createQuery(null);
-	}
+        datastore.createQuery(null);
+    }
 
-	@Test
-	public void test_query_sumAggregator() throws KairosDBException
-	{
-		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
-				new TestDataPointFactory(), false);
+    @Test
+    public void test_query_sumAggregator() throws KairosDBException {
+        final TestDatastore testds = new TestDatastore();
+        final KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory(), false);
+        datastore.init();
+        final QueryMetric metric = new QueryMetric(1L, 1, "metric1");
+        metric.addAggregator(aggFactory.createFeatureProcessor("sum"));
+
+        final DatastoreQuery dq = datastore.createQuery(metric);
+        final List<DataPointGroup> results = dq.execute();
+
+        final DataPointGroup group = results.get(0);
+
+        DataPoint dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(72L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(32L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getLongValue(), equalTo(32L));
+
+        dq.close();
+    }
+
+    @Test
+    public void test_query_noAggregator() throws KairosDBException {
+        final TestDatastore testds = new TestDatastore();
+        final KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory(), false);
+        datastore.init();
+        final QueryMetric metric = new QueryMetric(1L, 1, "metric1");
+
+        final DatastoreQuery dq = datastore.createQuery(metric);
+        final List<DataPointGroup> results = dq.execute();
+
+        assertThat(results.size(), is(1));
+        final DataPointGroup group = results.get(0);
+
+        DataPoint dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(3L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(5L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(10L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(14L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(20L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(20L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(1L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(3L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(5L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(6L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(8L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(9L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getLongValue(), equalTo(7L));
+
+        dataPoint = group.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getLongValue(), equalTo(25L));
+
+        dq.close();
+    }
+
+    @SuppressWarnings({"ResultOfMethodCallIgnored", "ConstantConditions"})
+    @Test
+    public void test_cleanCacheDir() throws IOException, DatastoreException {
+        final TestDatastore testds = new TestDatastore();
+        final KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory(), false);
 		datastore.init();
 
-		QueryMetric metric = new QueryMetric(1L, 1, "metric1");
-		metric.addAggregator(aggFactory.createFeatureProcessor("sum"));
+        // Create files in the cache directory
+        final File cacheDir = new File(datastore.getCacheDir());
+        final File file1 = new File(cacheDir, "testFile1");
+        file1.createNewFile();
+        final File file2 = new File(cacheDir, "testFile2");
+        file2.createNewFile();
 
-		DatastoreQuery dq = datastore.createQuery(metric);
-		List<DataPointGroup> results = dq.execute();
+        final File[] files = cacheDir.listFiles();
+        assertTrue(files.length > 0);
 
-		DataPointGroup group = results.get(0);
+        datastore.cleanCacheDir(false);
 
-		DataPoint dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(72L));
+        assertFalse(file1.exists());
+        assertFalse(file2.exists());
+    }
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(32L));
+    @Test
+    public void test_groupByTypeAndTag_SameTagValue() throws DatastoreException {
+        final TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory());
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getLongValue(), equalTo(32L));
+        final TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
+        final List<DataPointRow> rows = new ArrayList<>();
 
-		dq.close();
-	}
+        final DataPointRowImpl row1 = new DataPointRowImpl();
+        row1.addTag("tag1", "value");
+        row1.addDataPoint(new LongDataPoint(1234, 1));
 
-	@Test
-	public void test_query_noAggregator() throws KairosDBException
-	{
-		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics, 1),
-				new TestDataPointFactory(), false);
-		datastore.init();
-		QueryMetric metric = new QueryMetric(1L, 1, "metric1");
+        final DataPointRowImpl row2 = new DataPointRowImpl();
+        row2.addTag("tag2", "value");
+        row2.addDataPoint(new LongDataPoint(1235, 2));
 
-		DatastoreQuery dq = datastore.createQuery(metric);
-		List<DataPointGroup> results = dq.execute();
+        rows.add(row1);
+        rows.add(row2);
 
-		assertThat(results.size(), is(1));
-		DataPointGroup group = results.get(0);
+        final List<DataPointGroup> dataPointsGroup = datastore.groupByTypeAndTag("metricName", rows, groupBy, Order.ASC);
 
-		DataPoint dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(3L));
+        assertThat(dataPointsGroup.size(), equalTo(2));
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(5L));
+        assertThat(getTagGroupMap(dataPointsGroup.get(0)), hasEntry("tag1", ""));
+        assertThat(getTagGroupMap(dataPointsGroup.get(0)), hasEntry("tag2", "value"));
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(10L));
+        assertThat(getTagGroupMap(dataPointsGroup.get(1)), hasEntry("tag1", "value"));
+        assertThat(getTagGroupMap(dataPointsGroup.get(1)), hasEntry("tag2", ""));
+    }
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(14L));
+    @Test
+    public void test_groupByTypeAndTag_DifferentTagValues() throws DatastoreException {
+        final TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory());
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(20L));
+        final TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
+        final List<DataPointRow> rows = new ArrayList<>();
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(20L));
+        final DataPointRowImpl row1 = new DataPointRowImpl();
+        row1.addTag("tag1", "value1");
+        row1.addDataPoint(new LongDataPoint(1234, 1));
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(1L));
+        final DataPointRowImpl row2 = new DataPointRowImpl();
+        row2.addTag("tag2", "value2");
+        row2.addDataPoint(new LongDataPoint(1235, 2));
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(3L));
+        rows.add(row1);
+        rows.add(row2);
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(5L));
+        final List<DataPointGroup> dataPoints = datastore.groupByTypeAndTag("metricName", rows, groupBy, Order.ASC);
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(6L));
+        assertThat(dataPoints.size(), equalTo(2));
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(8L));
+        assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag1", ""));
+        assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag2", "value2"));
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(9L));
+        assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag1", "value1"));
+        assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag2", ""));
+    }
 
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getLongValue(), equalTo(7L));
-
-		dataPoint = group.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getLongValue(), equalTo(25L));
-
-		dq.close();
-	}
-
-	@SuppressWarnings({"ResultOfMethodCallIgnored", "ConstantConditions"})
-	@Test
-	public void test_cleanCacheDir() throws IOException, DatastoreException
-	{
-		TestDatastore testds = new TestDatastore();
-		KairosDatastore datastore = new KairosDatastore(testds, new QueryQueuingManager(periodicMetrics,1),
-				new TestDataPointFactory(), false);
-		datastore.init();
-
-		// Create files in the cache directory
-		File cacheDir = new File(datastore.getCacheDir());
-		File file1 = new File(cacheDir, "testFile1");
-		file1.createNewFile();
-		File file2 = new File(cacheDir, "testFile2");
-		file2.createNewFile();
-
-		File[] files = cacheDir.listFiles();
-		assertTrue(files.length > 0);
-
-		datastore.cleanCacheDir(false);
-
-		assertFalse(file1.exists());
-		assertFalse(file2.exists());
-	}
-
-	@Test
-	public void test_groupByTypeAndTag_SameTagValue() throws DatastoreException
-	{
-		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
-				new TestDataPointFactory());
-
-		TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
-		List<DataPointRow> rows = new ArrayList<>();
-
-		DataPointRowImpl row1 = new DataPointRowImpl();
-		row1.addTag("tag1", "value");
-		row1.addDataPoint(new LongDataPoint(1234, 1));
-
-		DataPointRowImpl row2 = new DataPointRowImpl();
-		row2.addTag("tag2", "value");
-		row2.addDataPoint(new LongDataPoint(1235, 2));
-
-		rows.add(row1);
-		rows.add(row2);
-
-		List<DataPointGroup> dataPointsGroup = datastore.groupByTypeAndTag("metricName", rows, groupBy, Order.ASC);
-
-		assertThat(dataPointsGroup.size(), equalTo(2));
-
-		assertThat(getTagGroupMap(dataPointsGroup.get(0)), hasEntry("tag1", ""));
-		assertThat(getTagGroupMap(dataPointsGroup.get(0)), hasEntry("tag2", "value"));
-
-		assertThat(getTagGroupMap(dataPointsGroup.get(1)), hasEntry("tag1", "value"));
-		assertThat(getTagGroupMap(dataPointsGroup.get(1)), hasEntry("tag2", ""));
-	}
-
-	@Test
-	public void test_groupByTypeAndTag_DifferentTagValues() throws DatastoreException
-	{
-		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
-				new TestDataPointFactory());
-
-		TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
-		List<DataPointRow> rows = new ArrayList<>();
-
-		DataPointRowImpl row1 = new DataPointRowImpl();
-		row1.addTag("tag1", "value1");
-		row1.addDataPoint(new LongDataPoint(1234, 1));
-
-		DataPointRowImpl row2 = new DataPointRowImpl();
-		row2.addTag("tag2", "value2");
-		row2.addDataPoint(new LongDataPoint(1235, 2));
-
-		rows.add(row1);
-		rows.add(row2);
-
-		List<DataPointGroup> dataPoints = datastore.groupByTypeAndTag("metricName", rows, groupBy, Order.ASC);
-
-		assertThat(dataPoints.size(), equalTo(2));
-
-		assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag1", ""));
-		assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag2", "value2"));
-
-		assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag1", "value1"));
-		assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag2", ""));
-	}
-
-	@Test
-	public void test_groupByTypeAndTag_MultipleTags() throws DatastoreException
-	{
-		TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
-				new TestDataPointFactory());
+    @Test
+    public void test_groupByTypeAndTag_MultipleTags() throws DatastoreException {
+        final TestKairosDatastore datastore = new TestKairosDatastore(new TestDatastore(), new QueryQueuingManager(periodicMetrics, 1),
+                new TestDataPointFactory());
 
 		/*
 		The order of the returned data must be stored first by tag1 and
 		then by tag 2 as specified in the caller group by.
 		 */
-		TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
-		List<DataPointRow> rows = new ArrayList<>();
+        final TagGroupBy groupBy = new TagGroupBy("tag1", "tag2");
+        final List<DataPointRow> rows = new ArrayList<>();
 
-		DataPointRowImpl row1 = new DataPointRowImpl();
-		row1.addTag("tag1", "value1");
-		row1.addTag("tag2", "value2");
-		row1.addDataPoint(new LongDataPoint(1234, 1));
+        final DataPointRowImpl row1 = new DataPointRowImpl();
+        row1.addTag("tag1", "value1");
+        row1.addTag("tag2", "value2");
+        row1.addDataPoint(new LongDataPoint(1234, 1));
 
-		DataPointRowImpl row2 = new DataPointRowImpl();
-		row2.addTag("tag1", "value1");
-		row2.addTag("tag2", "value3");
-		row2.addDataPoint(new LongDataPoint(1235, 2));
+        final DataPointRowImpl row2 = new DataPointRowImpl();
+        row2.addTag("tag1", "value1");
+        row2.addTag("tag2", "value3");
+        row2.addDataPoint(new LongDataPoint(1235, 2));
 
-		DataPointRowImpl row3 = new DataPointRowImpl();
-		row3.addTag("tag1", "value4");
-		row3.addTag("tag2", "value2");
-		row3.addDataPoint(new LongDataPoint(1235, 2));
+        final DataPointRowImpl row3 = new DataPointRowImpl();
+        row3.addTag("tag1", "value4");
+        row3.addTag("tag2", "value2");
+        row3.addDataPoint(new LongDataPoint(1235, 2));
 
-		rows.add(row1);
-		rows.add(row2);
-		rows.add(row3);
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
 
-		List<DataPointGroup> dataPoints = datastore.groupByTypeAndTag("metricName", rows, groupBy, Order.ASC);
+        final List<DataPointGroup> dataPoints = datastore.groupByTypeAndTag("metricName", rows, groupBy, Order.ASC);
 
-		assertThat(dataPoints.size(), equalTo(3));
+        assertThat(dataPoints.size(), equalTo(3));
 
-		assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag1", "value1"));
-		assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag2", "value2"));
+        assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag1", "value1"));
+        assertThat(getTagGroupMap(dataPoints.get(0)), hasEntry("tag2", "value2"));
 
-		assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag1", "value1"));
-		assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag2", "value3"));
+        assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag1", "value1"));
+        assertThat(getTagGroupMap(dataPoints.get(1)), hasEntry("tag2", "value3"));
 
-		assertThat(getTagGroupMap(dataPoints.get(2)), hasEntry("tag1", "value4"));
-		assertThat(getTagGroupMap(dataPoints.get(2)), hasEntry("tag2", "value2"));
+        assertThat(getTagGroupMap(dataPoints.get(2)), hasEntry("tag1", "value4"));
+        assertThat(getTagGroupMap(dataPoints.get(2)), hasEntry("tag2", "value2"));
 
-	}
+    }
 
-	private Map<String, String> getTagGroupMap(DataPointGroup dataPointGroup)
-	{
-		for (GroupByResult groupByResult : dataPointGroup.getGroupByResult())
-		{
-			if (groupByResult instanceof TagGroupByResult)
-				return ((TagGroupByResult) groupByResult).getTagResults();
-		}
+    private Map<String, String> getTagGroupMap(final DataPointGroup dataPointGroup) {
+        for (final GroupByResult groupByResult : dataPointGroup.getGroupByResult()) {
+            if (groupByResult instanceof TagGroupByResult)
+                return ((TagGroupByResult) groupByResult).getTagResults();
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	private static class TestKairosDatastore extends KairosDatastore
-	{
+    private static class TestKairosDatastore extends KairosDatastore {
 
-		TestKairosDatastore(Datastore datastore, QueryQueuingManager queuingManager,
-				KairosDataPointFactory dataPointFactory) throws DatastoreException
-		{
-			super(datastore, queuingManager, dataPointFactory, false);
-		}
-	}
+        TestKairosDatastore(final Datastore datastore, final QueryQueuingManager queuingManager,
+                                   final KairosDataPointFactory dataPointFactory) throws DatastoreException {
+            super(datastore, queuingManager, dataPointFactory, false);
+        }
+    }
 
-	private static class TestDatastore implements Datastore, ServiceKeyStore
-	{
-		TestDatastore()
-		{
-		}
+    private static class TestDatastore implements Datastore, ServiceKeyStore {
+        protected TestDatastore() {
+        }
 
-		@Override
-		public void close()
-		{
-		}
+        @Override
+        public void close() {
+        }
 
-		@Override
-		public Iterable<String> getMetricNames(String prefix)
-		{
-			return null;
-		}
+        @Override
+        public Iterable<String> getMetricNames(final String prefix) {
+            return null;
+        }
 
-		@Override
-		public Iterable<String> getTagNames()
-		{
-			return null;
-		}
+        @Override
+        public Iterable<String> getTagNames() {
+            return null;
+        }
 
-		@Override
-		public Iterable<String> getTagValues()
-		{
-			return null;
-		}
+        @Override
+        public Iterable<String> getTagValues() {
+            return null;
+        }
 
-		@Override
-		public void queryDatabase(DatastoreMetricQuery query, QueryCallback queryCallback)
-				throws DatastoreException
-		{
-			try
-			{
-				QueryCallback.DataPointWriter dataPointWriter = queryCallback.startDataPointSet(LegacyDataPointFactory.DATASTORE_TYPE, Collections.emptySortedMap());
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 3));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 10));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 20));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 1));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 3));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 5));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(3, 25));
-				dataPointWriter.close();
+        @Override
+        public void queryDatabase(final DatastoreMetricQuery query, final QueryCallback queryCallback)
+                throws DatastoreException {
 
-				dataPointWriter = queryCallback.startDataPointSet(LegacyDataPointFactory.DATASTORE_TYPE, Collections.emptySortedMap());
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 5));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 14));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 20));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 6));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 8));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 9));
-				dataPointWriter.addDataPoint(new LegacyLongDataPoint(3, 7));
+            try {
+                QueryCallback.DataPointWriter dataPointWriter = queryCallback.startDataPointSet(LegacyDataPointFactory.DATASTORE_TYPE, Collections.emptySortedMap());
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 3));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 10));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 20));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 1));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 3));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 5));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(3, 25));
+                dataPointWriter.close();
 
-				dataPointWriter.close();
-			}
-			catch (IOException e)
-			{
-				throw new DatastoreException(e);
-			}
-		}
+                dataPointWriter = queryCallback.startDataPointSet(LegacyDataPointFactory.DATASTORE_TYPE, Collections.emptySortedMap());
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 5));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 14));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(1, 20));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 6));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 8));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(2, 9));
+                dataPointWriter.addDataPoint(new LegacyLongDataPoint(3, 7));
 
-		@Override
-		public void deleteDataPoints(DatastoreMetricQuery deleteQuery)
-		{
-		}
+                dataPointWriter.close();
+            } catch (final IOException e) {
+                throw new DatastoreException(e);
+            }
+        }
 
-		@Override
-		public TagSet queryMetricTags(DatastoreMetricQuery query)
-		{
-			return null;  //To change body of implemented methods use File | Settings | File Templates.
-		}
+        @Override
+        public void deleteDataPoints(final DatastoreMetricQuery deleteQuery) {
+        }
 
-		@Override
-		public long queryCardinality(DatastoreMetricQuery query)
-		{
-			return 0;
-		}
+        @Override
+        public TagSet queryMetricTags(final DatastoreMetricQuery query)  {
+            return null;  //To change body of implemented methods use File | Settings | File Templates.
+        }
 
-		@Override
-		public void setValue(String service, String serviceKey, String key, String value)
-		{
+        @Override
+        public long queryCardinality(final DatastoreMetricQuery query) {
+            return 0;
+        }
 
-		}
+        @Override
+        public void setValue(final String service, final String serviceKey, final String key, final String value) {
 
-		@Override
-		public ServiceKeyValue getValue(String service, String serviceKey, String key)
-		{
-			return null;
-		}
+        }
 
-		@Override
-		public Iterable<String> listServiceKeys(String service)
-		{
-			return null;
-		}
+        @Override
+        public ServiceKeyValue getValue(final String service, final String serviceKey, final String key)  {
+            return null;
+        }
 
-		@Override
-		public Iterable<String> listKeys(String service, String serviceKey)
-		{
-			return null;
-		}
+        @Override
+        public Iterable<String> listServiceKeys(final String service)
+                 {
+            return null;
+        }
 
-		@Override
-		public Iterable<String> listKeys(String service, String serviceKey, String keyStartsWith)
-		{
-			return null;
-		}
+        @Override
+        public Iterable<String> listKeys(final String service, final String serviceKey)  {
+            return null;
+        }
 
-		@Override
-		public void deleteKey(String service, String serviceKey, String key)
-		{
-		}
+        @Override
+        public Iterable<String> listKeys(final String service, final String serviceKey, final String keyStartsWith)  {
+            return null;
+        }
 
-		@Override
-		public Date getServiceKeyLastModifiedTime(String service, String serviceKey)
-		{
-			return null;
-		}
-	}
+        @Override
+        public void deleteKey(final String service, final String serviceKey, final String key)
+                {
+        }
+
+        @Override
+        public Date getServiceKeyLastModifiedTime(final String service, final String serviceKey)
+                 {
+            return null;
+        }
+    }
 }
