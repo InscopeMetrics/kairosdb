@@ -41,13 +41,14 @@ public class DataPointDeserializer extends JsonDeserializer<List<DataPointReques
 		List<DataPointRequest> datapoints = new ArrayList<>();
 
 		JsonToken token = parser.nextToken();
-		if (token != JsonToken.START_ARRAY )
+		if (token != JsonToken.START_ARRAY) {
 			deserializationContext.reportWrongTokenException(
 					DataPointRequest.class,
 					JsonToken.START_ARRAY,
 					"Invalid data point syntax.");
+		}
 
-	while(token != null && token != JsonToken.END_ARRAY)
+    	while(token != null && token != JsonToken.END_ARRAY)
 		{
 		 	parser.nextToken();
 			long timestamp = parser.getLongValue();
@@ -61,11 +62,12 @@ public class DataPointDeserializer extends JsonDeserializer<List<DataPointReques
 			datapoints.add(dataPointRequest);
 
 			token = parser.nextToken();
-			if (token != JsonToken.END_ARRAY)
+			if (token != JsonToken.END_ARRAY) {
 				deserializationContext.reportWrongTokenException(
 						DataPointRequest.class,
 						JsonToken.END_ARRAY,
 						"Invalid data point syntax.");
+			}
 
 			token = parser.nextToken();
 		}

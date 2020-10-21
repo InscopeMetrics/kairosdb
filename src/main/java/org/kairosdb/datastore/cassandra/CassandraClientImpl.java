@@ -1,5 +1,6 @@
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.codahale.metrics.Snapshot;
 import com.datastax.driver.core.AuthProvider;
 import com.datastax.driver.core.Cluster;
@@ -19,18 +20,15 @@ import org.kairosdb.core.datapoints.DoubleDataPointFactory;
 import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
  Created by bhawkins on 3/4/15.
  */
-public class CassandraClientImpl implements CassandraClient, KairosMetricReporter
+public class CassandraClientImpl implements CassandraClient
 {
 	public static final Logger logger = LoggerFactory.getLogger(CassandraClientImpl.class);
 
@@ -50,18 +48,19 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 	@Inject
 	private DoubleDataPointFactory m_doubleDataPointFactory = new DoubleDataPointFactoryImpl();
 
-	@Inject
-	private RetryPolicy m_retryPolicy = new KairosRetryPolicy(1);
+	private RetryPolicy m_retryPolicy;
 
 	@Inject(optional=true)
 	private AuthProvider m_authProvider = null;
 
 	@Inject
-	public CassandraClientImpl(CassandraConfiguration configuration)
+	public CassandraClientImpl(CassandraConfiguration configuration, PeriodicMetrics periodicMetrics)
 	{
 		m_configuration = configuration;
 		m_keyspace = configuration.getKeyspaceName();
 		m_replication = configuration.getReplication();
+		periodicMetrics.registerPolledMetric(this::recordMetrics);
+		m_retryPolicy = new KairosRetryPolicy(1, periodicMetrics);
 	}
 
 	public void init()
@@ -175,54 +174,46 @@ public class CassandraClientImpl implements CassandraClient, KairosMetricReporte
 		return dps;
 	}
 
-	@Override
-	public List<DataPointSet> getMetrics(long now)
+	private void recordMetrics(PeriodicMetrics periodicMetrics)
 	{
-		String prefix = "kairosdb.datastore.cassandra.client";
-		List<DataPointSet> ret = new ArrayList<>();
+		String prefix = "datastore/cassandra/client";
 		Metrics metrics = m_cluster.getMetrics();
 
-		ret.add(newDataPointSet(prefix, "connection_errors", now,
-				metrics.getErrorMetrics().getConnectionErrors().getCount()));
+		periodicMetrics.recordGauge(prefix + "/connection_errors",
+				metrics.getErrorMetrics().getConnectionErrors().getCount());
 
-		ret.add(newDataPointSet(prefix, "blocking_executor_queue_depth", now,
-				metrics.getBlockingExecutorQueueDepth().getValue()));
+		periodicMetrics.recordGauge(prefix + "/blocking_executor_queue_depth",
+				metrics.getBlockingExecutorQueueDepth().getValue());
 
-		ret.add(newDataPointSet(prefix, "connected_to_hosts", now,
-				metrics.getConnectedToHosts().getValue()));
+		periodicMetrics.recordGauge(prefix + "/connected_to_hosts",
+				metrics.getConnectedToHosts().getValue());
 
-		ret.add(newDataPointSet(prefix, "executor_queue_depth", now,
-				metrics.getExecutorQueueDepth().getValue()));
+		periodicMetrics.recordGauge(prefix + "/executor_queue_depth",
+				metrics.getExecutorQueueDepth().getValue());
 
-		ret.add(newDataPointSet(prefix, "known_hosts", now,
-				metrics.getKnownHosts().getValue()));
+		periodicMetrics.recordGauge(prefix + "/known_hosts",
+				metrics.getKnownHosts().getValue());
 
-		ret.add(newDataPointSet(prefix, "open_connections", now,
-				metrics.getOpenConnections().getValue()));
+		periodicMetrics.recordGauge(prefix + "/open_connections",
+				metrics.getOpenConnections().getValue());
 
-		ret.add(newDataPointSet(prefix, "reconnection_scheduler_queue_size", now,
-				metrics.getReconnectionSchedulerQueueSize().getValue()));
+		periodicMetrics.recordGauge(prefix + "/reconnection_scheduler_queue_size",
+				metrics.getReconnectionSchedulerQueueSize().getValue());
 
-		ret.add(newDataPointSet(prefix, "task_scheduler_queue_size", now,
-				metrics.getTaskSchedulerQueueSize().getValue()));
+		periodicMetrics.recordGauge(prefix + "/task_scheduler_queue_size",
+				metrics.getTaskSchedulerQueueSize().getValue());
 
-		ret.add(newDataPointSet(prefix, "trashed_connections", now,
-				metrics.getTrashedConnections().getValue()));
+		periodicMetrics.recordGauge(prefix + "/trashed_connections",
+				metrics.getTrashedConnections().getValue());
 
 		Snapshot snapshot = metrics.getRequestsTimer().getSnapshot();
-		prefix = prefix + ".requests_timer";
-		ret.add(newDataPointSet(prefix, "max", now,
-				snapshot.getMax()));
+		prefix = prefix + "/requests_timer";
+		periodicMetrics.recordGauge(prefix + "/max", snapshot.getMax());
 
-		ret.add(newDataPointSet(prefix, "min", now,
-				snapshot.getMin()));
+		periodicMetrics.recordGauge(prefix + "/min", snapshot.getMin());
 
-		ret.add(newDataPointSet(prefix, "avg", now,
-				snapshot.getMean()));
+		periodicMetrics.recordGauge(prefix + "/avg", snapshot.getMean());
 
-		ret.add(newDataPointSet(prefix, "count", now,
-				snapshot.size()));
-
-		return ret;
+		periodicMetrics.recordGauge(prefix + "/count", snapshot.size());
 	}
 }

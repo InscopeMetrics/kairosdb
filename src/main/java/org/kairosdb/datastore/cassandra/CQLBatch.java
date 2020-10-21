@@ -1,5 +1,6 @@
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
@@ -37,7 +38,7 @@ public class CQLBatch
 
 	private final Session m_session;
 	private final Schema m_schema;
-	private final BatchStats m_batchStats;
+	private final PeriodicMetrics m_periodicMetrics;
 	private final ConsistencyLevel m_consistencyLevel;
 	private final long m_now;
 	private final LoadBalancingPolicy m_loadBalancingPolicy;
@@ -57,14 +58,16 @@ public class CQLBatch
 
 	@Inject
 	public CQLBatch(
-			ConsistencyLevel consistencyLevel, Session session,
-			Schema schema, BatchStats batchStats,
+			ConsistencyLevel consistencyLevel,
+			Session session,
+			PeriodicMetrics periodicMetrics,
+			Schema schema,
 			LoadBalancingPolicy loadBalancingPolicy)
 	{
 		m_consistencyLevel = consistencyLevel;
 		m_session = session;
+		m_periodicMetrics = periodicMetrics;
 		m_schema = schema;
-		m_batchStats = batchStats;
 		m_now = System.currentTimeMillis();
 		m_loadBalancingPolicy = loadBalancingPolicy;
 	}
@@ -171,13 +174,17 @@ public class CQLBatch
 		if (metricNamesBatch.size() != 0)
 		{
 			m_session.execute(metricNamesBatch);
-			m_batchStats.addNameBatch(metricNamesBatch.size());
+			m_periodicMetrics.recordGauge(
+					"datastore/cassandra/string_index/write_batch_size",
+					metricNamesBatch.size());
 		}
 
 		if (rowKeyBatch.size() != 0)
 		{
 			m_session.execute(rowKeyBatch);
-			m_batchStats.addRowKeyBatch(rowKeyBatch.size());
+			m_periodicMetrics.recordGauge(
+					"kairosdb/datastore/cassandra/row_keys/write_batch_size",
+					rowKeyBatch.size());
 		}
 
 		for (BatchStatement batchStatement : m_batchMap.values())
@@ -185,7 +192,9 @@ public class CQLBatch
 			if (batchStatement.size() != 0)
 			{
 				m_session.execute(batchStatement);
-				m_batchStats.addDatapointsBatch(batchStatement.size());
+				m_periodicMetrics.recordGauge(
+						"datastore/cassandra/data_points/write_batch_size",
+						batchStatement.size());
 			}
 		}
 
@@ -193,7 +202,9 @@ public class CQLBatch
 		if (dataPointBatch.size() != 0)
 		{
 			m_session.execute(dataPointBatch);
-			m_batchStats.addDatapointsBatch(dataPointBatch.size());
+			m_periodicMetrics.recordGauge(
+					"datastore/cassandra/data_points/write_batch_size",
+					dataPointBatch.size());
 		}
 	}
 

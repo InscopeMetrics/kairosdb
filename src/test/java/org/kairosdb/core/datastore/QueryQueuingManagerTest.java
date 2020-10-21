@@ -5,9 +5,10 @@
 //        
 package org.kairosdb.core.datastore;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import org.junit.Before;
 import org.junit.Test;
-import org.kairosdb.core.DataPointSet;
+import org.mockito.Mock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,21 +20,26 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class QueryQueuingManagerTest
 {
 	private AtomicInteger runningCount;
 
+	@Mock
+	private PeriodicMetrics periodicMetrics;
+
 	@Before
 	public void setup()
 	{
+		initMocks(this);
 		runningCount = new AtomicInteger();
 	}
 
 	@Test(timeout = 3000)
 	public void test_onePermit() throws InterruptedException
 	{
-		QueryQueuingManager manager = new QueryQueuingManager(1, "hostname");
+		QueryQueuingManager manager = new QueryQueuingManager(periodicMetrics, 1);
 
 		List<Query> queries = new ArrayList<Query>();
 		queries.add(new Query(manager, "1", 5));
@@ -72,7 +78,7 @@ public class QueryQueuingManagerTest
 	@Test(timeout = 3000)
 	public void test_onePermitSameHash() throws InterruptedException
 	{
-		QueryQueuingManager manager = new QueryQueuingManager(3, "hostname");
+		QueryQueuingManager manager = new QueryQueuingManager(periodicMetrics, 3);
 
 		Query query1 = new Query(manager, "1", 5);
 		Query query2 = new Query(manager, "1", 5);
@@ -97,15 +103,12 @@ public class QueryQueuingManagerTest
 		assertThat(query3.didRun, equalTo(true));
 		assertThat(query4.didRun, equalTo(true));
 		assertThat(query5.didRun, equalTo(true));
-
-		//Number of collisions
-		assertThat(manager.getMetrics(System.currentTimeMillis()).get(0).getDataPoints().get(0).getLongValue(), equalTo(4L));
 	}
 
 	@Test(timeout = 3000)
 	public void test_EnoughPermitsDifferentHashes() throws InterruptedException
 	{
-		QueryQueuingManager manager = new QueryQueuingManager(3, "hostname");
+		QueryQueuingManager manager = new QueryQueuingManager(periodicMetrics, 3);
 
 		Query query1 = new Query(manager, "1", 3);
 		Query query2 = new Query(manager, "2", 3);
@@ -122,10 +125,6 @@ public class QueryQueuingManagerTest
 		assertThat(query1.didRun, equalTo(true));
 		assertThat(query2.didRun, equalTo(true));
 		assertThat(query3.didRun, equalTo(true));
-
-		List<DataPointSet> metrics = manager.getMetrics(System.currentTimeMillis());
-		assertThat(metrics.get(0).getDataPoints().get(0).getLongValue(), equalTo(0L));
-		assertThat(manager.getQueryWaitingCount(), equalTo(0));
 	}
 
 	private class Query extends Thread

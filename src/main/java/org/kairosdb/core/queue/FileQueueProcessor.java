@@ -1,9 +1,9 @@
 package org.kairosdb.core.queue;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSortedMap;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.exception.DatastoreException;
@@ -32,7 +32,6 @@ public class FileQueueProcessor extends QueueProcessor
 	private final BigArray m_bigArray;
 	private final CircularFifoQueue<IndexedEvent> m_memoryQueue;
 	private final DataPointEventSerializer m_eventSerializer;
-	private final List<DataPointEvent> m_internalMetrics = new ArrayList<>();
 	private AtomicInteger m_readFromFileCount = new AtomicInteger();
 	private AtomicInteger m_readFromQueueCount = new AtomicInteger();
 	private Stopwatch m_stopwatch = Stopwatch.createStarted();
@@ -53,13 +52,14 @@ public class FileQueueProcessor extends QueueProcessor
 			DataPointEventSerializer eventSerializer,
 			BigArray bigArray,
 			@Named(QUEUE_PROCESSOR) ExecutorService executor,
+			PeriodicMetrics periodicMetrics,
 			@Named(BATCH_SIZE) int batchSize,
 			@Named(MEMORY_QUEUE_SIZE) int memoryQueueSize,
 			@Named(SECONDS_TILL_CHECKPOINT) int secondsTillCheckpoint,
 			@Named(MINIMUM_BATCH_SIZE) int minimumBatchSize,
 			@Named(MINIMUM_BATCH_WAIT) int minBatchWait)
 	{
-		super(executor, batchSize, minimumBatchSize, minBatchWait);
+		super(executor, periodicMetrics, batchSize, minimumBatchSize, minBatchWait);
 		m_bigArray = bigArray;
 		m_memoryQueue = new CircularFifoQueue<>(memoryQueueSize);
 		m_eventSerializer = eventSerializer;
@@ -172,9 +172,6 @@ public class FileQueueProcessor extends QueueProcessor
 
 		synchronized (m_lock)
 		{
-			ret.addAll(m_internalMetrics);
-			m_internalMetrics.clear();
-
 			for (int i = ret.size(); i < batchSize; i++)
 			{
 				//System.out.println(m_nextIndex);
@@ -231,55 +228,13 @@ public class FileQueueProcessor extends QueueProcessor
 		return callbackToReturn;
 	}
 
-
-
 	@Override
-	public void addReportedMetrics(ArrayList<DataPointSet> metrics, long now)
+	public void addReportedMetrics(final PeriodicMetrics periodicMetrics)
 	{
-		long arraySize = m_bigArray.getHeadIndex() - m_nextIndex;
-		long readFromFile = m_readFromFileCount.getAndSet(0);
-		long readFromQueue = m_readFromQueueCount.getAndSet(0);
-		//System.out.println(readFromQueue);
-
-		synchronized (m_lock)
-		{
-			m_internalMetrics.add(new DataPointEvent("kairosdb.queue.file_queue.size", m_reportTags,
-					m_dataPointFactory.createDataPoint(now, arraySize)));
-
-			m_internalMetrics.add(new DataPointEvent("kairosdb.queue.read_from_file", m_reportTags,
-					m_dataPointFactory.createDataPoint(now, readFromFile)));
-
-			m_internalMetrics.add(new DataPointEvent("kairosdb.queue.process_count", m_reportTags,
-					m_dataPointFactory.createDataPoint(now, readFromQueue)));
-		}
-
-		/*
-		Metrics returned below are sent through the event bus and placed at the end of the queue.
-		The metrics above (which are the same) are effectively put at the beginning of the queue.
-		If the system is getting behind the only way to know that is by looking at the queue
-		size but if that data is at the end of the queue it doesn't do any good.
-		 */
-
-		DataPointSet dps = new DataPointSet("kairosdb.queue.file_queue.size");
-		dps.addTag("host", m_hostName);
-		dps.addDataPoint(m_dataPointFactory.createDataPoint(now, arraySize));
-
-		metrics.add(dps);
-
-		dps = new DataPointSet("kairosdb.queue.read_from_file");
-		dps.addTag("host", m_hostName);
-		dps.addDataPoint(m_dataPointFactory.createDataPoint(now, readFromFile));
-
-		metrics.add(dps);
-
-		dps = new DataPointSet("kairosdb.queue.process_count");
-		dps.addTag("host", m_hostName);
-		dps.addDataPoint(m_dataPointFactory.createDataPoint(now, readFromQueue));
-
-		metrics.add(dps);
+		periodicMetrics.recordGauge("queue/file_queue.size", m_bigArray.getHeadIndex() - m_nextIndex);
+		periodicMetrics.recordGauge("queue/read_from_file", m_readFromFileCount.getAndSet(0));
+		periodicMetrics.recordGauge("queue/process_count", m_readFromQueueCount.getAndSet(0));
 	}
-
-
 
 	/**
 	 The purpose of this class is to track all batches sent up to a certain point
