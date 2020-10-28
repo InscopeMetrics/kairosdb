@@ -24,7 +24,6 @@ import org.kairosdb.core.datapoints.LegacyDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPoint;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
-import org.kairosdb.core.datapoints.StringDataPointFactory;
 import org.kairosdb.core.datastore.Datastore;
 import org.kairosdb.core.datastore.DatastoreMetricQuery;
 import org.kairosdb.core.datastore.KairosDatastore;
@@ -146,7 +145,6 @@ public abstract class ResourceBase
                 bind(LongDataPointFactoryImpl.class).in(Singleton.class);
 
                 bind(LegacyDataPointFactory.class).in(Singleton.class);
-                bind(StringDataPointFactory.class).in(Singleton.class);
 
                 bind(QueryPreProcessorContainer.class).to(GuiceQueryPreProcessor.class).in(javax.inject.Singleton.class);
 

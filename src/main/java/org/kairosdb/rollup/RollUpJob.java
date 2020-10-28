@@ -6,7 +6,6 @@ import org.kairosdb.core.aggregator.RangeAggregator;
 import org.kairosdb.core.aggregator.Sampling;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
-import org.kairosdb.core.datapoints.StringDataPointFactory;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.core.datastore.DatastoreQuery;
 import org.kairosdb.core.datastore.Duration;
@@ -43,7 +42,6 @@ public class RollUpJob implements InterruptableJob
 	private static final int TOO_OLD_MULTIPLIER = 4;
 	private boolean interrupted;
 	private LongDataPointFactory longDataPointFactory = new LongDataPointFactoryImpl();
-	private StringDataPointFactory stringDataPointFactory = new StringDataPointFactory();
 
 	public RollUpJob()
 	{
@@ -122,21 +120,14 @@ public class RollUpJob implements InterruptableJob
 					}
 					finally
 					{
-						try
-						{
-							ThreadReporter.setReportTime(System.currentTimeMillis());
-							ThreadReporter.clearTags();
-							ThreadReporter.addTag("host", hostName);
-							ThreadReporter.addTag("rollup", rollup.getSaveAs());
-							ThreadReporter.addTag("rollup-task", task.getName());
-							ThreadReporter.addTag("status", success ? "success" : "failure");
-							ThreadReporter.addDataPoint(ROLLUP_TIME, System.currentTimeMillis() - ThreadReporter.getReportTime());
-							ThreadReporter.submitData(longDataPointFactory, stringDataPointFactory, publisher);
-						}
-						catch (DatastoreException e)
-						{
-							log.error("Could not report metrics for rollup job.", e);
-						}
+						ThreadReporter.setReportTime(System.currentTimeMillis());
+						ThreadReporter.clearTags();
+						ThreadReporter.addTag("host", hostName);
+						ThreadReporter.addTag("rollup", rollup.getSaveAs());
+						ThreadReporter.addTag("rollup-task", task.getName());
+						ThreadReporter.addTag("status", success ? "success" : "failure");
+						ThreadReporter.addDataPoint(ROLLUP_TIME, System.currentTimeMillis() - ThreadReporter.getReportTime());
+						ThreadReporter.submitData(longDataPointFactory, publisher);
 
 						try {
 							statusStore.write(task.getId(), status);

@@ -53,7 +53,6 @@ import org.kairosdb.core.datapoints.LegacyDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.datapoints.NullDataPointFactory;
-import org.kairosdb.core.datapoints.StringDataPointFactory;
 import org.kairosdb.core.datastore.GuiceQueryPluginFactory;
 import org.kairosdb.core.datastore.KairosDatastore;
 import org.kairosdb.core.datastore.QueryPluginFactory;
@@ -224,8 +223,6 @@ public class CoreModule extends AbstractModule
 		bind(LongDataPointFactoryImpl.class).in(Singleton.class);
 
 		bind(LegacyDataPointFactory.class).in(Singleton.class);
-
-		bind(StringDataPointFactory.class).in(Singleton.class);
 
 		bind(NullDataPointFactory.class).in(Singleton.class);
 

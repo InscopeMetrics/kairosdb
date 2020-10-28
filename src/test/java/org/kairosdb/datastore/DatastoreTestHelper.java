@@ -24,7 +24,6 @@ import com.google.common.collect.TreeMultimap;
 import org.junit.Test;
 import org.kairosdb.core.datapoints.DoubleDataPoint;
 import org.kairosdb.core.datapoints.LongDataPoint;
-import org.kairosdb.core.datapoints.StringDataPoint;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.core.datastore.DatastoreQuery;
 import org.kairosdb.core.datastore.KairosDatastore;
@@ -170,22 +169,6 @@ public abstract class DatastoreTestHelper
 		publisher.post(new DataPointEvent(metricName, tags, new LongDataPoint(0L, 3)));
 		publisher.post(new DataPointEvent(metricName, tags, new LongDataPoint(2000000000L, 33)));
 
-		//Test string data
-		metricName = "string_data";
-		metricNames.add(metricName);
-		tags = ImmutableSortedMap.<String, String>naturalOrder()
-				.put("host", "A").build();
-
-		publisher.post(new DataPointEvent(metricName, tags, new StringDataPoint(s_startTime, "Hello")));
-
-		//Test unicode string data
-		metricName = "string_data_unicode";
-		metricNames.add(metricName);
-		tags = ImmutableSortedMap.<String, String>naturalOrder()
-				.put("host", "A").build();
-
-		publisher.post(new DataPointEvent(metricName, tags, new StringDataPoint(s_startTime, s_unicodeName)));
-
 
 		//Adding a metric with unicode and spaces
 		metricNames.add(s_unicodeNameWithSpace);
@@ -224,8 +207,6 @@ public abstract class DatastoreTestHelper
 		tags = ImmutableSortedMap.<String, String>naturalOrder()
 				.put("tag", "1").build();
 
-		publisher.post(new DataPointEvent(metricName, tags, new StringDataPoint(s_startTime, "I'm Happy")));
-
 		publisher.post(new DataPointEvent(metricName, tags, new DoubleDataPoint(s_startTime, 100.1D)));
 	}
 
@@ -248,93 +229,6 @@ public abstract class DatastoreTestHelper
 		assertThat(metrics, hasItem("metric1"));
 		assertThat(metrics, hasItem("metric2"));
 		assertThat(metrics.size(), equalTo(2));
-	}
-
-	//names and values not being stored
-	/*@Test
-	public void test_getTagNames() throws DatastoreException
-	{
-		List<String> metrics = listFromIterable(s_datastore.getTagNames());
-
-		assertThat(metrics, hasItem("host"));
-		assertThat(metrics, hasItem("client"));
-		assertThat(metrics, hasItem("month"));
-	}*/
-
-	/*@Test
-	public void test_getTagValues() throws DatastoreException
-	{
-		List<String> metrics = listFromIterable(s_datastore.getTagValues());
-
-		assertThat(metrics, hasItem("A"));
-		assertThat(metrics, hasItem("B"));
-		assertThat(metrics, hasItem("foo"));
-		assertThat(metrics, hasItem("bar"));
-		assertThat(metrics, hasItem("April"));
-	}*/
-
-	@Test
-	public void test_queryDatabase_stringData() throws DatastoreException
-	{
-
-		Map<String, String> tags = new TreeMap<>();
-		QueryMetric query = new QueryMetric(s_startTime, 0, "string_data");
-		query.setEndTime(s_startTime + 3000);
-
-		query.setTags(tags);
-
-		DatastoreQuery dq = s_datastore.createQuery(query);
-
-		try
-		{
-			List<DataPointGroup> results = dq.execute();
-
-			assertThat(results.size(), equalTo(1));
-
-			DataPointGroup dpg = results.get(0);
-
-			assertThat(dpg.getName(), is("string_data"));
-
-			assertThat(dpg.hasNext(), is(true));
-			String actual = ((StringDataPoint)dpg.next()).getValue();
-			assertThat(actual, is("Hello"));
-		}
-		finally
-		{
-			dq.close();
-		}
-	}
-
-	@Test
-	public void test_queryDatabase_stringDataUnicode() throws DatastoreException
-	{
-
-		Map<String, String> tags = new TreeMap<>();
-		QueryMetric query = new QueryMetric(s_startTime, 0, "string_data_unicode");
-		query.setEndTime(s_startTime + 3000);
-
-		query.setTags(tags);
-
-		DatastoreQuery dq = s_datastore.createQuery(query);
-
-		try
-		{
-			List<DataPointGroup> results = dq.execute();
-
-			assertThat(results.size(), equalTo(1));
-
-			DataPointGroup dpg = results.get(0);
-
-			assertThat(dpg.getName(), is("string_data_unicode"));
-
-			assertThat(dpg.hasNext(), is(true));
-			String actual = ((StringDataPoint)dpg.next()).getValue();
-			assertThat(actual, is(s_unicodeName));
-		}
-		finally
-		{
-			dq.close();
-		}
 	}
 
 	@Test
