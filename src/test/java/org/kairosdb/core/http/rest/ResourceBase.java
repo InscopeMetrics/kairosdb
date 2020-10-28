@@ -1,6 +1,7 @@
 package org.kairosdb.core.http.rest;
 
 
+import com.arpnetworking.metrics.Metrics;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.inject.AbstractModule;
@@ -106,6 +107,11 @@ public abstract class ResourceBase
                         });
                     }
                 });
+
+                final MetricsFactory metricsFactory = Mockito.mock(MetricsFactory.class);
+                final Metrics metrics = Mockito.mock(Metrics.class);
+                Mockito.doReturn(metrics).when(metricsFactory).create();
+
                 bind(String.class).annotatedWith(Names.named(WebServer.JETTY_ADDRESS_PROPERTY)).toInstance("0.0.0.0");
                 bind(Integer.class).annotatedWith(Names.named(WebServer.JETTY_PORT_PROPERTY)).toInstance(9001);
                 bind(String.class).annotatedWith(Names.named(WebServer.JETTY_WEB_ROOT_PROPERTY)).toInstance("bogus");
@@ -124,7 +130,7 @@ public abstract class ResourceBase
                 bind(QueryPluginFactory.class).to(TestQueryPluginFactory.class);
                 bind(SimpleStatsReporter.class);
                 bind(String.class).annotatedWith(Names.named("kairosdb.server.type")).toInstance("ALL");
-                bind(MetricsFactory.class).toInstance(Mockito.mock(MetricsFactory.class));
+                bind(MetricsFactory.class).toInstance(metricsFactory);
                 bind(PeriodicMetrics.class).toInstance(Mockito.mock(PeriodicMetrics.class));
 
                 Properties props = new Properties();
