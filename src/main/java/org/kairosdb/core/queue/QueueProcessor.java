@@ -47,7 +47,7 @@ public abstract class QueueProcessor
 		m_initialBatchSize = m_batchSize = batchSize;
 		m_minimumBatchSize = minimumBatchSize;
 		m_minBatchWait = minBatchWait;
-        m_periodicMetrics = periodicMetrics;
+		m_periodicMetrics = periodicMetrics;
 
 		executor.execute(m_deliveryThread);
 		m_executor = executor;
@@ -180,11 +180,4 @@ public abstract class QueueProcessor
 			}
 		}
 	}
-
-
-
-
-
-
-
 }

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.dataformat.javaprop.JavaPropsMapper;
 import com.fasterxml.jackson.dataformat.javaprop.JavaPropsSchema;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
@@ -91,7 +92,7 @@ public class MetricReportingModule extends ServletModule {
                 .build();
         bind(MetricsFactory.class).toInstance(metricsFactory);
 
-        if (properties.getProperty(JVM_PERIOD_KEY) != null) {
+        if (!Strings.isNullOrEmpty(properties.getProperty(JVM_PERIOD_KEY))) {
             final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
                     r -> {
                         final Thread t = new Thread(r, "JvmMetricsPoller");

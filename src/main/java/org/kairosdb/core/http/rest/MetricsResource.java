@@ -16,6 +16,7 @@
 
 package org.kairosdb.core.http.rest;
 
+import com.arpnetworking.metrics.Metrics;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.common.annotations.VisibleForTesting;
@@ -609,8 +610,8 @@ public class MetricsResource
 				}
 				finally
 				{
-					ThreadReporter.close();
 					dq.close();
+					ThreadReporter.close();
 				}
 			}
 
@@ -677,10 +678,10 @@ public class MetricsResource
 		finally {
 			final long queryTime = System.currentTimeMillis() - startRunQuery;
 
-			ThreadReporter.initialize(metricsFactory);
-			ThreadReporter.addTag("status", queryFailed ? "failed" : "success");
-			ThreadReporter.addDataPoint(REQUEST_TIME, queryTime);
-			ThreadReporter.close();
+			try (Metrics metrics = metricsFactory.create()) {
+				metrics.addAnnotation("status", queryFailed ? "failed" : "success");
+				metrics.setGauge(REQUEST_TIME, queryTime);
+			}
 
 			// Write slow queries to log file if configured to do so
 			if (m_logQueries && ((queryTime / 1000) >= m_logQueriesLongerThan)) {

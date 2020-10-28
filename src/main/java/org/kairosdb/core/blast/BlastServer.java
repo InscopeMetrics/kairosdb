@@ -65,7 +65,7 @@ public class BlastServer implements KairosDBService, Runnable
 		m_numberOfRows = numberOfRows;
 		m_duration = duration;
 		m_metricName = metricName;
-        m_periodicMetrics = periodicMetrics;
+		m_periodicMetrics = periodicMetrics;
 	}
 
 	@Override
@@ -73,6 +73,7 @@ public class BlastServer implements KairosDBService, Runnable
 	{
 		m_serverThread = new Thread(this);
 		m_serverThread.start();
+		m_periodicMetrics.registerPolledMetric(m -> m.recordGauge("blast/submission_count", m_counter.getAndSet(0)));
 	}
 
 	@Override
@@ -99,7 +100,6 @@ public class BlastServer implements KairosDBService, Runnable
 			m_publisher.post(dataPointEvent);
 			m_counter.incrementAndGet();
 
-			m_periodicMetrics.registerPolledMetric(m -> m.recordGauge("blast/submission_count", m_counter.get()));
 			if ((m_counter.get() % 100000 == 0) && (timer.elapsed(TimeUnit.SECONDS) > m_duration)) {
 				m_keepRunning = false;
 			}

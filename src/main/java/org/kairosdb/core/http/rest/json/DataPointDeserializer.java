@@ -48,7 +48,7 @@ public class DataPointDeserializer extends JsonDeserializer<List<DataPointReques
 					"Invalid data point syntax.");
 		}
 
-    	while(token != null && token != JsonToken.END_ARRAY)
+		while(token != null && token != JsonToken.END_ARRAY)
 		{
 		 	parser.nextToken();
 			long timestamp = parser.getLongValue();
