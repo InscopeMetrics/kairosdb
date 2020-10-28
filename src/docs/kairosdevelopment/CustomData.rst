@@ -12,8 +12,6 @@ Steps for creating custom data type
 4.  Bind your DataPointFactory in your plugin module.
 5.  Register custom type in the properties file.
 
-Look at StringDataPointFactory.java and StringDataPoint.java for examples of how to implement.
-
 Example for creating custom types
 ---------------------------------
 
