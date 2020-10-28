@@ -31,7 +31,6 @@ public class TestDataPointFactory implements KairosDataPointFactory
 		addFactory("long", new LongDataPointFactoryImpl());
 		addFactory("double", new DoubleDataPointFactoryImpl());
 		addFactory("legacy", new LegacyDataPointFactory());
-		addFactory("string", new StringDataPointFactory());
 	}
 
 	@Override

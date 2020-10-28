@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.datapoints.StringDataPointFactory;
 import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.eventbus.Publisher;
 import org.kairosdb.events.DataPointEvent;
@@ -192,27 +191,19 @@ public class ThreadReporter
 	}
 
 	public static void submitData(LongDataPointFactory longDataPointFactory,
-			StringDataPointFactory stringDataPointFactory,
-			Publisher<DataPointEvent> publisher) throws DatastoreException
+			Publisher<DataPointEvent> publisher)
 	{
 		while (s_reporterData.getListSize() != 0)
 		{
 			ReporterDataPoint dp = s_reporterData.getNextDataPoint();
 			DataPointEvent dataPointEvent;
 
-			if (dp.isStringValue())
+			if (!dp.isStringValue())
 			{
-				dataPointEvent = new DataPointEvent(dp.getMetricName(), dp.getTags(),
-						stringDataPointFactory.createDataPoint(s_reportTime.get(), dp.getStrValue()),
-						dp.getTtl());
-			}
-			else
-			{
-				dataPointEvent = new DataPointEvent(dp.getMetricName(), dp.getTags(),
+				publisher.post(new DataPointEvent(dp.getMetricName(), dp.getTags(),
 						longDataPointFactory.createDataPoint(s_reportTime.get(), dp.getValue()),
-						dp.getTtl());
+						dp.getTtl()));
 			}
-			publisher.post(dataPointEvent);
 		}
 	}
 

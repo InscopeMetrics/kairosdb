@@ -93,13 +93,13 @@ public class DataCacheTest
 		assertTrue(td3 == ret);
 
 		//Now if we do this again we should still get the original objects
-		ret = cache.cacheItem(new TestObject("td1"));
+		ret = cache.get(new TestObject("td1"));
 		assertTrue(td1 == ret);
 
-		ret = cache.cacheItem(new TestObject("td2"));
+		ret = cache.get(new TestObject("td2"));
 		assertTrue(td2 == ret);
 
-		ret = cache.cacheItem(new TestObject("td3"));
+		ret = cache.get(new TestObject("td3"));
 		assertTrue(td3 == ret);
 	}
 }

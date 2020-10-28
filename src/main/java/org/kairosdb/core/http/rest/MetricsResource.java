@@ -30,8 +30,12 @@ import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.KairosDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
-import org.kairosdb.core.datapoints.StringDataPointFactory;
-import org.kairosdb.core.datastore.*;
+import org.kairosdb.core.datastore.DataPointGroup;
+import org.kairosdb.core.datastore.DatastoreQuery;
+import org.kairosdb.core.datastore.KairosDatastore;
+import org.kairosdb.core.datastore.QueryMetric;
+import org.kairosdb.core.datastore.QueryPlugin;
+import org.kairosdb.core.datastore.QueryPostProcessingPlugin;
 import org.kairosdb.core.exception.InvalidServerTypeException;
 import org.kairosdb.core.formatter.DataFormatter;
 import org.kairosdb.core.formatter.FormatterException;
@@ -92,9 +96,6 @@ public class MetricsResource implements KairosMetricReporter
 
 	@Inject
 	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
-
-	@Inject
-	private StringDataPointFactory m_stringDataPointFactory = new StringDataPointFactory();
 
 	@Inject(optional = true)
 	private QueryPreProcessorContainer m_queryPreProcessor = new QueryPreProcessorContainer()
@@ -631,8 +632,7 @@ public class MetricsResource implements KairosMetricReporter
 			}
 			else
 			{
-				ThreadReporter.submitData(m_longDataPointFactory,
-						m_stringDataPointFactory, m_publisher);
+				ThreadReporter.submitData(m_longDataPointFactory, m_publisher);
 			}
 
 			ThreadReporter.clear();

@@ -30,9 +30,34 @@ import com.google.inject.spi.TypeListener;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
-import org.kairosdb.core.aggregator.*;
+import org.kairosdb.core.aggregator.AggregatorFactory;
+import org.kairosdb.core.aggregator.AvgAggregator;
+import org.kairosdb.core.aggregator.CountAggregator;
+import org.kairosdb.core.aggregator.DataGapsMarkingAggregator;
+import org.kairosdb.core.aggregator.DiffAggregator;
+import org.kairosdb.core.aggregator.DivideAggregator;
+import org.kairosdb.core.aggregator.FilterAggregator;
+import org.kairosdb.core.aggregator.FirstAggregator;
+import org.kairosdb.core.aggregator.LastAggregator;
+import org.kairosdb.core.aggregator.LeastSquaresAggregator;
+import org.kairosdb.core.aggregator.MaxAggregator;
+import org.kairosdb.core.aggregator.MinAggregator;
+import org.kairosdb.core.aggregator.PercentileAggregator;
+import org.kairosdb.core.aggregator.RateAggregator;
+import org.kairosdb.core.aggregator.SamplerAggregator;
+import org.kairosdb.core.aggregator.SaveAsAggregator;
+import org.kairosdb.core.aggregator.ScaleAggregator;
+import org.kairosdb.core.aggregator.SmaAggregator;
+import org.kairosdb.core.aggregator.StdAggregator;
+import org.kairosdb.core.aggregator.SumAggregator;
+import org.kairosdb.core.aggregator.TrimAggregator;
 import org.kairosdb.core.configuration.ConfigurationTypeListener;
-import org.kairosdb.core.datapoints.*;
+import org.kairosdb.core.datapoints.DoubleDataPointFactory;
+import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
+import org.kairosdb.core.datapoints.LegacyDataPointFactory;
+import org.kairosdb.core.datapoints.LongDataPointFactory;
+import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
+import org.kairosdb.core.datapoints.NullDataPointFactory;
 import org.kairosdb.core.datastore.GuiceQueryPluginFactory;
 import org.kairosdb.core.datastore.KairosDatastore;
 import org.kairosdb.core.datastore.QueryPluginFactory;
@@ -249,8 +274,6 @@ public class CoreModule extends AbstractModule
 		bind(LongDataPointFactoryImpl.class).in(Singleton.class);
 
 		bind(LegacyDataPointFactory.class).in(Singleton.class);
-
-		bind(StringDataPointFactory.class).in(Singleton.class);
 
 		bind(NullDataPointFactory.class).in(Singleton.class);
 
