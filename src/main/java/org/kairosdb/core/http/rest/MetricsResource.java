@@ -16,7 +16,9 @@
 
 package org.kairosdb.core.http.rest;
 
-
+import com.arpnetworking.metrics.Metrics;
+import com.arpnetworking.metrics.MetricsFactory;
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -26,10 +28,7 @@ import com.google.gson.stream.MalformedJsonException;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.json.JSONWriter;
-import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.KairosDataPointFactory;
-import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.core.datastore.DatastoreQuery;
 import org.kairosdb.core.datastore.KairosDatastore;
@@ -47,15 +46,11 @@ import org.kairosdb.core.http.rest.json.JsonResponseBuilder;
 import org.kairosdb.core.http.rest.json.Query;
 import org.kairosdb.core.http.rest.json.QueryParser;
 import org.kairosdb.core.http.rest.json.ValidationErrors;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.kairosdb.core.reporting.ThreadReporter;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Publisher;
 import org.kairosdb.events.DataPointEvent;
 import org.kairosdb.util.MemoryMonitorException;
-import org.kairosdb.util.SimpleStats;
-import org.kairosdb.util.SimpleStatsReporter;
-import org.kairosdb.util.StatsMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +82,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -100,13 +94,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.ws.rs.core.Response.ResponseBuilder;
 
 @Path("/api/v1")
-public class MetricsResource implements KairosMetricReporter
+public class MetricsResource
 {
 	public static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
-	public static final String QUERY_TIME = "kairosdb.http.query_time";
-	public static final String REQUEST_TIME = "kairosdb.http.request_time";
-	public static final String INGEST_COUNT = "kairosdb.http.ingest_count";
-	public static final String INGEST_TIME = "kairosdb.http.ingest_time";
+	public static final String QUERY_TIME = "http/query_time";
+	public static final String REQUEST_TIME = "http/request_time";
+	public static final String INGEST_COUNT = "http/ingest_count";
+	public static final String INGEST_TIME = "http/ingest_time";
 
 	public static final String QUERY_URL = "/datapoints/query";
 
@@ -114,6 +108,7 @@ public class MetricsResource implements KairosMetricReporter
 	private final Publisher<DataPointEvent> m_publisher;
 	private final Map<String, DataFormatter> formatters = new HashMap<>();
 	private final QueryParser queryParser;
+	private final MetricsFactory metricsFactory;
 
 	//Used for parsing incoming metrics
 	private final Gson gson;
@@ -122,11 +117,7 @@ public class MetricsResource implements KairosMetricReporter
 	private final AtomicInteger m_ingestedDataPoints = new AtomicInteger();
 	private final AtomicInteger m_ingestTime = new AtomicInteger();
 
-	private final StatsMap m_statsMap = new StatsMap();
 	private final KairosDataPointFactory m_kairosDataPointFactory;
-
-	@Inject
-	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
 
 	@Inject
 	private QueryPreProcessorContainer m_queryPreProcessor = new QueryPreProcessorContainer()
@@ -139,24 +130,12 @@ public class MetricsResource implements KairosMetricReporter
 	};
 
 	@Inject(optional = true)
-	@Named("kairosdb.queries.aggregate_stats")
-	private boolean m_aggregatedQueryMetrics = false;
-
-	@Inject(optional = true)
 	@Named("kairosdb.log.queries.enable")
 	private boolean m_logQueries = false;
 
 	@Inject(optional = true)
-	@Named("kairosdb.log.queries.ttl")
-	private int m_logQueriesTtl = 86400;
-
-	@Inject(optional = true)
 	@Named("kairosdb.log.queries.greater_than")
 	private int m_logQueriesLongerThan = 60;
-
-	@Inject
-	@Named("HOSTNAME")
-	private String hostName = "localhost";
 
 	//Used for setting which API methods are enabled
 	private EnumSet<ServerType> m_serverType = EnumSet.of(ServerType.INGEST, ServerType.QUERY, ServerType.DELETE);
@@ -180,20 +159,32 @@ public class MetricsResource implements KairosMetricReporter
 	}
 
 	@Inject
-	private SimpleStatsReporter m_simpleStatsReporter = new SimpleStatsReporter();
-
-	@Inject
-	public MetricsResource(KairosDatastore datastore, QueryParser queryParser,
-			KairosDataPointFactory dataPointFactory, FilterEventBus eventBus)
+	public MetricsResource(
+			final KairosDatastore datastore,
+			final QueryParser queryParser,
+			final KairosDataPointFactory dataPointFactory,
+			final FilterEventBus eventBus,
+			final MetricsFactory metricsFactory,
+			final PeriodicMetrics periodicMetrics)
 	{
 		this.datastore = checkNotNull(datastore);
 		this.queryParser = checkNotNull(queryParser);
+		this.metricsFactory = checkNotNull(metricsFactory);
 		m_kairosDataPointFactory = dataPointFactory;
 		m_publisher = checkNotNull(eventBus).createPublisher(DataPointEvent.class);
 		formatters.put("json", new JsonFormatter());
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.disableHtmlEscaping().create();
+
+		periodicMetrics.registerPolledMetric(m -> {
+			final int time = m_ingestTime.getAndSet(0);
+			final int count = m_ingestedDataPoints.getAndSet(0);
+			if (count != 0) {
+				m.recordGauge(INGEST_COUNT, count);
+				m.recordGauge(INGEST_TIME, time);
+			}
+		});
 	}
 
 	public static ResponseBuilder setHeaders(ResponseBuilder responseBuilder)
@@ -576,8 +567,7 @@ public class MetricsResource implements KairosMetricReporter
 		logger.debug(json);
 		boolean queryFailed = false;
 
-		ThreadReporter.setReportTime(System.currentTimeMillis());
-		ThreadReporter.addTag("host", hostName);
+		final long startRunQuery = System.currentTimeMillis();
 
 		try
 		{
@@ -600,6 +590,7 @@ public class MetricsResource implements KairosMetricReporter
 			for (QueryMetric query : queries)
 			{
 				queryCount++;
+				ThreadReporter.initialize(metricsFactory);
 				ThreadReporter.addTag("metric_name", query.getName());
 				ThreadReporter.addTag("query_index", String.valueOf(queryCount));
 
@@ -616,6 +607,7 @@ public class MetricsResource implements KairosMetricReporter
 				finally
 				{
 					dq.close();
+					ThreadReporter.close();
 				}
 			}
 
@@ -679,38 +671,23 @@ public class MetricsResource implements KairosMetricReporter
 			return setHeaders(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse(e.getMessage()))).build();
 
 		}
-		finally
-		{
-			ThreadReporter.clearTags();
-			ThreadReporter.addTag("host", hostName);
+		finally {
+			final long queryTime = System.currentTimeMillis() - startRunQuery;
 
-			if (queryFailed)
-				ThreadReporter.addTag("status", "failed");
-			else
-				ThreadReporter.addTag("status", "success");
-
-			//write metrics for query logging
-			long queryTime = System.currentTimeMillis() - ThreadReporter.getReportTime();
-			if (m_logQueries && ((queryTime / 1000) >= m_logQueriesLongerThan))
-			{
-				ThreadReporter.addDataPoint("kairosdb.log.query.remote_address", remoteAddr, m_logQueriesTtl);
-				ThreadReporter.addDataPoint("kairosdb.log.query.json", json, m_logQueriesTtl);
+			try (Metrics metrics = metricsFactory.create()) {
+				metrics.addAnnotation("status", queryFailed ? "failed" : "success");
+				metrics.setGauge(REQUEST_TIME, queryTime);
 			}
 
-			ThreadReporter.addTag("request", QUERY_URL);
-			ThreadReporter.addDataPoint(REQUEST_TIME, queryTime);
-
-
-			if (m_aggregatedQueryMetrics)
-			{
-				ThreadReporter.gatherData(m_statsMap);
+			// Write slow queries to log file if configured to do so
+			if (m_logQueries && ((queryTime / 1000) >= m_logQueriesLongerThan)) {
+				logger.warn(
+						String.format(
+								"Slow query: %s, remote: %s, query time ms: %d",
+								json,
+								remoteAddr,
+								queryTime));
 			}
-			else
-			{
-				ThreadReporter.submitData(m_longDataPointFactory, m_publisher);
-			}
-
-			ThreadReporter.clear();
 		}
 	}
 
@@ -858,42 +835,6 @@ public class MetricsResource implements KairosMetricReporter
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
 					new ErrorResponse(e.getMessage())).build();
 		}
-	}
-
-	@Override
-	public List<DataPointSet> getMetrics(long now)
-	{
-		int time = m_ingestTime.getAndSet(0);
-		int count = m_ingestedDataPoints.getAndSet(0);
-		List<DataPointSet> ret = new ArrayList<>();
-
-		if (count != 0)
-		{
-
-			DataPointSet dpsCount = new DataPointSet(INGEST_COUNT);
-			DataPointSet dpsTime = new DataPointSet(INGEST_TIME);
-
-			dpsCount.addTag("host", hostName);
-			dpsTime.addTag("host", hostName);
-
-			dpsCount.addDataPoint(m_longDataPointFactory.createDataPoint(now, count));
-			dpsTime.addDataPoint(m_longDataPointFactory.createDataPoint(now, time));
-
-			ret.add(dpsCount);
-			ret.add(dpsTime);
-		}
-
-		Map<String, SimpleStats> statsMap = m_statsMap.getStatsMap();
-
-		for (Map.Entry<String, SimpleStats> entry : statsMap.entrySet())
-		{
-			String metric = entry.getKey();
-			SimpleStats.Data stats = entry.getValue().getAndClear();
-
-			m_simpleStatsReporter.reportStats(stats, now, metric, ret);
-		}
-
-		return ret;
 	}
 
 	public static class ValuesStreamingOutput implements StreamingOutput

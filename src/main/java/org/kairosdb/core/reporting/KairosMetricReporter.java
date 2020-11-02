@@ -10,7 +10,7 @@ import org.kairosdb.core.DataPointSet;
 
 import java.util.List;
 
-public interface KairosMetricReporter
+interface KairosMetricReporter
 {
 	public List<DataPointSet> getMetrics(long now);
 }

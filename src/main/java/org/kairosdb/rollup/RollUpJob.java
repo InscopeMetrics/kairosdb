@@ -1,11 +1,10 @@
 package org.kairosdb.rollup;
 
+import com.arpnetworking.metrics.MetricsFactory;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.aggregator.RangeAggregator;
 import org.kairosdb.core.aggregator.Sampling;
-import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.core.datastore.DatastoreQuery;
 import org.kairosdb.core.datastore.Duration;
@@ -41,7 +40,6 @@ public class RollUpJob implements InterruptableJob
 
 	private static final int TOO_OLD_MULTIPLIER = 4;
 	private boolean interrupted;
-	private LongDataPointFactory longDataPointFactory = new LongDataPointFactoryImpl();
 
 	public RollUpJob()
 	{
@@ -57,6 +55,7 @@ public class RollUpJob implements InterruptableJob
 			RollupTask task = (RollupTask) dataMap.get("task");
 			FilterEventBus eventBus = (FilterEventBus) dataMap.get("eventBus");
 			KairosDatastore datastore = (KairosDatastore) dataMap.get("datastore");
+			MetricsFactory metricsFactory = (MetricsFactory) dataMap.get("metricsFactory");
 			String hostName = (String) dataMap.get("hostName");
 			RollupTaskStatusStore statusStore = (RollupTaskStatusStore) dataMap.get("statusStore");
 			checkState(task != null, "Task was null");
@@ -64,8 +63,6 @@ public class RollUpJob implements InterruptableJob
 			checkState(datastore != null, "Datastore was null");
 			checkState(hostName != null, "hostname was null");
 			checkState(statusStore != null, "statusStore was null");
-
-			Publisher<DataPointEvent> publisher = eventBus.createPublisher(DataPointEvent.class);
 
 			for (Rollup rollup : task.getRollups())
 			{
@@ -77,6 +74,9 @@ public class RollUpJob implements InterruptableJob
 				RollupTaskStatus status = new RollupTaskStatus(jobExecutionContext.getNextFireTime(), hostName);
 				for (QueryMetric queryMetric : rollup.getQueryMetrics())
 				{
+					ThreadReporter.initialize(metricsFactory);
+					ThreadReporter.addTag("rollup", rollup.getSaveAs());
+					ThreadReporter.addTag("rollup-task", task.getName());
 					boolean success = true;
 					long startQueryTime = System.currentTimeMillis();
 					try
@@ -120,14 +120,9 @@ public class RollUpJob implements InterruptableJob
 					}
 					finally
 					{
-						ThreadReporter.setReportTime(System.currentTimeMillis());
-						ThreadReporter.clearTags();
-						ThreadReporter.addTag("host", hostName);
-						ThreadReporter.addTag("rollup", rollup.getSaveAs());
-						ThreadReporter.addTag("rollup-task", task.getName());
 						ThreadReporter.addTag("status", success ? "success" : "failure");
-						ThreadReporter.addDataPoint(ROLLUP_TIME, System.currentTimeMillis() - ThreadReporter.getReportTime());
-						ThreadReporter.submitData(longDataPointFactory, publisher);
+						ThreadReporter.addDataPoint(ROLLUP_TIME, System.currentTimeMillis() - startQueryTime);
+						ThreadReporter.close();
 
 						try {
 							statusStore.write(task.getId(), status);

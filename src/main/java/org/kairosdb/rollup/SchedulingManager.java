@@ -1,6 +1,7 @@
 package org.kairosdb.rollup;
 
 
+import com.arpnetworking.metrics.MetricsFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -52,6 +53,7 @@ public class SchedulingManager implements KairosDBService
     private final String serverGuid;
     private final KairosDBScheduler scheduler;
     private final KairosDatastore dataStore;
+    private final MetricsFactory metricsFactory;
     private final RollUpAssignmentStore assignmentStore;
     private final RollUpTasksStore taskStore;
     private final ScheduledExecutorService executorService;
@@ -65,8 +67,12 @@ public class SchedulingManager implements KairosDBService
     private Map<String, RollupTask> tasksCache = new HashMap<>();
 
     @Inject
-    public SchedulingManager(RollUpTasksStore taskStore, RollUpAssignmentStore assignmentStore,
-            KairosDBScheduler scheduler, KairosDatastore dataStore,
+    public SchedulingManager(
+            RollUpTasksStore taskStore,
+            RollUpAssignmentStore assignmentStore,
+            KairosDBScheduler scheduler,
+            KairosDatastore dataStore,
+            MetricsFactory metricsFactory,
             @Named(RollUpModule.ROLLUP_EXECUTOR)ScheduledExecutorService executorService,
             FilterEventBus eventBus,
             RollupTaskStatusStore statusStore,
@@ -78,6 +84,7 @@ public class SchedulingManager implements KairosDBService
         this.taskStore = checkNotNull(taskStore, "taskStore cannot be null");
         this.scheduler = checkNotNull(scheduler, "scheduler cannot be null");
         this.dataStore = checkNotNull(dataStore, "dataStore cannot be null");
+        this.metricsFactory = checkNotNull(metricsFactory, "metricsFactory cannot be null");
         this.assignmentStore = checkNotNull(assignmentStore, "assignmentStore cannot be null");
         this.hostName = checkNotNullOrEmpty(hostName, "hostname cannot be null or empty");
         this.executorService = checkNotNull(executorService, "executorService cannot be null or empty");
@@ -194,7 +201,7 @@ public class SchedulingManager implements KairosDBService
                 RollupTask task = taskStore.read(id);
                 if (task != null) {
                     Trigger trigger = createTrigger(task);
-                    JobDetailImpl jobDetail = createJobDetail(task, dataStore, hostName, eventBus, statusStore);
+                    JobDetailImpl jobDetail = createJobDetail(task, dataStore, hostName, eventBus, statusStore, metricsFactory);
                     scheduler.schedule(jobDetail, trigger);
                     updateStatus(task, trigger.getNextFireTime());
                     logger.info("Scheduled roll-up task " + task.getName() + " with id " + jobDetail.getFullName() + ". Next execution time " + trigger.getNextFireTime());
@@ -224,7 +231,7 @@ public class SchedulingManager implements KairosDBService
 
         try {
             logger.info("Updating schedule for rollup " + task.getName());
-            JobDetailImpl jobDetail = createJobDetail(task, dataStore, hostName, eventBus, statusStore);
+            JobDetailImpl jobDetail = createJobDetail(task, dataStore, hostName, eventBus, statusStore, metricsFactory);
             Trigger trigger = createTrigger(task);
             scheduler.schedule(jobDetail, trigger);
             logger.info("Roll-up task " + task.getName() + " with id " + jobDetail.getKey() + " scheduled. Next execution time " + trigger.getNextFireTime());
@@ -285,7 +292,13 @@ public class SchedulingManager implements KairosDBService
     }
 
     @VisibleForTesting
-    static JobDetailImpl createJobDetail(RollupTask task, KairosDatastore dataStore, String hostName, FilterEventBus eventBus, RollupTaskStatusStore statusStore)
+    static JobDetailImpl createJobDetail(
+            RollupTask task,
+            KairosDatastore dataStore,
+            String hostName,
+            FilterEventBus eventBus,
+            RollupTaskStatusStore statusStore,
+            MetricsFactory metricsFactory)
     {
         JobDetailImpl jobDetail = new JobDetailImpl();
         jobDetail.setJobClass(RollUpJob.class);
@@ -297,6 +310,7 @@ public class SchedulingManager implements KairosDBService
         map.put("hostName", hostName);
         map.put("eventBus", eventBus);
         map.put("statusStore", statusStore);
+        map.put("metricsFactory", metricsFactory);
         jobDetail.setJobDataMap(map);
         return jobDetail;
     }

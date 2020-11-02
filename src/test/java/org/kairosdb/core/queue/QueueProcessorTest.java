@@ -1,5 +1,6 @@
 package org.kairosdb.core.queue;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.eventbus.EventBus;
 import org.junit.Before;
@@ -10,6 +11,7 @@ import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.events.DataPointEvent;
+import org.mockito.Mockito;
 import se.ugli.bigqueue.BigArray;
 
 import java.util.Arrays;
@@ -38,6 +40,7 @@ public class QueueProcessorTest
 	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
 
 	private QueueProcessor.DeliveryThread m_deliveryThread;
+	private PeriodicMetrics m_periodicMetrics = Mockito.mock(PeriodicMetrics.class);
 
 	private class TestExecutor implements ExecutorService
 	{
@@ -173,7 +176,7 @@ public class QueueProcessorTest
 		ProcessorHandler processorHandler = mock(ProcessorHandler.class);
 
 		QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
-				bigArray, new TestExecutor(), 2, 10, 500, 1, 500);
+				bigArray, new TestExecutor(), m_periodicMetrics, 2, 10, 500, 1, 500);
 
 		queueProcessor.setProcessorHandler(processorHandler);
 
@@ -201,7 +204,7 @@ public class QueueProcessorTest
 		ProcessorHandler processorHandler = mock(ProcessorHandler.class);
 
 		QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
-				bigArray, new TestExecutor(), 3, 1, 500, 1, 500);
+				bigArray, new TestExecutor(), m_periodicMetrics, 3, 1, 500, 1, 500);
 
 		queueProcessor.setProcessorHandler(processorHandler);
 
@@ -243,7 +246,7 @@ public class QueueProcessorTest
 		};
 
 		QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
-				bigArray, new TestExecutor(), 3, 2, -1, 1, 500);
+				bigArray, new TestExecutor(), m_periodicMetrics, 3, 2, -1, 1, 500);
 
 		queueProcessor.setProcessorHandler(processorHandler);
 

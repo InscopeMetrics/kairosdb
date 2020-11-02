@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import org.kairosdb.core.DataPoint;
-import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.KairosDataPointFactory;
 import org.kairosdb.core.datapoints.DataPointFactory;
 import org.kairosdb.core.datapoints.LegacyDataPointFactory;
@@ -49,7 +48,6 @@ import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.core.queue.EventCompletionCallBack;
 import org.kairosdb.core.queue.ProcessorHandler;
 import org.kairosdb.core.queue.QueueProcessor;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.kairosdb.core.reporting.ThreadReporter;
 import org.kairosdb.eventbus.Subscribe;
 import org.kairosdb.events.DataPointEvent;
@@ -84,8 +82,7 @@ import java.util.concurrent.ThreadFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.datastore.cassandra.CassandraConfiguration.KEYSPACE_PROPERTY;
 
-public class CassandraDatastore implements Datastore, ProcessorHandler, KairosMetricReporter,
-		ServiceKeyStore
+public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceKeyStore
 {
 	public static final Logger logger = LoggerFactory.getLogger(CassandraDatastore.class);
 
@@ -116,9 +113,6 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, KairosMe
 
 	private final Schema m_schema;
 	private Session m_session;
-
-	@Inject
-	private final BatchStats m_batchStats = new BatchStats();
 
 	@Inject
 	private DataCache<DataPointsRowKey> m_rowKeyCache = new DataCache<DataPointsRowKey>(1024);
@@ -465,24 +459,6 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, KairosMe
 	public void queryDatabase(DatastoreMetricQuery query, QueryCallback queryCallback) throws DatastoreException
 	{
 		cqlQueryWithRowKeys(query, queryCallback, getKeysForQueryIterator(query));
-	}
-
-	@Override
-	public List<DataPointSet> getMetrics(long now)
-	{
-		List<DataPointSet> ret = new ArrayList<>();
-
-		m_simpleStatsReporter.reportStats(m_batchStats.getNameStats(), now,
-				"kairosdb.datastore.cassandra.write_batch_size",
-				"table", "string_index", ret);
-		m_simpleStatsReporter.reportStats(m_batchStats.getDataPointStats(), now,
-				"kairosdb.datastore.cassandra.write_batch_size",
-				"table", "data_points", ret);
-		m_simpleStatsReporter.reportStats(m_batchStats.getRowKeyStats(), now,
-				"kairosdb.datastore.cassandra.write_batch_size",
-				"table", "row_keys", ret);
-
-		return ret;
 	}
 
 	private class QueryListener implements FutureCallback<ResultSet>

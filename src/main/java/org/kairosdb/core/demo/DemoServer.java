@@ -1,17 +1,15 @@
 package org.kairosdb.core.demo;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.inject.Inject;
 import org.joda.time.DateTime;
 import org.kairosdb.core.DataPoint;
-import org.kairosdb.core.DataPointSet;
 import org.kairosdb.core.KairosDBService;
 import org.kairosdb.core.datapoints.DoubleDataPointFactory;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 import org.kairosdb.core.exception.KairosDBException;
-import org.kairosdb.core.reporting.KairosMetricReporter;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Publisher;
 import org.kairosdb.events.DataPointEvent;
@@ -19,9 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class DemoServer implements KairosDBService, Runnable, KairosMetricReporter
+public class DemoServer implements KairosDBService, Runnable
 {
 	public static final Logger logger = LoggerFactory.getLogger(DemoServer.class);
 
@@ -37,7 +35,7 @@ public class DemoServer implements KairosDBService, Runnable, KairosMetricReport
 
 	private Thread m_serverThread;
 	private boolean m_keepRunning = true;
-	private long m_counter = 0L;
+	private final AtomicLong m_counter = new AtomicLong(0L);
 
 
 	@javax.inject.Inject
@@ -48,6 +46,7 @@ public class DemoServer implements KairosDBService, Runnable, KairosMetricReport
 	public DemoServer(
 			@Named(METRIC_NAME) String metricName,
 			FilterEventBus eventBus,
+			PeriodicMetrics periodicMetrics,
 			DoubleDataPointFactory doubleDataPointFactory,
 			LongDataPointFactory longDataPointFactory,
 			@Named(NUMBER_OF_ROWS) int numberOfRows,
@@ -60,6 +59,10 @@ public class DemoServer implements KairosDBService, Runnable, KairosMetricReport
 		m_longDataPointFactory = longDataPointFactory;
 		m_numberOfRows = numberOfRows;
 		m_ttl = ttl;
+
+		periodicMetrics.registerPolledMetric(m -> m.recordGauge(
+				"demo/submission_count",
+				m_counter.getAndSet(0)));
 	}
 
 	@Override
@@ -86,7 +89,7 @@ public class DemoServer implements KairosDBService, Runnable, KairosMetricReport
 				ImmutableSortedMap<String, String> tags = ImmutableSortedMap.of("host", "demo_server_"+I);
 				DataPointEvent dataPointEvent = new DataPointEvent(m_metricName, tags, dataPoint, m_ttl);
 				m_publisher.post(dataPointEvent);
-				m_counter++;
+				m_counter.incrementAndGet();
 			}
 
 			insertTime += 60000; //Advance 1 minute
@@ -104,18 +107,5 @@ public class DemoServer implements KairosDBService, Runnable, KairosMetricReport
 	public void stop()
 	{
 		m_keepRunning = false;
-	}
-
-	@Override
-	public List<DataPointSet> getMetrics(long now)
-	{
-		ImmutableList.Builder<DataPointSet> ret = ImmutableList.builder();
-
-		DataPointSet ds = new DataPointSet("kairosdb.demo.submission_count");
-		ds.addTag("host", m_hostName);
-		ds.addDataPoint(m_longDataPointFactory.createDataPoint(now, m_counter));
-		ret.add(ds);
-
-		return ret.build();
 	}
 }
