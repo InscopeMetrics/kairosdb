@@ -27,68 +27,56 @@ import java.io.StringWriter;
 import java.util.Map;
 
 @FeatureComponent(
-		name = "simpleTime",
-		description = "Groups data points by time."
+        name = "simpleTime",
+        description = "Groups data points by time."
 )
-public class SimpleTimeGroupBy implements GroupBy
-{
-	private int rangeSize;
+public class SimpleTimeGroupBy implements GroupBy {
+    private int rangeSize;
 
-	public SimpleTimeGroupBy()
-	{
-		rangeSize = 2;
-	}
+    public SimpleTimeGroupBy() {
+        rangeSize = 2;
+    }
 
-	public SimpleTimeGroupBy(int rangeSize)
-	{
-		this.rangeSize = rangeSize;
-	}
+    public SimpleTimeGroupBy(final int rangeSize) {
+        this.rangeSize = rangeSize;
+    }
 
-	@Override
-	public int getGroupId(DataPoint dataPoint, Map<String, String> tags)
-	{
-		return (int) (dataPoint.getTimestamp() / rangeSize);
-	}
+    @Override
+    public int getGroupId(final DataPoint dataPoint, final Map<String, String> tags) {
+        return (int) (dataPoint.getTimestamp() / rangeSize);
+    }
 
-	@Override
-	public GroupByResult getGroupByResult(final int id)
-	{
-		return new GroupByResult()
-		{
-			@Override
-			public String toJson() throws FormatterException
-			{
-				StringWriter stringWriter = new StringWriter();
-				try
-				{
-					JSONWriter writer = new JSONWriter(stringWriter);
+    @Override
+    public GroupByResult getGroupByResult(final int id) {
+        return new GroupByResult() {
+            @Override
+            public String toJson() throws FormatterException {
+                final StringWriter stringWriter = new StringWriter();
+                try {
+                    final JSONWriter writer = new JSONWriter(stringWriter);
 
-					writer.object();
-					writer.key("name").value("simpleTime");
-					writer.key("target_size").value(rangeSize);
+                    writer.object();
+                    writer.key("name").value("simpleTime");
+                    writer.key("target_size").value(rangeSize);
 
-					writer.key("group").object();
-					writer.key("group_number").value(id);
-					writer.endObject();
-					writer.endObject();
-				}
-				catch (JSONException e)
-				{
-					throw new FormatterException(e);
-				}
+                    writer.key("group").object();
+                    writer.key("group_number").value(id);
+                    writer.endObject();
+                    writer.endObject();
+                } catch (final JSONException e) {
+                    throw new FormatterException(e);
+                }
 
-				return stringWriter.toString();
-			}
-		};
-	}
+                return stringWriter.toString();
+            }
+        };
+    }
 
-	@Override
-	public void setStartDate(long startDate)
-	{
-	}
+    @Override
+    public void setStartDate(final long startDate) {
+    }
 
-	public void setRangeSize(int groupSize)
-	{
-		this.rangeSize = groupSize;
-	}
+    public void setRangeSize(final int groupSize) {
+        this.rangeSize = groupSize;
+    }
 }

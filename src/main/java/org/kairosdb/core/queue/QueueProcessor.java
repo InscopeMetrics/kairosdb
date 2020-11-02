@@ -12,172 +12,153 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 /**
- Created by bhawkins on 10/12/16.
+ * Created by bhawkins on 10/12/16.
  */
-public abstract class QueueProcessor
-{
-	public static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
+public abstract class QueueProcessor {
+    public static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
 
-	public static final String QUEUE_PROCESSOR_CLASS = "kairosdb.queue_processor.class";
-	public static final String QUEUE_PROCESSOR = "queue_processor";
-	public static final String BATCH_SIZE = "kairosdb.queue_processor.batch_size";
-	public static final String MEMORY_QUEUE_SIZE = "kairosdb.queue_processor.memory_queue_size";
-	public static final String MINIMUM_BATCH_SIZE = "kairosdb.queue_processor.min_batch_size";
-	public static final String MINIMUM_BATCH_WAIT = "kairosdb.queue_processor.min_batch_wait";
-
-
-	private final DeliveryThread m_deliveryThread;
-	private final ExecutorService m_executor;
-	private int m_batchSize;
-	private final int m_initialBatchSize;
-	private final int m_minimumBatchSize;
-	private final int m_minBatchWait;
-	private final PeriodicMetrics m_periodicMetrics;
-
-	private volatile ProcessorHandler m_processorHandler;
-
-	public QueueProcessor(
-			ExecutorService executor,
-			PeriodicMetrics periodicMetrics,
-			int batchSize,
-			int minimumBatchSize,
-			int minBatchWait)
-	{
-		m_deliveryThread = new DeliveryThread();
-		m_initialBatchSize = m_batchSize = batchSize;
-		m_minimumBatchSize = minimumBatchSize;
-		m_minBatchWait = minBatchWait;
-		m_periodicMetrics = periodicMetrics;
-
-		executor.execute(m_deliveryThread);
-		m_executor = executor;
-		logger.info("Starting QueueProcessor "+this.getClass().getName());
-
-		periodicMetrics.registerPolledMetric(this::addReportedMetrics);
-	}
-
-	@Subscribe
-	public void reduceBatch(BatchReductionEvent reductionEvent)
-	{
-		m_batchSize = Math.min(m_batchSize, reductionEvent.getBatchSize());
-
-		logger.info("Reducing queue batch size to "+m_batchSize);
-	}
+    public static final String QUEUE_PROCESSOR_CLASS = "kairosdb.queue_processor.class";
+    public static final String QUEUE_PROCESSOR = "queue_processor";
+    public static final String BATCH_SIZE = "kairosdb.queue_processor.batch_size";
+    public static final String MEMORY_QUEUE_SIZE = "kairosdb.queue_processor.memory_queue_size";
+    public static final String MINIMUM_BATCH_SIZE = "kairosdb.queue_processor.min_batch_size";
+    public static final String MINIMUM_BATCH_WAIT = "kairosdb.queue_processor.min_batch_wait";
 
 
-	public void setProcessorHandler(ProcessorHandler processorHandler)
-	{
-		m_processorHandler = processorHandler;
-	}
+    private final DeliveryThread m_deliveryThread;
+    private final ExecutorService m_executor;
+    private final int m_initialBatchSize;
+    private final int m_minimumBatchSize;
+    private final int m_minBatchWait;
+    private final PeriodicMetrics m_periodicMetrics;
+    private int m_batchSize;
+    private volatile ProcessorHandler m_processorHandler;
 
-	public void shutdown()
-	{
-		m_deliveryThread.shutdown();
-		m_executor.shutdown();
-	}
+    public QueueProcessor(
+            final ExecutorService executor,
+            final PeriodicMetrics periodicMetrics,
+            final int batchSize,
+            final int minimumBatchSize,
+            final int minBatchWait) {
+        m_deliveryThread = new DeliveryThread();
+        m_initialBatchSize = m_batchSize = batchSize;
+        m_minimumBatchSize = minimumBatchSize;
+        m_minBatchWait = minBatchWait;
+        m_periodicMetrics = periodicMetrics;
+
+        executor.execute(m_deliveryThread);
+        m_executor = executor;
+        logger.info("Starting QueueProcessor " + this.getClass().getName());
+
+        periodicMetrics.registerPolledMetric(this::addReportedMetrics);
+    }
+
+    @Subscribe
+    public void reduceBatch(final BatchReductionEvent reductionEvent) {
+        m_batchSize = Math.min(m_batchSize, reductionEvent.getBatchSize());
+
+        logger.info("Reducing queue batch size to " + m_batchSize);
+    }
 
 
-	public abstract void put(DataPointEvent dataPointEvent) throws DatastoreException;
+    public void setProcessorHandler(final ProcessorHandler processorHandler) {
+        m_processorHandler = processorHandler;
+    }
 
-	/**
-	 @return Returns a Pair containing the latest index
-	 and a list of events from the queue, maybe empty
-	 */
-	protected abstract List<DataPointEvent> get(int batchSize);
+    public void shutdown() {
+        m_deliveryThread.shutdown();
+        m_executor.shutdown();
+    }
 
-	protected abstract int getAvailableDataPointEvents();
 
-	protected abstract EventCompletionCallBack getCompletionCallBack();
+    public abstract void put(DataPointEvent dataPointEvent) throws DatastoreException;
 
-	protected abstract void addReportedMetrics(PeriodicMetrics periodicMetrics);
+    /**
+     * @return Returns a Pair containing the latest index
+     * and a list of events from the queue, maybe empty
+     */
+    protected abstract List<DataPointEvent> get(int batchSize);
 
-	/**
-	 Single thread that pulls data out of the queue and sends it to the callback
-	 in batches
-	 */
-	public class DeliveryThread implements Runnable
-	{
-		private boolean m_running = true;
-		private boolean m_runOnce = false;
+    protected abstract int getAvailableDataPointEvents();
 
-		public DeliveryThread()
-		{
-		}
+    protected abstract EventCompletionCallBack getCompletionCallBack();
 
-		public void shutdown()
-		{
-			m_running = false;
-		}
+    protected abstract void addReportedMetrics(PeriodicMetrics periodicMetrics);
 
-		/**
-		 Used for testing the queue processor to clear the running state
-		 @param running
-		 */
-		public void setRunning(boolean running)
-		{
-			m_running = running;
-		}
+    /**
+     * Single thread that pulls data out of the queue and sends it to the callback
+     * in batches
+     */
+    public class DeliveryThread implements Runnable {
+        private boolean m_running = true;
+        private boolean m_runOnce = false;
 
-		/**
-		 Used for testing the queue processor
-		 @param runOnce
-		 */
-		public void setRunOnce(boolean runOnce)
-		{
-			m_runOnce = runOnce;
-		}
+        public DeliveryThread() {
+        }
 
-		@Override
-		public void run()
-		{
-			try
-			{
-				//to fix race condition on startup
-				while (m_processorHandler == null)
-					Thread.sleep(100);
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
+        public void shutdown() {
+            m_running = false;
+        }
 
-			while (m_running)
-			{
-				if (m_runOnce)
-					m_running = false;
+        /**
+         * Used for testing the queue processor to clear the running state
+         *
+         * @param running
+         */
+        public void setRunning(final boolean running) {
+            m_running = running;
+        }
 
-				try
-				{
-					if (getAvailableDataPointEvents() < m_minimumBatchSize)
-					{
-						Thread.sleep(m_minBatchWait);
-					}
+        /**
+         * Used for testing the queue processor
+         *
+         * @param runOnce
+         */
+        public void setRunOnce(final boolean runOnce) {
+            m_runOnce = runOnce;
+        }
 
-					if (getAvailableDataPointEvents() == 0)
-						continue;
+        @Override
+        public void run() {
+            try {
+                //to fix race condition on startup
+                while (m_processorHandler == null)
+                    Thread.sleep(100);
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
 
-					List<DataPointEvent> results = get(m_batchSize);
-					//getCompletionCallBack must be called after get()
-					EventCompletionCallBack callbackToPass = getCompletionCallBack();
+            while (m_running) {
+                if (m_runOnce)
+                    m_running = false;
 
-					m_periodicMetrics.recordGauge("queue/batch_stats", results.size());
+                try {
+                    if (getAvailableDataPointEvents() < m_minimumBatchSize) {
+                        Thread.sleep(m_minBatchWait);
+                    }
 
-					boolean fullBatch = false;
+                    if (getAvailableDataPointEvents() == 0)
+                        continue;
 
-					if (results.size() == m_batchSize)
-					{
-						fullBatch = true;
-						if (m_batchSize < m_initialBatchSize)
-							m_batchSize += 5;
-					}
+                    final List<DataPointEvent> results = get(m_batchSize);
+                    //getCompletionCallBack must be called after get()
+                    final EventCompletionCallBack callbackToPass = getCompletionCallBack();
 
-					m_processorHandler.handleEvents(results, callbackToPass, fullBatch);
-				}
-				catch (Exception e)
-				{
-					logger.error("DeliveryThread Exception", e);
-				}
-			}
-		}
-	}
+                    m_periodicMetrics.recordGauge("queue/batch_stats", results.size());
+
+                    boolean fullBatch = false;
+
+                    if (results.size() == m_batchSize) {
+                        fullBatch = true;
+                        if (m_batchSize < m_initialBatchSize)
+                            m_batchSize += 5;
+                    }
+
+                    m_processorHandler.handleEvents(results, callbackToPass, fullBatch);
+                } catch (final Exception e) {
+                    logger.error("DeliveryThread Exception", e);
+                }
+            }
+        }
+    }
 }

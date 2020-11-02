@@ -12,8 +12,7 @@ import org.kairosdb.core.annotation.ValidationProperty;
         name = "A",
         description = "The A Aggregator"
 )
-public class AAggregator extends BAggregator
-{
+public class AAggregator extends BAggregator {
     @FeatureProperty(
             name = "allAnnotation",
             label = "AllAnnotation",
@@ -22,7 +21,7 @@ public class AAggregator extends BAggregator
             default_value = "2",
             validations = {
                     @ValidationProperty(
-                            expression =  "value > 0",
+                            expression = "value > 0",
                             message = "Value must be greater than 0."
                     )
             },
@@ -48,13 +47,13 @@ public class AAggregator extends BAggregator
     )
     private int myInt;
 
-   @FeatureProperty(
+    @FeatureProperty(
             label = "MyBoolean",
             description = "This is myBoolean"
     )
     private boolean myBoolean;
 
-   @FeatureProperty(
+    @FeatureProperty(
             label = "MyString",
             description = "This is myString"
     )
@@ -69,8 +68,7 @@ public class AAggregator extends BAggregator
     private String unannotated;
 
     @Inject
-    public AAggregator()
-    {
+    public AAggregator() {
     }
 
 }

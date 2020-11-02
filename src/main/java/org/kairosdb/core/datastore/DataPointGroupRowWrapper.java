@@ -23,63 +23,52 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public class DataPointGroupRowWrapper implements DataPointGroup
-{
-	private DataPointRow m_row;
+public class DataPointGroupRowWrapper implements DataPointGroup {
+    private final DataPointRow m_row;
 
-	public DataPointGroupRowWrapper(DataPointRow row)
-	{
-		m_row = row;
-	}
+    public DataPointGroupRowWrapper(final DataPointRow row) {
+        m_row = row;
+    }
 
+    @Override
+    public String getName() {
+        return (m_row.getName());
+    }
 
-	@Override
-	public String getName()
-	{
-		return (m_row.getName());
-	}
+    @Override
+    public Set<String> getTagNames() {
+        return (m_row.getTagNames());
+    }
 
-	@Override
-	public Set<String> getTagNames()
-	{
-		return (m_row.getTagNames());
-	}
+    @Override
+    public Set<String> getTagValues(final String tag) {
+        return (Collections.singleton(m_row.getTagValue(tag)));
+    }
 
-	@Override
-	public Set<String> getTagValues(String tag)
-	{
-		return (Collections.singleton(m_row.getTagValue(tag)));
-	}
+    @Override
+    public List<GroupByResult> getGroupByResult() {
+        return null;
+    }
 
-	@Override
-	public List<GroupByResult> getGroupByResult()
-	{
-		return null;
-	}
+    @Override
+    public void close() {
+        m_row.close();
+    }
 
-	@Override
-	public void close()
-	{
-		m_row.close();
-	}
+    @Override
+    public boolean hasNext() {
+        return (m_row.hasNext());
+    }
 
-	@Override
-	public boolean hasNext()
-	{
-		return (m_row.hasNext());
-	}
+    @Override
+    public DataPoint next() {
+        final DataPoint dp = m_row.next();
+        dp.setDataPointGroup(this);
+        return (dp);
+    }
 
-	@Override
-	public DataPoint next()
-	{
-		DataPoint dp = m_row.next();
-		dp.setDataPointGroup(this);
-		return (dp);
-	}
-
-	@Override
-	public void remove()
-	{
-		m_row.remove();
-	}
+    @Override
+    public void remove() {
+        m_row.remove();
+    }
 }

@@ -26,25 +26,22 @@ import org.kairosdb.testing.ListDataPointGroup;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class SamplerAggregatorTest
-{
+public class SamplerAggregatorTest {
     @Test(expected = NullPointerException.class)
-    public void test_nullSet_invalid()
-    {
+    public void test_nullSet_invalid() {
         new SamplerAggregator(new DoubleDataPointFactoryImpl()).aggregate(null);
     }
 
     @Test
-    public void test_steadyRate()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("rate");
+    public void test_steadyRate() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
         group.addDataPoint(new LongDataPoint(1, 10));
         group.addDataPoint(new LongDataPoint(2, 20));
         group.addDataPoint(new LongDataPoint(3, 30));
         group.addDataPoint(new LongDataPoint(4, 40));
 
-        SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
-        DataPointGroup results = samplerAggregator.aggregate(group);
+        final SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = samplerAggregator.aggregate(group);
 
         DataPoint dp = results.next();
         assertThat(dp.getTimestamp(), equalTo(2L));
@@ -60,16 +57,15 @@ public class SamplerAggregatorTest
     }
 
     @Test
-    public void test_changingRate()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("rate");
+    public void test_changingRate() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
         group.addDataPoint(new LongDataPoint(1, 10));
         group.addDataPoint(new LongDataPoint(2, 10));
         group.addDataPoint(new LongDataPoint(3, 5));
         group.addDataPoint(new LongDataPoint(4, 20));
 
-        SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
-        DataPointGroup results = samplerAggregator.aggregate(group);
+        final SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = samplerAggregator.aggregate(group);
 
         DataPoint dp = results.next();
         assertThat(dp.getTimestamp(), equalTo(2L));
@@ -85,16 +81,15 @@ public class SamplerAggregatorTest
     }
 
     @Test
-    public void test_changingPeriod()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("rate");
+    public void test_changingPeriod() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
         group.addDataPoint(new LongDataPoint(1, 10));
         group.addDataPoint(new LongDataPoint(2, 10));
         group.addDataPoint(new LongDataPoint(4, 10));
         group.addDataPoint(new LongDataPoint(6, 20));
 
-        SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
-        DataPointGroup results = samplerAggregator.aggregate(group);
+        final SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = samplerAggregator.aggregate(group);
 
         DataPoint dp = results.next();
         assertThat(dp.getTimestamp(), equalTo(2L));
@@ -111,19 +106,18 @@ public class SamplerAggregatorTest
 
 
     @Test(expected = IllegalStateException.class)
-    public void test_dataPointsAtSameTime()
-    {
-        ListDataPointGroup group = new ListDataPointGroup("rate");
+    public void test_dataPointsAtSameTime() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
         group.addDataPoint(new LongDataPoint(1, 10));
         group.addDataPoint(new LongDataPoint(1, 15));
         group.addDataPoint(new LongDataPoint(2, 5));
         group.addDataPoint(new LongDataPoint(2, 20));
         group.addDataPoint(new LongDataPoint(3, 30));
 
-        SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
-        DataPointGroup results = samplerAggregator.aggregate(group);
+        final SamplerAggregator samplerAggregator = new SamplerAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = samplerAggregator.aggregate(group);
 
-        DataPoint dp = results.next();
+        final DataPoint dp = results.next();
     }
 
 }

@@ -16,15 +16,13 @@
 
 package org.kairosdb.core.datastore;
 
-
 import org.kairosdb.core.annotation.FeatureProperty;
 import org.kairosdb.core.annotation.ValidationProperty;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
-public class Duration
-{
+public class Duration {
     @Min(1)
     @FeatureProperty(
             name = "value",
@@ -49,29 +47,24 @@ public class Duration
     )
     protected TimeUnit unit;
 
-    public Duration()
-    {
+    public Duration() {
     }
 
-    public Duration(int value, TimeUnit unit)
-    {
+    public Duration(final int value, final TimeUnit unit) {
         this.value = value;
         this.unit = unit;
     }
 
-    public long getValue()
-    {
+    public long getValue() {
         return value;
     }
 
-    public TimeUnit getUnit()
-    {
+    public TimeUnit getUnit() {
         return unit;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "Duration{" +
                 "value=" + value +
                 ", unit=" + unit +
@@ -79,25 +72,21 @@ public class Duration
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if (this == o)
-        {
+    public boolean equals(final Object o) {
+        if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass())
-        {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
 
-        Duration duration = (Duration) o;
+        final Duration duration = (Duration) o;
 
         return value == duration.value && unit == duration.unit;
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = (int) (value ^ (value >>> 32));
         result = 31 * result + (unit != null ? unit.hashCode() : 0);
         return result;

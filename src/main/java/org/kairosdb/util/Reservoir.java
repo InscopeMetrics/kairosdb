@@ -19,24 +19,24 @@ package org.kairosdb.util;
  * A statistically representative reservoir of a data stream.
  */
 public interface Reservoir {
-	/**
-	 * Returns the number of values recorded.
-	 *
-	 * @return the number of values recorded
-	 */
-	int size();
+    /**
+     * Returns the number of values recorded.
+     *
+     * @return the number of values recorded
+     */
+    int size();
 
-	/**
-	 * Adds a new recorded value to the reservoir.
-	 *
-	 * @param value a new recorded value
-	 */
-	void update(double value);
+    /**
+     * Adds a new recorded value to the reservoir.
+     *
+     * @param value a new recorded value
+     */
+    void update(double value);
 
-	/**
-	 * Returns only the double values of the reservoir (not the timestamps)
-	 *
-	 * @return the double values of the treemap
-	 */
-	double[] getValues();
+    /**
+     * Returns only the double values of the reservoir (not the timestamps)
+     *
+     * @return the double values of the treemap
+     */
+    double[] getValues();
 }

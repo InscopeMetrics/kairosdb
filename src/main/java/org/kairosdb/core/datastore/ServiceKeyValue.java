@@ -2,24 +2,20 @@ package org.kairosdb.core.datastore;
 
 import java.util.Date;
 
-public class ServiceKeyValue
-{
-    private String value;
-    private Date lastModified;
+public class ServiceKeyValue {
+    private final String value;
+    private final Date lastModified;
 
-    public ServiceKeyValue(String value, Date lastModified)
-    {
+    public ServiceKeyValue(final String value, final Date lastModified) {
         this.value = value;
         this.lastModified = lastModified;
     }
 
-    public String getValue()
-    {
+    public String getValue() {
         return value;
     }
 
-    public Date getLastModified()
-    {
+    public Date getLastModified() {
         return lastModified;
     }
 }

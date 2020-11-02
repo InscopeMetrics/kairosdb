@@ -3,13 +3,12 @@ package org.kairosdb.core.processingstage;
 import com.google.common.collect.ImmutableList;
 import org.kairosdb.core.processingstage.metadata.FeatureProcessorMetadata;
 
-public interface FeatureProcessingFactory<Feature>
-{
+public interface FeatureProcessingFactory<Feature> {
     /**
      * Create new instance of a feature processor.
      *
-     * @param   name    name of the feature processor
-     * @return          created instance of the feature processor
+     * @param name name of the feature processor
+     * @return created instance of the feature processor
      */
     Feature createFeatureProcessor(String name);
 

@@ -23,23 +23,21 @@ import java.util.Properties;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class OAuthModuleTest
-{
-	@Test
-	public void testReadingProperties()
-	{
-		Properties props = new Properties();
+public class OAuthModuleTest {
+    @Test
+    public void testReadingProperties() {
+        final Properties props = new Properties();
 
-		props.put("kairosdb.oauth.consumer.cust1", "ABC123");
-		props.put("kairosdb.oauth.consumerNot.cust1", "XYZ");
-		props.put("kairosdb.oauth.consumer.cust2", "EFG789");
+        props.put("kairosdb.oauth.consumer.cust1", "ABC123");
+        props.put("kairosdb.oauth.consumerNot.cust1", "XYZ");
+        props.put("kairosdb.oauth.consumer.cust2", "EFG789");
 
-		OAuthModule module = new OAuthModule(props);
+        final OAuthModule module = new OAuthModule(props);
 
-		ConsumerTokenStore tokenStore = module.getTokenStore();
+        final ConsumerTokenStore tokenStore = module.getTokenStore();
 
-		assertThat(tokenStore.getConsumerKeys().size(), is(2));
-		assertThat(tokenStore.getToken("cust1"), is("ABC123"));
-		assertThat(tokenStore.getToken("cust2"), is("EFG789"));
-	}
+        assertThat(tokenStore.getConsumerKeys().size(), is(2));
+        assertThat(tokenStore.getToken("cust1"), is("ABC123"));
+        assertThat(tokenStore.getToken("cust2"), is("EFG789"));
+    }
 }

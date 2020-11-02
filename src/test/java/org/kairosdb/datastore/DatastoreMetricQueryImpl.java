@@ -27,69 +27,59 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class DatastoreMetricQueryImpl implements DatastoreMetricQuery
-{
-	private String m_name;
-	private SetMultimap<String, String> m_tags;
-	private long m_startTime;
-	private long m_endTime;
+public class DatastoreMetricQueryImpl implements DatastoreMetricQuery {
+    private final String m_name;
+    private final SetMultimap<String, String> m_tags;
+    private final long m_startTime;
+    private final long m_endTime;
 
 
-	public DatastoreMetricQueryImpl(String name, SetMultimap<String, String> tags,
-			long startTime, long endTime)
-	{
-		m_name = checkNotNullOrEmpty(name);
-		m_tags = checkNotNull(tags);
-		m_startTime = startTime;
-		m_endTime = endTime;
-	}
+    public DatastoreMetricQueryImpl(final String name, final SetMultimap<String, String> tags,
+                                    final long startTime, final long endTime) {
+        m_name = checkNotNullOrEmpty(name);
+        m_tags = checkNotNull(tags);
+        m_startTime = startTime;
+        m_endTime = endTime;
+    }
 
-	@Override
-	public String getName()
-	{
-		return (m_name);
-	}
+    @Override
+    public String getName() {
+        return (m_name);
+    }
 
-	@Override
-	public SetMultimap<String, String> getTags()
-	{
-		return (m_tags);
-	}
+    @Override
+    public SetMultimap<String, String> getTags() {
+        return (m_tags);
+    }
 
-	@Override
-	public long getStartTime()
-	{
-		return (m_startTime);
-	}
+    @Override
+    public long getStartTime() {
+        return (m_startTime);
+    }
 
-	@Override
-	public long getEndTime()
-	{
-		return (m_endTime);
-	}
+    @Override
+    public long getEndTime() {
+        return (m_endTime);
+    }
 
-	@Override
-	public int getLimit()
-	{
-		return 0;  //To change body of implemented methods use File | Settings | File Templates.
-	}
+    @Override
+    public int getLimit() {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
 
-	@Override
-	public Order getOrder()
-	{
-		return Order.ASC;
-	}
+    @Override
+    public Order getOrder() {
+        return Order.ASC;
+    }
 
-	@Override
-	public List<QueryPlugin> getPlugins()
-	{
-		return Collections.emptyList();
-	}
+    @Override
+    public List<QueryPlugin> getPlugins() {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public void addPlugin(QueryPlugin plugin)
-	{
+    @Override
+    public void addPlugin(final QueryPlugin plugin) {
 
-	}
+    }
 
 }

@@ -28,200 +28,171 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class QueryMetric implements DatastoreMetricQuery
-{
-	private long startTime;
-	private long endTime;
-	private boolean endTimeSet;
-	private int cacheTime;
-	private String name;
-	private SetMultimap<String, String> tags = HashMultimap.create();
-	private List<GroupBy> groupBys = new ArrayList<GroupBy>();
-	private List<Aggregator> aggregators;
-	private String cacheString;
-	private boolean excludeTags = false;
-	private int limit;
-	private Order order = Order.ASC;
-	private List<QueryPlugin> plugins;
+public class QueryMetric implements DatastoreMetricQuery {
+    private long startTime;
+    private long endTime;
+    private boolean endTimeSet;
+    private final int cacheTime;
+    private final String name;
+    private SetMultimap<String, String> tags = HashMultimap.create();
+    private final List<GroupBy> groupBys = new ArrayList<>();
+    private final List<Aggregator> aggregators;
+    private String cacheString;
+    private boolean excludeTags = false;
+    private int limit;
+    private Order order = Order.ASC;
+    private final List<QueryPlugin> plugins;
 
-	public QueryMetric(long start_time, int cacheTime, String name)
-	{
-		this.aggregators = new ArrayList<Aggregator>();
-		this.plugins = new ArrayList<QueryPlugin>();
-		this.startTime = start_time;
-		this.cacheTime = cacheTime;
-		this.name = Preconditions.checkNotNullOrEmpty(name);
-	}
+    public QueryMetric(final long start_time, final int cacheTime, final String name) {
+        this.aggregators = new ArrayList<>();
+        this.plugins = new ArrayList<>();
+        this.startTime = start_time;
+        this.cacheTime = cacheTime;
+        this.name = Preconditions.checkNotNullOrEmpty(name);
+    }
 
-	public QueryMetric(long start_time, long end_time, int cacheTime, String name)
-	{
-		this.aggregators = new ArrayList<Aggregator>();
-		this.plugins = new ArrayList<QueryPlugin>();
-		this.startTime = start_time;
-		this.endTime = end_time;
-		this.endTimeSet = true;
-		this.cacheTime = cacheTime;
-		this.name = Preconditions.checkNotNullOrEmpty(name);
-	}
+    public QueryMetric(final long start_time, final long end_time, final int cacheTime, final String name) {
+        this.aggregators = new ArrayList<>();
+        this.plugins = new ArrayList<>();
+        this.startTime = start_time;
+        this.endTime = end_time;
+        this.endTimeSet = true;
+        this.cacheTime = cacheTime;
+        this.name = Preconditions.checkNotNullOrEmpty(name);
+    }
 
-	public QueryMetric addAggregator(Aggregator aggregator)
-	{
-		checkNotNull(aggregator);
+    public QueryMetric addAggregator(final Aggregator aggregator) {
+        checkNotNull(aggregator);
 
-		this.aggregators.add(aggregator);
-		return (this);
-	}
+        this.aggregators.add(aggregator);
+        return (this);
+    }
 
-	public QueryMetric setTags(SetMultimap<String, String> tags)
-	{
-		this.tags = tags;
-		return this;
-	}
+    public QueryMetric addTag(final String name, final String value) {
+        this.tags.put(name, value);
+        return this;
+    }
 
-	public QueryMetric setTags(Map<String, String> tags)
-	{
-		this.tags.clear();
+    @Override
+    public String getName() {
+        return name;
+    }
 
-		for (String s : tags.keySet())
-		{
-			this.tags.put(s, tags.get(s));
-		}
+    public List<Aggregator> getAggregators() {
+        return aggregators;
+    }
 
-	return this;
-	}
+    @Override
+    public SetMultimap<String, String> getTags() {
+        return (tags);
+    }
 
-	public QueryMetric addTag(String name, String value)
-	{
-		this.tags.put(name, value);
-		return this;
-	}
+    public QueryMetric setTags(final SetMultimap<String, String> tags) {
+        this.tags = tags;
+        return this;
+    }
 
-	@Override
-	public String getName()
-	{
-		return name;
-	}
+    public QueryMetric setTags(final Map<String, String> tags) {
+        this.tags.clear();
 
-	public List<Aggregator> getAggregators()
-	{
-		return aggregators;
-	}
+        for (final String s : tags.keySet()) {
+            this.tags.put(s, tags.get(s));
+        }
 
-	@Override
-	public SetMultimap<String, String> getTags()
-	{
-		return (tags);
-	}
+        return this;
+    }
 
-	@Override
-	public long getStartTime()
-	{
-		return startTime;
-	}
+    @Override
+    public long getStartTime() {
+        return startTime;
+    }
 
-	@Override
-	public long getEndTime()
-	{
-		if (!endTimeSet)
-			endTime = Long.MAX_VALUE;
+    public void setStartTime(final long startTime) {
+        this.startTime = startTime;
+    }
 
-		return endTime;
-	}
+    @Override
+    public long getEndTime() {
+        if (!endTimeSet)
+            endTime = Long.MAX_VALUE;
 
-	public int getCacheTime()
-	{
-		return cacheTime;
-	}
+        return endTime;
+    }
 
-	public void setEndTime(long endTime)
-	{
-		this.endTime = endTime;
-		this.endTimeSet = true;
-	}
+    public void setEndTime(final long endTime) {
+        this.endTime = endTime;
+        this.endTimeSet = true;
+    }
 
-	public void setStartTime(long startTime)
-	{
-		this.startTime = startTime;
-	}
+    public int getCacheTime() {
+        return cacheTime;
+    }
 
-	public List<GroupBy> getGroupBys()
-	{
-		return Collections.unmodifiableList(groupBys);
-	}
+    public List<GroupBy> getGroupBys() {
+        return Collections.unmodifiableList(groupBys);
+    }
 
-	public void addGroupBy(GroupBy groupBy)
-	{
-		this.groupBys.add(groupBy);
-	}
+    public void addGroupBy(final GroupBy groupBy) {
+        this.groupBys.add(groupBy);
+    }
 
-	public void setCacheString(String cacheString)
-	{
-		this.cacheString = cacheString;
-	}
+    public String getCacheString() {
+        return (cacheString);
+    }
 
-	public String getCacheString()
-	{
-		return (cacheString);
-	}
+    public void setCacheString(final String cacheString) {
+        this.cacheString = cacheString;
+    }
 
-	public boolean isExcludeTags()
-	{
-		return excludeTags;
-	}
+    public boolean isExcludeTags() {
+        return excludeTags;
+    }
 
-	public void setExcludeTags(boolean excludeTags)
-	{
-		this.excludeTags = excludeTags;
-	}
+    public void setExcludeTags(final boolean excludeTags) {
+        this.excludeTags = excludeTags;
+    }
 
-	public void setLimit(int limit)
-	{
-		this.limit = limit;
-	}
+    public int getLimit() {
+        return (limit);
+    }
 
-	public int getLimit()
-	{
-		return (limit);
-	}
+    public void setLimit(final int limit) {
+        this.limit = limit;
+    }
 
-	public void setOrder(Order order)
-	{
-		this.order = order;
-	}
+    public Order getOrder() {
+        return (order);
+    }
 
-	public Order getOrder()
-	{
-		return (order);
-	}
+    public void setOrder(final Order order) {
+        this.order = order;
+    }
 
-	@Override
-	public List<QueryPlugin> getPlugins()
-	{
-		return Collections.unmodifiableList(plugins);
-	}
+    @Override
+    public List<QueryPlugin> getPlugins() {
+        return Collections.unmodifiableList(plugins);
+    }
 
-	public void addPlugin(QueryPlugin plugin)
-	{
-		this.plugins.add(plugin);
-	}
+    public void addPlugin(final QueryPlugin plugin) {
+        this.plugins.add(plugin);
+    }
 
-	@Override
-	public String toString()
-	{
-		return "QueryMetric{" +
-				"startTime=" + startTime +
-				", endTime=" + endTime +
-				", endTimeSet=" + endTimeSet +
-				", cacheTime=" + cacheTime +
-				", name='" + name + '\'' +
-				", tags=" + tags +
-				", groupBys=" + groupBys +
-				", aggregators=" + aggregators +
-				", cacheString='" + cacheString + '\'' +
-				", excludeTags=" + excludeTags +
-				", limit=" + limit +
-				", order=" + order +
-				", plugins=" + plugins +
-				'}';
-	}
+    @Override
+    public String toString() {
+        return "QueryMetric{" +
+                "startTime=" + startTime +
+                ", endTime=" + endTime +
+                ", endTimeSet=" + endTimeSet +
+                ", cacheTime=" + cacheTime +
+                ", name='" + name + '\'' +
+                ", tags=" + tags +
+                ", groupBys=" + groupBys +
+                ", aggregators=" + aggregators +
+                ", cacheString='" + cacheString + '\'' +
+                ", excludeTags=" + excludeTags +
+                ", limit=" + limit +
+                ", order=" + order +
+                ", plugins=" + plugins +
+                '}';
+    }
 }

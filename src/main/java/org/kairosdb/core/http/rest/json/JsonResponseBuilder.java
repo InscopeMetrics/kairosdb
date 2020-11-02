@@ -16,44 +16,39 @@
 
 package org.kairosdb.core.http.rest.json;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class JsonResponseBuilder
-{
-	private List<String> errorMessages = new ArrayList<String>();
-	private int status;
+public class JsonResponseBuilder {
+    private final List<String> errorMessages = new ArrayList<>();
+    private final int status;
 
-	public JsonResponseBuilder(Response.Status status)
-	{
-		checkNotNull(status);
-		this.status = status.getStatusCode();
-	}
+    public JsonResponseBuilder(final Response.Status status) {
+        checkNotNull(status);
+        this.status = status.getStatusCode();
+    }
 
-	public JsonResponseBuilder addErrors(List<String> errorMessages)
-	{
-		this.errorMessages.addAll(errorMessages);
-		return this;
-	}
+    public JsonResponseBuilder addErrors(final List<String> errorMessages) {
+        this.errorMessages.addAll(errorMessages);
+        return this;
+    }
 
-	public JsonResponseBuilder addError(String errorMessage)
-	{
-		errorMessages.add(errorMessage);
-		return this;
-	}
+    public JsonResponseBuilder addError(final String errorMessage) {
+        errorMessages.add(errorMessage);
+        return this;
+    }
 
-	public Response build()
-	{
-		ErrorResponse responseJson = new ErrorResponse(errorMessages);
+    public Response build() {
+        final ErrorResponse responseJson = new ErrorResponse(errorMessages);
 
-		return Response
-				.status(status)
-				.header("Access-Control-Allow-Origin", "*")
-				.type(MediaType.APPLICATION_JSON_TYPE)
-				.entity(responseJson).build();
-	}
+        return Response
+                .status(status)
+                .header("Access-Control-Allow-Origin", "*")
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .entity(responseJson).build();
+    }
 }

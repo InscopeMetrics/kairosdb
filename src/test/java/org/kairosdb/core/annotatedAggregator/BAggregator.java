@@ -5,8 +5,7 @@ import org.kairosdb.core.annotation.FeatureProperty;
 import org.kairosdb.core.datastore.DataPointGroup;
 import org.kairosdb.plugin.Aggregator;
 
-public class BAggregator implements Aggregator
-{
+public class BAggregator implements Aggregator {
     @FeatureProperty(
             name = "inherited",
             label = "Inherited",
@@ -17,20 +16,17 @@ public class BAggregator implements Aggregator
     private int alpha;
 
     @Override
-    public DataPointGroup aggregate(DataPointGroup dataPointGroup)
-    {
+    public DataPointGroup aggregate(final DataPointGroup dataPointGroup) {
         return null;
     }
 
     @Override
-    public boolean canAggregate(String groupType)
-    {
+    public boolean canAggregate(final String groupType) {
         return false;
     }
 
     @Override
-    public String getAggregatedGroupType(String groupType)
-    {
+    public String getAggregatedGroupType(final String groupType) {
         return null;
     }
 }

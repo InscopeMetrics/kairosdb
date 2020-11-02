@@ -40,14 +40,14 @@ public final class PropertiesValidatorTest {
 
     @Test
     public void testWhenNothingSpecifiedValidatorSucceeds() throws KairosDBException {
-        ValidatorArgs args = new ValidatorArgs();
+        final ValidatorArgs args = new ValidatorArgs();
 
         validatorWithInjection(args).validate();
     }
 
     @Test
     public void testWhenForceAndTtlValidatorSucceeds() throws KairosDBException {
-        ValidatorArgs args = new ValidatorArgs();
+        final ValidatorArgs args = new ValidatorArgs();
         args.forceDefaultDatapointTtl = Optional.of(true);
         args.cassandraDatapointTtl = Optional.of(100);
 
@@ -59,7 +59,7 @@ public final class PropertiesValidatorTest {
         exceptionRule.expect(KairosDBException.class);
         exceptionRule.expectMessage("you must set kairosdb.reporter.ttl to a positive value");
 
-        ValidatorArgs args = new ValidatorArgs();
+        final ValidatorArgs args = new ValidatorArgs();
         args.alignDatapointTtlWithTimestamp = Optional.of(true);
 
         validatorWithInjection(args).validate();
@@ -70,7 +70,7 @@ public final class PropertiesValidatorTest {
         exceptionRule.expect(KairosDBException.class);
         exceptionRule.expectMessage("you must set kairosdb.datastore.cassandra.datapoint_ttl to a positive value");
 
-        ValidatorArgs args = new ValidatorArgs();
+        final ValidatorArgs args = new ValidatorArgs();
         args.forceDefaultDatapointTtl = Optional.of(true);
 
         validatorWithInjection(args).validate();
@@ -78,7 +78,7 @@ public final class PropertiesValidatorTest {
 
     @Test
     public void testWhenAlignOffValidatorSucceeds() throws KairosDBException {
-        ValidatorArgs args = new ValidatorArgs();
+        final ValidatorArgs args = new ValidatorArgs();
         args.reporterTtl = Optional.of(SOME_POSITIVE_INT);
         args.cassandraDatapointTtl = Optional.of(SOME_POSITIVE_INT);
 
@@ -87,7 +87,7 @@ public final class PropertiesValidatorTest {
 
     @Test
     public void testWhenAlignIsOnAndBothTtlsSpecifiedValidatorSucceeds() throws KairosDBException {
-        ValidatorArgs args = new ValidatorArgs();
+        final ValidatorArgs args = new ValidatorArgs();
         args.alignDatapointTtlWithTimestamp = Optional.of(true);
         args.reporterTtl = Optional.of(SOME_POSITIVE_INT);
         args.cassandraDatapointTtl = Optional.of(SOME_POSITIVE_INT);

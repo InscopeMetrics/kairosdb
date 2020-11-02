@@ -20,16 +20,15 @@ import org.kairosdb.core.groupby.GroupByResult;
 
 import java.util.Map;
 
-public interface GroupBy
-{
-	int getGroupId(DataPoint dataPoint, Map<String, String> tags);
+public interface GroupBy {
+    int getGroupId(DataPoint dataPoint, Map<String, String> tags);
 
-	GroupByResult getGroupByResult(int id);
+    GroupByResult getGroupByResult(int id);
 
-	/**
-	 * Called when the object is instantiated with the query start date.
-	 *
-	 * @param startDate query start date
-	 */
-	void setStartDate(long startDate);
+    /**
+     * Called when the object is instantiated with the query start date.
+     *
+     * @param startDate query start date
+     */
+    void setStartDate(long startDate);
 }

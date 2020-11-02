@@ -23,65 +23,61 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import org.apache.bval.jsr303.ApacheValidationProvider;
 import org.kairosdb.core.http.rest.BeanValidationException;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
 
-public class DataPointDeserializer extends JsonDeserializer<List<DataPointRequest>>
-{
-	private static final Validator VALIDATOR = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
+public class DataPointDeserializer extends JsonDeserializer<List<DataPointRequest>> {
+    private static final Validator VALIDATOR = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
 
-	@Override
-	public List<DataPointRequest> deserialize(JsonParser parser, DeserializationContext deserializationContext) throws IOException
-{
-		List<DataPointRequest> datapoints = new ArrayList<>();
+    @Override
+    public List<DataPointRequest> deserialize(final JsonParser parser, final DeserializationContext deserializationContext) throws IOException {
+        final List<DataPointRequest> datapoints = new ArrayList<>();
 
-		JsonToken token = parser.nextToken();
-		if (token != JsonToken.START_ARRAY) {
-			deserializationContext.reportWrongTokenException(
-					DataPointRequest.class,
-					JsonToken.START_ARRAY,
-					"Invalid data point syntax.");
-		}
+        JsonToken token = parser.nextToken();
+        if (token != JsonToken.START_ARRAY) {
+            deserializationContext.reportWrongTokenException(
+                    DataPointRequest.class,
+                    JsonToken.START_ARRAY,
+                    "Invalid data point syntax.");
+        }
 
-		while(token != null && token != JsonToken.END_ARRAY)
-		{
-		 	parser.nextToken();
-			long timestamp = parser.getLongValue();
+        while (token != null && token != JsonToken.END_ARRAY) {
+            parser.nextToken();
+            final long timestamp = parser.getLongValue();
 
-			parser.nextToken();
-			String value = parser.getText();
+            parser.nextToken();
+            final String value = parser.getText();
 
-			DataPointRequest dataPointRequest = new DataPointRequest(timestamp, value);
+            final DataPointRequest dataPointRequest = new DataPointRequest(timestamp, value);
 
-			validateObject(dataPointRequest);
-			datapoints.add(dataPointRequest);
+            validateObject(dataPointRequest);
+            datapoints.add(dataPointRequest);
 
-			token = parser.nextToken();
-			if (token != JsonToken.END_ARRAY) {
-				deserializationContext.reportWrongTokenException(
-						DataPointRequest.class,
-						JsonToken.END_ARRAY,
-						"Invalid data point syntax.");
-			}
+            token = parser.nextToken();
+            if (token != JsonToken.END_ARRAY) {
+                deserializationContext.reportWrongTokenException(
+                        DataPointRequest.class,
+                        JsonToken.END_ARRAY,
+                        "Invalid data point syntax.");
+            }
 
-			token = parser.nextToken();
-		}
+            token = parser.nextToken();
+        }
 
-		return datapoints;
-	}
+        return datapoints;
+    }
 
-	private void validateObject(Object request) throws BeanValidationException
-	{
-		// validate object using the bean validation framework
-		Set<ConstraintViolation<Object>> violations = VALIDATOR.validate(request);
-		if (!violations.isEmpty()) {
-			throw new BeanValidationException(violations);
-		}
-	}
+    private void validateObject(final Object request) throws BeanValidationException {
+        // validate object using the bean validation framework
+        final Set<ConstraintViolation<Object>> violations = VALIDATOR.validate(request);
+        if (!violations.isEmpty()) {
+            throw new BeanValidationException(violations);
+        }
+    }
 }
 

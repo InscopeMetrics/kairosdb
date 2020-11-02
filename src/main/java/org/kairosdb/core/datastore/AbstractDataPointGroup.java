@@ -15,7 +15,10 @@
  */
 package org.kairosdb.core.datastore;
 
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.TreeMultimap;
 import org.kairosdb.core.groupby.GroupByResult;
 import org.kairosdb.util.Preconditions;
 
@@ -26,86 +29,70 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public abstract class AbstractDataPointGroup implements DataPointGroup
-{
-	private String name;
-	private TreeMultimap<String, String> tags = TreeMultimap.create();
-	private List<GroupByResult> groupByResult = new ArrayList<>();
+public abstract class AbstractDataPointGroup implements DataPointGroup {
+    private final String name;
+    private TreeMultimap<String, String> tags = TreeMultimap.create();
+    private final List<GroupByResult> groupByResult = new ArrayList<>();
 
-	public AbstractDataPointGroup(String name)
-	{
-		this.name = name;
-	}
+    public AbstractDataPointGroup(final String name) {
+        this.name = name;
+    }
 
-	public AbstractDataPointGroup(String name, SetMultimap<String, String> tags)
-	{
-		this.name = Preconditions.checkNotNullOrEmpty(name);
-		this.tags = TreeMultimap.create(tags);
-	}
+    public AbstractDataPointGroup(final String name, final SetMultimap<String, String> tags) {
+        this.name = Preconditions.checkNotNullOrEmpty(name);
+        this.tags = TreeMultimap.create(tags);
+    }
 
-	public void addTag(String name, String value)
-	{
-		tags.put(name, value);
-	}
+    public void addTag(final String name, final String value) {
+        tags.put(name, value);
+    }
 
-	public void addTags(SetMultimap<String, String> tags)
-	{
-		this.tags.putAll(tags);
-	}
+    public void addTags(final SetMultimap<String, String> tags) {
+        this.tags.putAll(tags);
+    }
 
-	public void addTags(Map<String, String> tags)
-	{
-		this.tags.putAll(Multimaps.forMap(tags));
-	}
+    public void addTags(final Map<String, String> tags) {
+        this.tags.putAll(Multimaps.forMap(tags));
+    }
 
-	public void addTags(DataPointGroup dpGroup)
-	{
-		for (String key : dpGroup.getTagNames())
-		{
-			for (String value : dpGroup.getTagValues(key))
-			{
-				this.tags.put(key, value);
-			}
-		}
-	}
+    public void addTags(final DataPointGroup dpGroup) {
+        for (final String key : dpGroup.getTagNames()) {
+            for (final String value : dpGroup.getTagValues(key)) {
+                this.tags.put(key, value);
+            }
+        }
+    }
 
-	public void addGroupByResult(GroupByResult groupByResult)
-	{
-		this.groupByResult.add(checkNotNull(groupByResult));
-	}
+    public void addGroupByResult(final GroupByResult groupByResult) {
+        this.groupByResult.add(checkNotNull(groupByResult));
+    }
 
-	public List<GroupByResult> getGroupByResult()
-	{
-		return groupByResult;
-	}
+    public List<GroupByResult> getGroupByResult() {
+        return groupByResult;
+    }
 
-	public String getName()
-	{
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	@Override
-	public Set<String> getTagNames()
-	{
-		return (tags.keySet());
-	}
+    @Override
+    public Set<String> getTagNames() {
+        return (tags.keySet());
+    }
 
-	@Override
-	public Set<String> getTagValues(String tag)
-	{
-		return (tags.get(tag));
-	}
+    @Override
+    public Set<String> getTagValues(final String tag) {
+        return (tags.get(tag));
+    }
 
-	public SetMultimap<String, String> getTags()
-	{
-		return (ImmutableSetMultimap.copyOf(tags));
-	}
+    public SetMultimap<String, String> getTags() {
+        return (ImmutableSetMultimap.copyOf(tags));
+    }
 
-	@Override
-	public void remove()
-	{
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
 
-	public abstract void close();
+    public abstract void close();
 }

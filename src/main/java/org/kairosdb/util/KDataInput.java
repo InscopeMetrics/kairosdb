@@ -6,17 +6,14 @@ import java.io.DataInputStream;
 import java.nio.ByteBuffer;
 
 /**
- Created by bhawkins on 12/10/13.
+ * Created by bhawkins on 12/10/13.
  */
-public class KDataInput
-{
-	public static DataInput createInput(byte[] buf)
-	{
-		return (new DataInputStream(new ByteArrayInputStream(buf)));
-	}
+public class KDataInput {
+    public static DataInput createInput(final byte[] buf) {
+        return (new DataInputStream(new ByteArrayInputStream(buf)));
+    }
 
-	public static DataInput createInput(ByteBuffer buf)
-	{
-		return new ByteBufferDataInput(buf);
-	}
+    public static DataInput createInput(final ByteBuffer buf) {
+        return new ByteBufferDataInput(buf);
+    }
 }

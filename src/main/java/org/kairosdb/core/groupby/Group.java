@@ -23,218 +23,201 @@ import org.kairosdb.core.datastore.DataPointGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.util.Util.packLong;
 import static org.kairosdb.util.Util.unpackLong;
 
 /**
- *  A grouping of data points. The group is written to disk.
+ * A grouping of data points. The group is written to disk.
  */
-public class Group
-{
-	public static final Logger logger = LoggerFactory.getLogger(Group.class);
+public class Group {
+    public static final Logger logger = LoggerFactory.getLogger(Group.class);
 
-	public static final int DATA_POINT_SIZE = 8 + 1 + 8; //timestamp + type flag + value
-	public static final int READ_BUFFER_SIZE = 60; //The number of data points to read into each buffer we could potentially have a lot of these so we keep them smaller
-	public static final int WRITE_BUFFER_SIZE = 500;
+    public static final int DATA_POINT_SIZE = 8 + 1 + 8; //timestamp + type flag + value
+    public static final int READ_BUFFER_SIZE = 60; //The number of data points to read into each buffer we could potentially have a lot of these so we keep them smaller
+    public static final int WRITE_BUFFER_SIZE = 500;
 
-	public static final byte LONG_FLAG = 0x1;
-	public static final byte DOUBLE_FLAG = 0x2;
+    public static final byte LONG_FLAG = 0x1;
+    public static final byte DOUBLE_FLAG = 0x2;
+    private final KairosDataPointFactory dataPointFactory;
+    private final Map<String, Integer> storageTypeIdMap;
+    private final List<DataPointFactory> dataPointFactories;
+    private final File m_groupCacheFile;
+    private final DataOutputStream m_dataOutputStream;
+    private final List<GroupByResult> groupByResults;
+    private final String name;
+    private final HashMultimap<String, String> tags = HashMultimap.create();
+    private int m_dataPointCount; //Number of datapoints written to file
 
-	private File m_groupCacheFile;
-	private DataOutputStream m_dataOutputStream;
-	private List<GroupByResult> groupByResults;
-	private String name;
-	private HashMultimap<String, String> tags = HashMultimap.create();
-	private int m_dataPointCount; //Number of datapoints written to file
+    private Group(final File file, final DataPointGroup dataPointGroup, final List<GroupByResult> groupByResults,
+                  final KairosDataPointFactory dataPointFactory) throws FileNotFoundException {
+        checkNotNull(file);
+        checkNotNull(groupByResults);
+        checkNotNull(dataPointGroup);
 
-	private final KairosDataPointFactory dataPointFactory;
-	private final Map<String, Integer> storageTypeIdMap;
-	private final List<DataPointFactory> dataPointFactories;
+        this.dataPointFactory = dataPointFactory;
+        storageTypeIdMap = new HashMap<>();
+        dataPointFactories = new ArrayList<>();
 
-	private Group(File file, DataPointGroup dataPointGroup, List<GroupByResult> groupByResults,
-			KairosDataPointFactory dataPointFactory) throws FileNotFoundException
-	{
-		checkNotNull(file);
-		checkNotNull(groupByResults);
-		checkNotNull(dataPointGroup);
+        m_groupCacheFile = file;
 
-		this.dataPointFactory = dataPointFactory;
-		storageTypeIdMap = new HashMap<String, Integer>();
-		dataPointFactories = new ArrayList<DataPointFactory>();
+        m_dataOutputStream = new DataOutputStream(new BufferedOutputStream(
+                new FileOutputStream(m_groupCacheFile)));
 
-		m_groupCacheFile = file;
+        this.groupByResults = groupByResults;
+        this.name = dataPointGroup.getName();
 
-		m_dataOutputStream = new DataOutputStream(new BufferedOutputStream(
-				new FileOutputStream(m_groupCacheFile)));
+        addTags(dataPointGroup);
+    }
 
-		this.groupByResults = groupByResults;
-		this.name = dataPointGroup.getName();
+    public static Group createGroup(final DataPointGroup dataPointGroup, final List<Integer> groupIds,
+                                    final List<GroupByResult> groupByResults, final KairosDataPointFactory dataPointFactory) throws IOException {
+        checkNotNull(dataPointGroup);
+        checkNotNull(groupIds);
+        checkNotNull(groupByResults);
 
-		addTags(dataPointGroup);
-	}
+        return new Group(getFile(groupIds), dataPointGroup, groupByResults, dataPointFactory);
+    }
 
-	public static Group createGroup(DataPointGroup dataPointGroup, List<Integer> groupIds,
-			List<GroupByResult> groupByResults, KairosDataPointFactory dataPointFactory) throws IOException
-	{
-		checkNotNull(dataPointGroup);
-		checkNotNull(groupIds);
-		checkNotNull(groupByResults);
+    private static File getFile(final List<Integer> groupIds) throws IOException {
+        final StringBuilder builder = new StringBuilder();
+        for (final Integer groupId : groupIds) {
+            builder.append(groupId);
+        }
 
-		return new Group(getFile(groupIds), dataPointGroup, groupByResults, dataPointFactory);
-	}
+        return File.createTempFile("grouper-" + builder.toString(), ".cache");
+    }
 
-	private static File getFile(List<Integer> groupIds) throws IOException
-	{
-		StringBuilder builder = new StringBuilder();
-		for (Integer groupId : groupIds)
-		{
-			builder.append(groupId);
-		}
+    private int getStorageTypeId(final String storageType) {
+        Integer id = storageTypeIdMap.get(storageType);
+        if (id == null) {
+            id = dataPointFactories.size();
+            storageTypeIdMap.put(storageType, dataPointFactories.size());
+            dataPointFactories.add(dataPointFactory.getFactoryForDataStoreType(storageType));
+        }
 
-		return File.createTempFile("grouper-" + builder.toString(), ".cache");
-	}
+        return id;
+    }
 
-	private int getStorageTypeId(String storageType)
-	{
-		Integer id = storageTypeIdMap.get(storageType);
-		if (id == null)
-		{
-			id = dataPointFactories.size();
-			storageTypeIdMap.put(storageType, dataPointFactories.size());
-			dataPointFactories.add(dataPointFactory.getFactoryForDataStoreType(storageType));
-		}
+    public void addDataPoint(final DataPoint dataPoint) throws IOException {
+        m_dataPointCount++;
+        packLong(dataPoint.getTimestamp(), m_dataOutputStream);
+        final int id = getStorageTypeId(dataPoint.getDataStoreDataType());
+        packLong(id, m_dataOutputStream);
+        dataPoint.writeValueToBuffer(m_dataOutputStream);
+    }
 
-		return id;
-	}
+    public void addGroupByResults(final List<GroupByResult> results) {
+        groupByResults.addAll(checkNotNull(results));
+    }
 
-	public void addDataPoint(DataPoint dataPoint) throws IOException
-	{
-		m_dataPointCount ++;
-		packLong(dataPoint.getTimestamp(), m_dataOutputStream);
-		int id = getStorageTypeId(dataPoint.getDataStoreDataType());
-		packLong(id, m_dataOutputStream);
-		dataPoint.writeValueToBuffer(m_dataOutputStream);
-	}
+    public DataPointGroup getDataPointGroup() throws IOException {
+        m_dataOutputStream.flush();
+        m_dataOutputStream.close();
 
-	public void addGroupByResults(List<GroupByResult> results)
-	{
-		groupByResults.addAll(checkNotNull(results));
-	}
+        return (new CachedDataPointGroup());
+    }
 
-	public DataPointGroup getDataPointGroup() throws IOException
-	{
-		m_dataOutputStream.flush();
-		m_dataOutputStream.close();
+    /**
+     * Adds all tags from the data point group.
+     *
+     * @param dataPointGroup data point group
+     */
+    public void addTags(final DataPointGroup dataPointGroup) {
+        for (final String tagName : dataPointGroup.getTagNames()) {
+            tags.putAll(tagName, dataPointGroup.getTagValues(tagName));
+        }
+    }
 
-		return (new CachedDataPointGroup());
-	}
+    private class CachedDataPointGroup implements DataPointGroup {
+        private int m_readCount = 0; //number of datapoints read from file
+        private final DataInputStream m_dataInputStream;
 
-	/**
-	 * Adds all tags from the data point group.
-	 * @param dataPointGroup data point group
-	 */
-	public void addTags(DataPointGroup dataPointGroup)
-	{
-		for (String tagName : dataPointGroup.getTagNames())
-		{
-			tags.putAll(tagName, dataPointGroup.getTagValues(tagName));
-		}
-	}
+        private CachedDataPointGroup() throws IOException {
+            m_dataInputStream = new DataInputStream(new BufferedInputStream(
+                    new FileInputStream(m_groupCacheFile)));
+        }
 
-	private class CachedDataPointGroup implements DataPointGroup
-	{
-		private int m_readCount = 0; //number of datapoints read from file
-		private DataInputStream m_dataInputStream;
+        @Override
+        public String getName() {
+            return name;
+        }
 
-		private CachedDataPointGroup() throws IOException
-		{
-			m_dataInputStream = new DataInputStream(new BufferedInputStream(
-					new FileInputStream(m_groupCacheFile)));
-		}
+        @Override
+        public Set<String> getTagNames() {
+            return tags.keySet();
+        }
 
-		@Override
-		public String getName()
-		{
-			return name;
-		}
+        @Override
+        public Set<String> getTagValues(final String tag) {
+            return tags.get(tag);
+        }
 
-		@Override
-		public Set<String> getTagNames()
-		{
-			return tags.keySet();
-		}
+        @Override
+        public List<GroupByResult> getGroupByResult() {
+            return groupByResults;
+        }
 
-		@Override
-		public Set<String> getTagValues(String tag)
-		{
-			return tags.get(tag);
-		}
+        @Override
+        public void close() {
+            try {
+                m_dataInputStream.close();
+                final boolean fileDeleted = m_groupCacheFile.delete();
 
-		@Override
-		public List<GroupByResult> getGroupByResult()
-		{
-			return groupByResults;
-		}
+                if (!fileDeleted)
+                    logger.error("Could not delete group file: " + m_groupCacheFile.getAbsolutePath());
 
-		@Override
-		public void close()
-		{
-			try
-			{
-				m_dataInputStream.close();
-				boolean fileDeleted = m_groupCacheFile.delete();
+            } catch (final IOException e) {
+                logger.error("Failed to close group file: " + m_groupCacheFile.getAbsolutePath());
+            }
+        }
 
-				if (!fileDeleted)
-					logger.error("Could not delete group file: " + m_groupCacheFile.getAbsolutePath());
+        @Override
+        public boolean hasNext() {
+            return (m_readCount < m_dataPointCount);
+        }
 
-			}
-			catch (IOException e)
-			{
-				logger.error("Failed to close group file: " + m_groupCacheFile.getAbsolutePath());
-			}
-		}
+        @Override
+        public DataPoint next() {
+            final DataPoint dataPoint;
 
-		@Override
-		public boolean hasNext()
-		{
-			return (m_readCount < m_dataPointCount);
-		}
+            if (m_readCount == m_dataPointCount)
+                return null;
 
-		@Override
-		public DataPoint next()
-		{
-			DataPoint dataPoint;
+            try {
+                final long timestamp = unpackLong(m_dataInputStream);
+                final int typeId = (int) unpackLong(m_dataInputStream);
 
-			if (m_readCount == m_dataPointCount)
-				return null;
+                dataPoint = dataPointFactories.get(typeId).getDataPoint(timestamp, m_dataInputStream);
+                m_readCount++;
 
-			try
-			{
-				long timestamp = unpackLong(m_dataInputStream);
-				int typeId = (int)unpackLong(m_dataInputStream);
+            } catch (final IOException e) {
+                // todo do I need to throw the exception?
+                logger.error("Error reading from group file: " + m_groupCacheFile.getAbsolutePath(), e);
+                return null;
+            }
 
-				dataPoint = dataPointFactories.get(typeId).getDataPoint(timestamp, m_dataInputStream);
-				m_readCount ++;
+            return (dataPoint);
+        }
 
-			}
-			catch (IOException e)
-			{
-				// todo do I need to throw the exception?
-				logger.error("Error reading from group file: " + m_groupCacheFile.getAbsolutePath(), e);
-				return null;
-			}
-
-			return (dataPoint);
-		}
-
-		@Override
-		public void remove()
-		{
-			throw new UnsupportedOperationException();
-		}
-	}
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
 }

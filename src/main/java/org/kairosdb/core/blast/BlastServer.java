@@ -42,13 +42,6 @@ public class BlastServer implements KairosDBService, Runnable {
     private boolean m_keepRunning = true;
 
     @Inject
-    @Named("HOSTNAME")
-    private final String m_hostName = "none";
-
-    @Inject
-    private final LongDataPointFactory m_dataPointFactory = new LongDataPointFactoryImpl();
-
-    @Inject
     public BlastServer(
             final FilterEventBus evenBus,
             final LongDataPointFactory longDataPointFactory,

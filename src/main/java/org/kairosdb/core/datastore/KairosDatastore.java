@@ -40,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -54,145 +55,133 @@ import java.util.TreeSet;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-public class KairosDatastore
-{
-	public static final Logger logger = LoggerFactory.getLogger(KairosDatastore.class);
-	public static final String QUERY_CACHE_DIR = "kairosdb.query_cache.cache_dir";
-	public static final String KEEP_CACHE_FILES = "kairosdb.query_cache.keep_cache_files";
-	public static final String QUERY_METRIC_TIME = "kairosdb.datastore.query_time";
-	public static final String QUERIES_WAITING_METRIC_NAME = "kairosdb.datastore.queries_waiting";
-	public static final String QUERY_SAMPLE_SIZE = "kairosdb.datastore.query_sample_size";
-	public static final String QUERY_ROW_COUNT = "kairosdb.datastore.query_row_count";
+public class KairosDatastore {
+    public static final Logger logger = LoggerFactory.getLogger(KairosDatastore.class);
+    public static final String QUERY_CACHE_DIR = "kairosdb.query_cache.cache_dir";
+    public static final String KEEP_CACHE_FILES = "kairosdb.query_cache.keep_cache_files";
+    public static final String QUERY_METRIC_TIME = "kairosdb.datastore.query_time";
+    public static final String QUERIES_WAITING_METRIC_NAME = "kairosdb.datastore.queries_waiting";
+    public static final String QUERY_SAMPLE_SIZE = "kairosdb.datastore.query_sample_size";
+    public static final String QUERY_ROW_COUNT = "kairosdb.datastore.query_row_count";
 
-	private final Datastore m_datastore;
-	private final QueryQueuingManager m_queuingManager;
-	private final KairosDataPointFactory m_dataPointFactory;
+    private final Datastore m_datastore;
+    private final QueryQueuingManager m_queuingManager;
+    private final KairosDataPointFactory m_dataPointFactory;
+    private final boolean m_keepCacheFiles;
+    private String m_baseCacheDir;
+    private volatile String m_cacheDir;
 
-	private String m_baseCacheDir;
-	private volatile String m_cacheDir;
-	private final boolean m_keepCacheFiles;
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Inject
+    public KairosDatastore(final Datastore datastore, final QueryQueuingManager queuingManager,
+                           final KairosDataPointFactory dataPointFactory,
+                           @Named(KEEP_CACHE_FILES) final boolean keepCacheFiles)
+            throws DatastoreException {
+        m_datastore = checkNotNull(datastore);
+        m_queuingManager = checkNotNull(queuingManager);
+        m_dataPointFactory = dataPointFactory;
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
-	@Inject
-	public KairosDatastore(Datastore datastore, QueryQueuingManager queuingManager,
-			KairosDataPointFactory dataPointFactory,
-			@Named(KEEP_CACHE_FILES) boolean keepCacheFiles)
-			throws DatastoreException
-	{
-		m_datastore = checkNotNull(datastore);
-		m_queuingManager = checkNotNull(queuingManager);
-		m_dataPointFactory = dataPointFactory;
+        m_baseCacheDir = System.getProperty("java.io.tmpdir") + "/kairos_cache/";
+        m_keepCacheFiles = keepCacheFiles;
 
-		m_baseCacheDir = System.getProperty("java.io.tmpdir") + "/kairos_cache/";
-		m_keepCacheFiles = keepCacheFiles;
+        setupCacheDirectory();
+    }
 
-		setupCacheDirectory();
-	}
+    /**
+     * Make sure the folder exists
+     *
+     * @param path
+     */
+    private static void ensureFolder(final String path) {
+        final File fPath = new File(path);
+        if (!fPath.exists())
+            fPath.mkdirs();
+    }
 
-	@SuppressWarnings("UnusedDeclaration")
-	@Inject(optional = true)
-	public void setBaseCacheDir(@Named(QUERY_CACHE_DIR) String cacheTempDir)
-	{
-		if (cacheTempDir != null && !cacheTempDir.equals(""))
-		{
-			m_baseCacheDir = cacheTempDir;
-			setupCacheDirectory();
-		}
-	}
+    private static List<GroupBy> removeTagGroupBy(final List<GroupBy> groupBys) {
+        final List<GroupBy> modifiedGroupBys = new ArrayList<GroupBy>();
+        for (final GroupBy groupBy : groupBys) {
+            if (!(groupBy instanceof TagGroupBy))
+                modifiedGroupBys.add(groupBy);
+        }
+        return modifiedGroupBys;
+    }
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
-	private void setupCacheDirectory()
-	{
-		cleanDirectory(new File(m_baseCacheDir));
-		newCacheDirectory();
-		File cacheDirectory = new File(m_cacheDir);
-		cacheDirectory.mkdirs();
-		checkState(cacheDirectory.exists(), "Unable to create Cache directory '" + m_cacheDir + "'");
-	}
+    private static TagGroupBy getTagGroupBy(final List<GroupBy> groupBys) {
+        for (final GroupBy groupBy : groupBys) {
+            if (groupBy instanceof TagGroupBy)
+                return (TagGroupBy) groupBy;
+        }
+        return null;
+    }
 
-	/**
-	 Make sure the folder exists
+    /**
+     * Create a unique identifier for this combination of tags to be used as the key of a hash map.
+     */
+    private static String getTagsKey(final LinkedHashMap<String, String> tags) {
+        final StringBuilder builder = new StringBuilder();
+        for (final Map.Entry<String, String> entry : tags.entrySet()) {
+            builder.append(entry.getKey()).append(entry.getValue());
+        }
 
-	 @param path
-	 */
-	private static void ensureFolder(String path)
-	{
-		File fPath = new File(path);
-		if (!fPath.exists())
-			fPath.mkdirs();
-	}
+        return builder.toString();
+    }
 
-	public String getCacheDir()
-	{
-		ensureFolder(m_cacheDir);
-		return (m_cacheDir);
-	}
+    /**
+     * Tags are inserted in the order specified in tagNames which is the order
+     * from the query.  We use a linked hashmap so that order is preserved and
+     * the group by responses are sorted in the order specified in the query.
+     *
+     * @param datapointGroup
+     * @param tagNames
+     * @return
+     */
+    private static LinkedHashMap<String, String> getMatchingTags(final DataPointGroup datapointGroup, final List<String> tagNames) {
+        final LinkedHashMap<String, String> matchingTags = new LinkedHashMap<String, String>();
+        for (final String tagName : tagNames) {
+            final Set<String> tagValues = datapointGroup.getTagValues(tagName);
+            if (tagValues != null) {
+                final String tagValue = tagValues.iterator().next();
+                matchingTags.put(tagName, tagValue != null ? tagValue : "");
+            }
+        }
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
-	private void newCacheDirectory()
-	{
-		String newCacheDir = m_baseCacheDir + "/" + System.currentTimeMillis() + "/";
-		ensureFolder(newCacheDir);
-		m_cacheDir = newCacheDir;
-	}
+        return matchingTags;
+    }
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
-	private void cleanDirectory(File directory)
-	{
-		if (!directory.exists())
-			return;
-		File[] list = directory.listFiles();
+    private static String calculateFilenameHash(final QueryMetric metric) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        String hashString = metric.getCacheString();
+        if (hashString == null)
+            hashString = String.valueOf(System.currentTimeMillis());
 
-		if (list != null && list.length > 0)
-		{
-			for (File aList : list)
-			{
-				if (aList.isDirectory())
-					cleanDirectory(aList);
+        final MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+        final byte[] digest = messageDigest.digest(hashString.getBytes(StandardCharsets.UTF_8));
 
-				aList.delete();
-			}
-		}
+        return new BigInteger(1, digest).toString(16);
+    }
 
-		directory.delete();
-	}
+    @SuppressWarnings("UnusedDeclaration")
+    @Inject(optional = true)
+    public void setBaseCacheDir(@Named(QUERY_CACHE_DIR) final String cacheTempDir) {
+        if (cacheTempDir != null && !cacheTempDir.equals("")) {
+            m_baseCacheDir = cacheTempDir;
+            setupCacheDirectory();
+        }
+    }
 
-	public void cleanCacheDir(boolean wait)
-	{
-		String oldCacheDir = m_cacheDir;
-		newCacheDirectory();
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void setupCacheDirectory() {
+        cleanDirectory(new File(m_baseCacheDir));
+        newCacheDirectory();
+        final File cacheDirectory = new File(m_cacheDir);
+        cacheDirectory.mkdirs();
+        checkState(cacheDirectory.exists(), "Unable to create Cache directory '" + m_cacheDir + "'");
+    }
 
-		if (wait)
-		{
-			try
-			{
-				Thread.sleep(60000);
-			}
-			catch (InterruptedException e)
-			{
-				logger.error("Sleep interrupted:", e);
-			}
-		}
-
-		logger.debug("Executing job...");
-		File dir = new File(oldCacheDir);
-		logger.debug("Deleting cache files in " + dir.getAbsolutePath());
-
-		cleanDirectory(dir);
-	}
-
-	public Datastore getDatastore()
-	{
-		return m_datastore;
-	}
-
-	/**
-	 * Close the datastore
-	 */
-	public void close() throws InterruptedException, DatastoreException
-	{
-		m_datastore.close();
-	}
+    public String getCacheDir() {
+        ensureFolder(m_cacheDir);
+        return (m_cacheDir);
+    }
 
 	/*public void putDataPoint(String metricName,
 			ImmutableSortedMap<String, String> tags,
@@ -209,388 +198,313 @@ public class KairosDatastore
 		m_datastore.putDataPoint(metricName, tags, dataPoint, ttl);
 	}*/
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void newCacheDirectory() {
+        final String newCacheDir = m_baseCacheDir + "/" + System.currentTimeMillis() + "/";
+        ensureFolder(newCacheDir);
+        m_cacheDir = newCacheDir;
+    }
 
-	public Iterable<String> getMetricNames(String prefix) throws DatastoreException
-	{
-		return (m_datastore.getMetricNames(prefix));
-	}
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void cleanDirectory(final File directory) {
+        if (!directory.exists())
+            return;
+        final File[] list = directory.listFiles();
 
-	public Iterable<String> getTagNames() throws DatastoreException
-	{
-		return (m_datastore.getTagNames());
-	}
+        if (list != null && list.length > 0) {
+            for (final File aList : list) {
+                if (aList.isDirectory())
+                    cleanDirectory(aList);
 
-	public Iterable<String> getTagValues() throws DatastoreException
-	{
-		return (m_datastore.getTagValues());
-	}
+                aList.delete();
+            }
+        }
 
-	/**
-	 * Exports the data for a metric query without doing any aggregation or sorting
-	 *
-	 * @param metric metric
-	 * @throws DatastoreException
-	 */
-	public void export(QueryMetric metric, QueryCallback callback) throws DatastoreException
-	{
-		checkNotNull(metric);
+        directory.delete();
+    }
 
-		m_datastore.queryDatabase(metric, callback);
-	}
+    public void cleanCacheDir(final boolean wait) {
+        final String oldCacheDir = m_cacheDir;
+        newCacheDirectory();
 
+        if (wait) {
+            try {
+                Thread.sleep(60000);
+            } catch (final InterruptedException e) {
+                logger.error("Sleep interrupted:", e);
+            }
+        }
 
-	public List<DataPointGroup> queryTags(QueryMetric metric) throws DatastoreException
-	{
-		TagSet tagSet = m_datastore.queryMetricTags(metric);
+        logger.debug("Executing job...");
+        final File dir = new File(oldCacheDir);
+        logger.debug("Deleting cache files in " + dir.getAbsolutePath());
 
-		return Collections.<DataPointGroup>singletonList(new EmptyDataPointGroup(metric.getName(), tagSet));
+        cleanDirectory(dir);
+    }
 
-	}
+    public Datastore getDatastore() {
+        return m_datastore;
+    }
 
+    /**
+     * Close the datastore
+     */
+    public void close() throws InterruptedException, DatastoreException {
+        m_datastore.close();
+    }
 
-	public long queryCardinality(QueryMetric metric) throws DatastoreException
-	{
-		return m_datastore.queryCardinality(metric);
-	}
+    public Iterable<String> getMetricNames(final String prefix) throws DatastoreException {
+        return (m_datastore.getMetricNames(prefix));
+    }
 
-	public DatastoreQuery createQuery(QueryMetric metric) throws DatastoreException
-	{
-		checkNotNull(metric);
+    public Iterable<String> getTagNames() throws DatastoreException {
+        return (m_datastore.getTagNames());
+    }
 
-		DatastoreQuery dq;
+    public Iterable<String> getTagValues() throws DatastoreException {
+        return (m_datastore.getTagValues());
+    }
 
-		try
-		{
-			dq = new DatastoreQueryImpl(metric);
-		}
-		catch (UnsupportedEncodingException e)
-		{
-			throw new DatastoreException(e);
-		}
-		catch (NoSuchAlgorithmException e)
-		{
-			throw new DatastoreException(e);
-		}
-		catch (InterruptedException e)
-		{
-			throw new DatastoreException(e);
-		}
+    /**
+     * Exports the data for a metric query without doing any aggregation or sorting
+     *
+     * @param metric metric
+     * @throws DatastoreException
+     */
+    public void export(final QueryMetric metric, final QueryCallback callback) throws DatastoreException {
+        checkNotNull(metric);
 
-		return (dq);
-	}
+        m_datastore.queryDatabase(metric, callback);
+    }
 
+    public List<DataPointGroup> queryTags(final QueryMetric metric) throws DatastoreException {
+        final TagSet tagSet = m_datastore.queryMetricTags(metric);
 
-	public void delete(QueryMetric metric) throws DatastoreException
-	{
-		checkNotNull(metric);
+        return Collections.singletonList(new EmptyDataPointGroup(metric.getName(), tagSet));
 
-		try
-		{
-			m_datastore.deleteDataPoints(metric);
-		}
-		catch (Exception e)
-		{
-			throw new DatastoreException(e);
-		}
-	}
+    }
 
-	private static List<GroupBy> removeTagGroupBy(List<GroupBy> groupBys)
-	{
-		List<GroupBy> modifiedGroupBys = new ArrayList<GroupBy>();
-		for (GroupBy groupBy : groupBys)
-		{
-			if (!(groupBy instanceof TagGroupBy))
-				modifiedGroupBys.add(groupBy);
-		}
-		return modifiedGroupBys;
-	}
+    public long queryCardinality(final QueryMetric metric) throws DatastoreException {
+        return m_datastore.queryCardinality(metric);
+    }
 
-	private static TagGroupBy getTagGroupBy(List<GroupBy> groupBys)
-	{
-		for (GroupBy groupBy : groupBys)
-		{
-			if (groupBy instanceof TagGroupBy)
-				return (TagGroupBy) groupBy;
-		}
-		return null;
-	}
+    public DatastoreQuery createQuery(final QueryMetric metric) throws DatastoreException {
+        checkNotNull(metric);
 
-	protected List<DataPointGroup> groupByTypeAndTag(String metricName,
-			List<DataPointRow> rows, TagGroupBy tagGroupBy, Order order)
-	{
-		List<DataPointGroup> ret = new ArrayList<DataPointGroup>();
-		MemoryMonitor mm = new MemoryMonitor(20);
+        final DatastoreQuery dq;
 
-		if (rows.isEmpty())
-		{
-			ret.add(new SortingDataPointGroup(metricName, order));
-		}
-		else
-		{
-			ListMultimap<String, DataPointGroup> typeGroups = ArrayListMultimap.create();
+        try {
+            dq = new DatastoreQueryImpl(metric);
+        } catch (final UnsupportedEncodingException e) {
+            throw new DatastoreException(e);
+        } catch (final NoSuchAlgorithmException e) {
+            throw new DatastoreException(e);
+        } catch (final InterruptedException e) {
+            throw new DatastoreException(e);
+        }
 
-			//Go through each row grouping them by type
-			for (DataPointRow row : rows)
-			{
-				String groupType = m_dataPointFactory.getGroupType(row.getDatastoreType());
+        return (dq);
+    }
 
-				typeGroups.put(groupType, new DataPointGroupRowWrapper(row));
-				mm.checkMemoryAndThrowException();
-			}
+    public void delete(final QueryMetric metric) throws DatastoreException {
+        checkNotNull(metric);
 
-			//Sort the types for predictable results
-			TreeSet<String> sortedTypes = new TreeSet<String>(typeGroups.keySet());
+        try {
+            m_datastore.deleteDataPoints(metric);
+        } catch (final Exception e) {
+            throw new DatastoreException(e);
+        }
+    }
 
-			//Now go through each type group and group by tag if needed.
-			for (String type : sortedTypes)
-			{
-				if (tagGroupBy != null)
-				{
-					ListMultimap<String, DataPointGroup> groups = ArrayListMultimap.create();
-					Map<String, TagGroupByResult> groupByResults = new HashMap<String, TagGroupByResult>();
+    protected List<DataPointGroup> groupByTypeAndTag(final String metricName,
+                                                     final List<DataPointRow> rows, final TagGroupBy tagGroupBy, final Order order) {
+        final List<DataPointGroup> ret = new ArrayList<DataPointGroup>();
+        final MemoryMonitor mm = new MemoryMonitor(20);
 
-					for (DataPointGroup dataPointGroup : typeGroups.get(type))
-					{
-						//Todo: Add code to datastore implementations to filter by the group by tag
+        if (rows.isEmpty()) {
+            ret.add(new SortingDataPointGroup(metricName, order));
+        } else {
+            final ListMultimap<String, DataPointGroup> typeGroups = ArrayListMultimap.create();
 
-						LinkedHashMap<String, String> matchingTags = getMatchingTags(dataPointGroup, tagGroupBy.getTagNames());
-						String tagsKey = getTagsKey(matchingTags);
-						groups.put(tagsKey, dataPointGroup);
-						groupByResults.put(tagsKey, new TagGroupByResult(tagGroupBy, matchingTags));
-						mm.checkMemoryAndThrowException();
-					}
+            //Go through each row grouping them by type
+            for (final DataPointRow row : rows) {
+                final String groupType = m_dataPointFactory.getGroupType(row.getDatastoreType());
 
-					//Sort groups by tags
-					TreeSet<String> sortedGroups = new TreeSet<String>(groups.keySet());
+                typeGroups.put(groupType, new DataPointGroupRowWrapper(row));
+                mm.checkMemoryAndThrowException();
+            }
 
-					for (String key : sortedGroups)
-					{
-						SortingDataPointGroup sdpGroup = new SortingDataPointGroup(groups.get(key), groupByResults.get(key), order);
-						sdpGroup.addGroupByResult(new TypeGroupByResult(type));
-						ret.add(sdpGroup);
-					}
-				}
-				else
-				{
-					ret.add(new SortingDataPointGroup(typeGroups.get(type), new TypeGroupByResult(type), order));
-				}
-			}
-		}
+            //Sort the types for predictable results
+            final TreeSet<String> sortedTypes = new TreeSet<String>(typeGroups.keySet());
 
-		return ret;
-	}
+            //Now go through each type group and group by tag if needed.
+            for (final String type : sortedTypes) {
+                if (tagGroupBy != null) {
+                    final ListMultimap<String, DataPointGroup> groups = ArrayListMultimap.create();
+                    final Map<String, TagGroupByResult> groupByResults = new HashMap<String, TagGroupByResult>();
 
+                    for (final DataPointGroup dataPointGroup : typeGroups.get(type)) {
+                        //Todo: Add code to datastore implementations to filter by the group by tag
 
-	/**
-	 * Create a unique identifier for this combination of tags to be used as the key of a hash map.
-	 */
-	private static String getTagsKey(LinkedHashMap<String, String> tags)
-	{
-		StringBuilder builder = new StringBuilder();
-		for (Map.Entry<String,String> entry : tags.entrySet())
-		{
-			builder.append(entry.getKey()).append(entry.getValue());
-		}
+                        final LinkedHashMap<String, String> matchingTags = getMatchingTags(dataPointGroup, tagGroupBy.getTagNames());
+                        final String tagsKey = getTagsKey(matchingTags);
+                        groups.put(tagsKey, dataPointGroup);
+                        groupByResults.put(tagsKey, new TagGroupByResult(tagGroupBy, matchingTags));
+                        mm.checkMemoryAndThrowException();
+                    }
 
-		return builder.toString();
-	}
+                    //Sort groups by tags
+                    final TreeSet<String> sortedGroups = new TreeSet<String>(groups.keySet());
 
-	/**
-	 Tags are inserted in the order specified in tagNames which is the order
-	 from the query.  We use a linked hashmap so that order is preserved and
-	 the group by responses are sorted in the order specified in the query.
-	 @param datapointGroup
-	 @param tagNames
-	 @return
-	 */
-	private static LinkedHashMap<String, String> getMatchingTags(DataPointGroup datapointGroup, List<String> tagNames)
-	{
-		LinkedHashMap<String, String> matchingTags = new LinkedHashMap<String, String>();
-		for (String tagName : tagNames)
-		{
-			Set<String> tagValues = datapointGroup.getTagValues(tagName);
-			if (tagValues != null)
-			{
-				String tagValue = tagValues.iterator().next();
-				matchingTags.put(tagName, tagValue != null ? tagValue : "");
-			}
-		}
+                    for (final String key : sortedGroups) {
+                        final SortingDataPointGroup sdpGroup = new SortingDataPointGroup(groups.get(key), groupByResults.get(key), order);
+                        sdpGroup.addGroupByResult(new TypeGroupByResult(type));
+                        ret.add(sdpGroup);
+                    }
+                } else {
+                    ret.add(new SortingDataPointGroup(typeGroups.get(type), new TypeGroupByResult(type), order));
+                }
+            }
+        }
 
-		return matchingTags;
-	}
+        return ret;
+    }
 
+    private class DatastoreQueryImpl implements DatastoreQuery {
+        private final String m_cacheFilename;
+        private final QueryMetric m_metric;
+        private List<DataPointGroup> m_results;
+        private int m_dataPointCount;
+        private int m_rowCount;
 
-	private static String calculateFilenameHash(QueryMetric metric) throws NoSuchAlgorithmException, UnsupportedEncodingException
-	{
-		String hashString = metric.getCacheString();
-		if (hashString == null)
-			hashString = String.valueOf(System.currentTimeMillis());
+        public DatastoreQueryImpl(final QueryMetric metric)
+                throws UnsupportedEncodingException, NoSuchAlgorithmException,
+                InterruptedException, DatastoreException {
+            //Report number of queries waiting
+            final int waitingCount = m_queuingManager.getQueryWaitingCount();
+            if (waitingCount != 0) {
+                ThreadReporter.addDataPoint(QUERIES_WAITING_METRIC_NAME, waitingCount);
+            }
 
-		MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-		byte[] digest = messageDigest.digest(hashString.getBytes("UTF-8"));
+            m_metric = metric;
+            m_cacheFilename = calculateFilenameHash(metric);
+            m_queuingManager.waitForTimeToRun(m_cacheFilename);
+        }
 
-		return new BigInteger(1, digest).toString(16);
-	}
+        public int getSampleSize() {
+            return m_dataPointCount;
+        }
 
+        public int getRowCount() {
+            return m_rowCount;
+        }
 
-	private class DatastoreQueryImpl implements DatastoreQuery
-	{
-		private String m_cacheFilename;
-		private QueryMetric m_metric;
-		private List<DataPointGroup> m_results;
-		private int m_dataPointCount;
-		private int m_rowCount;
-		
-		public DatastoreQueryImpl(QueryMetric metric)
-				throws UnsupportedEncodingException, NoSuchAlgorithmException,
-				InterruptedException, DatastoreException
-		{
-			//Report number of queries waiting
-			int waitingCount = m_queuingManager.getQueryWaitingCount();
-			if (waitingCount != 0)
-			{
-				ThreadReporter.addDataPoint(QUERIES_WAITING_METRIC_NAME, waitingCount);
-			}
+        @Override
+        public List<DataPointGroup> execute() throws DatastoreException {
+            final long queryStartTime = System.currentTimeMillis();
 
-			m_metric = metric;
-			m_cacheFilename = calculateFilenameHash(metric);
-			m_queuingManager.waitForTimeToRun(m_cacheFilename);
-		}
+            SearchResult searchResult = null;
 
-		public int getSampleSize()
-		{
-			return m_dataPointCount;
-		}
-		public int getRowCount() { return m_rowCount; }
+            List<DataPointRow> returnedRows = null;
 
-		@Override
-		public List<DataPointGroup> execute() throws DatastoreException
-		{
-			long queryStartTime = System.currentTimeMillis();
-			
-			SearchResult searchResult = null;
-
-			List<DataPointRow> returnedRows = null;
-
-			try
-			{
-				String tempFile = m_cacheDir + m_cacheFilename;
+            try {
+                final String tempFile = m_cacheDir + m_cacheFilename;
 
 				/*searchResult = new MemorySearchResult(m_metric.getName());
 				m_datastore.queryDatabase(m_metric, searchResult);
 				returnedRows = searchResult.getRows();*/
 
-				if (m_metric.getCacheTime() > 0)
-				{
-					searchResult = CachedSearchResult.openCachedSearchResult(m_metric.getName(),
-							tempFile, m_metric.getCacheTime(), m_dataPointFactory, m_keepCacheFiles);
-					if (searchResult != null)
-					{
-						returnedRows = searchResult.getRows();
-						logger.debug("Cache HIT!");
-					}
-				}
+                if (m_metric.getCacheTime() > 0) {
+                    searchResult = CachedSearchResult.openCachedSearchResult(m_metric.getName(),
+                            tempFile, m_metric.getCacheTime(), m_dataPointFactory, m_keepCacheFiles);
+                    if (searchResult != null) {
+                        returnedRows = searchResult.getRows();
+                        logger.debug("Cache HIT!");
+                    }
+                }
 
-				if (searchResult == null)
-				{
-					logger.debug("Cache MISS!");
-					searchResult = CachedSearchResult.createCachedSearchResult(m_metric.getName(),
-							tempFile, m_dataPointFactory, m_keepCacheFiles);
-					m_datastore.queryDatabase(m_metric, searchResult);
-					returnedRows = searchResult.getRows();
-				}
-			}
-			catch (Exception e)
-			{
-				logger.error("Query Error", e);
-				throw new DatastoreException(e);
-			}
+                if (searchResult == null) {
+                    logger.debug("Cache MISS!");
+                    searchResult = CachedSearchResult.createCachedSearchResult(m_metric.getName(),
+                            tempFile, m_dataPointFactory, m_keepCacheFiles);
+                    m_datastore.queryDatabase(m_metric, searchResult);
+                    returnedRows = searchResult.getRows();
+                }
+            } catch (final Exception e) {
+                logger.error("Query Error", e);
+                throw new DatastoreException(e);
+            }
 
-			//Get data point count
-			for (DataPointRow returnedRow : returnedRows)
-			{
-				m_dataPointCount += returnedRow.getDataPointCount();
-			}
+            //Get data point count
+            for (final DataPointRow returnedRow : returnedRows) {
+                m_dataPointCount += returnedRow.getDataPointCount();
+            }
 
-			m_rowCount = returnedRows.size();
+            m_rowCount = returnedRows.size();
 
-			ThreadReporter.addDataPoint(QUERY_SAMPLE_SIZE, m_dataPointCount);
-			ThreadReporter.addDataPoint(QUERY_ROW_COUNT, m_rowCount);
+            ThreadReporter.addDataPoint(QUERY_SAMPLE_SIZE, m_dataPointCount);
+            ThreadReporter.addDataPoint(QUERY_ROW_COUNT, m_rowCount);
 
-			List<DataPointGroup> queryResults = groupByTypeAndTag(m_metric.getName(),
-					returnedRows, getTagGroupBy(m_metric.getGroupBys()), m_metric.getOrder());
+            List<DataPointGroup> queryResults = groupByTypeAndTag(m_metric.getName(),
+                    returnedRows, getTagGroupBy(m_metric.getGroupBys()), m_metric.getOrder());
 
 
-			// Now group for all other types of group bys.
-			Grouper grouper = new Grouper(m_dataPointFactory);
-			try
-			{
-				queryResults = grouper.group(removeTagGroupBy(m_metric.getGroupBys()), queryResults);
-			}
-			catch (IOException e)
-			{
-				throw new DatastoreException(e);
-			}
+            // Now group for all other types of group bys.
+            final Grouper grouper = new Grouper(m_dataPointFactory);
+            try {
+                queryResults = grouper.group(removeTagGroupBy(m_metric.getGroupBys()), queryResults);
+            } catch (final IOException e) {
+                throw new DatastoreException(e);
+            }
 
-			m_results = new ArrayList<DataPointGroup>();
-			for (DataPointGroup queryResult : queryResults)
-			{
-				String groupType = DataPoint.GROUP_NUMBER;
-				//todo May want to make group type a first class citizen in DataPointGroup
-				for (GroupByResult groupByResult : queryResult.getGroupByResult())
-				{
-					if (groupByResult instanceof TypeGroupByResult)
-					{
-						groupType = ((TypeGroupByResult)groupByResult).getType();
-					}
-				}
+            m_results = new ArrayList<DataPointGroup>();
+            for (final DataPointGroup queryResult : queryResults) {
+                String groupType = DataPoint.GROUP_NUMBER;
+                //todo May want to make group type a first class citizen in DataPointGroup
+                for (final GroupByResult groupByResult : queryResult.getGroupByResult()) {
+                    if (groupByResult instanceof TypeGroupByResult) {
+                        groupType = ((TypeGroupByResult) groupByResult).getType();
+                    }
+                }
 
-				DataPointGroup aggregatedGroup = queryResult;
+                DataPointGroup aggregatedGroup = queryResult;
 
-				List<Aggregator> aggregators = m_metric.getAggregators();
+                final List<Aggregator> aggregators = m_metric.getAggregators();
 
-				if (m_metric.getLimit() != 0)
-				{
-					aggregatedGroup = new LimitAggregator(m_metric.getLimit()).aggregate(aggregatedGroup);
-				}
+                if (m_metric.getLimit() != 0) {
+                    aggregatedGroup = new LimitAggregator(m_metric.getLimit()).aggregate(aggregatedGroup);
+                }
 
-				//This will pipe the aggregators together.
-				for (Aggregator aggregator : aggregators)
-				{
-					//Make sure the aggregator can handle this type of data.
-					if (aggregator.canAggregate(groupType)) {
-						aggregatedGroup = aggregator.aggregate(aggregatedGroup);
-						groupType = aggregator.getAggregatedGroupType(groupType);
-					}
-				}
+                //This will pipe the aggregators together.
+                for (final Aggregator aggregator : aggregators) {
+                    //Make sure the aggregator can handle this type of data.
+                    if (aggregator.canAggregate(groupType)) {
+                        aggregatedGroup = aggregator.aggregate(aggregatedGroup);
+                        groupType = aggregator.getAggregatedGroupType(groupType);
+                    }
+                }
 
-				m_results.add(aggregatedGroup);
-			}
+                m_results.add(aggregatedGroup);
+            }
 
 
-			//Report how long query took
-			ThreadReporter.addDataPoint(QUERY_METRIC_TIME, System.currentTimeMillis() - queryStartTime);
+            //Report how long query took
+            ThreadReporter.addDataPoint(QUERY_METRIC_TIME, System.currentTimeMillis() - queryStartTime);
 
-			return (m_results);
-		}
+            return (m_results);
+        }
 
-		@Override
-		public void close()
-		{
-			try
-			{
-				if (m_results != null)
-				{
-					for (DataPointGroup result : m_results)
-					{
-						result.close();
-					}
-				}
-			}
-			finally
-			{  //This must get done
-				m_queuingManager.done(m_cacheFilename);
-			}
-		}
-	}
+        @Override
+        public void close() {
+            try {
+                if (m_results != null) {
+                    for (final DataPointGroup result : m_results) {
+                        result.close();
+                    }
+                }
+            } finally {  //This must get done
+                m_queuingManager.done(m_cacheFilename);
+            }
+        }
+    }
 }

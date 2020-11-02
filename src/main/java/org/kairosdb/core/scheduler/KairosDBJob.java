@@ -18,13 +18,12 @@ package org.kairosdb.core.scheduler;
 import org.quartz.InterruptableJob;
 import org.quartz.Trigger;
 
-public interface KairosDBJob extends InterruptableJob
-{
+public interface KairosDBJob extends InterruptableJob {
 
-	Trigger getTrigger();
+    Trigger getTrigger();
 
-	/**
-	 Called by the scheduler when the job is to be interrupted.
-	 */
-	void interrupt();
+    /**
+     * Called by the scheduler when the job is to be interrupted.
+     */
+    void interrupt();
 }

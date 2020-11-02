@@ -15,12 +15,10 @@
  */
 package org.kairosdb.core.formatter;
 
-public class FormatterException extends Exception
-{
+public class FormatterException extends Exception {
     private static final long serialVersionUID = 5130947644309640458L;
 
-    public FormatterException(Throwable cause)
-    {
+    public FormatterException(final Throwable cause) {
         super(cause);
     }
 }

@@ -18,8 +18,8 @@ package org.kairosdb.core;
 
 import org.kairosdb.core.exception.KairosDBException;
 
-public interface KairosDBService
-{
-	public void start() throws KairosDBException;
-	public void stop();
+public interface KairosDBService {
+    void start() throws KairosDBException;
+
+    void stop();
 }

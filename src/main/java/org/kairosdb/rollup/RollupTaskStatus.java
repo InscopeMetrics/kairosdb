@@ -7,8 +7,7 @@ import java.util.List;
 
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class RollupTaskStatus
-{
+public class RollupTaskStatus {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd MMM yyyy KK:mm:ss a");
     private static final String NEVER_SCHEDULED = "Never";
 
@@ -16,65 +15,52 @@ public class RollupTaskStatus
     private final String executingHost;
     private String nextScheduled;
 
-    public RollupTaskStatus(Date nextExecutionTime, String executingHost)
-    {
+    public RollupTaskStatus(final Date nextExecutionTime, final String executingHost) {
         setNextScheduled(nextExecutionTime);
         this.executingHost = checkNotNullOrEmpty(executingHost);
     }
 
-    public static RollupQueryMetricStatus createQueryMetricStatus(String metricName, long lastExecuted, long dataPointCount, long executionLength)
-    {
+    public static RollupQueryMetricStatus createQueryMetricStatus(final String metricName, final long lastExecuted, final long dataPointCount, final long executionLength) {
         return new RollupQueryMetricStatus(metricName, getLastExecutedTime(lastExecuted), dataPointCount, executionLength);
     }
 
-    public static RollupQueryMetricStatus createErrorQueryMetricStatus(String metricName, long lastExecuted, String errorMessage, long executionLength)
-    {
+    public static RollupQueryMetricStatus createErrorQueryMetricStatus(final String metricName, final long lastExecuted, final String errorMessage, final long executionLength) {
         return new RollupQueryMetricStatus(metricName, getLastExecutedTime(lastExecuted), executionLength, errorMessage);
     }
 
-    public String getNextScheduled()
-    {
-        return nextScheduled;
-    }
-
-    public void setNextScheduled(Date nextScheduled)
-    {
-        if (nextScheduled != null) {
-            this.nextScheduled = DATE_FORMAT.format(nextScheduled);
-        }
-        else
-        {
-            this.nextScheduled = NEVER_SCHEDULED;
-        }
-    }
-
-    public void addStatus(RollupQueryMetricStatus status)
-    {
-        statuses.add(status);
-    }
-
-    public List<RollupQueryMetricStatus> getStatuses()
-    {
-        return statuses;
-    }
-
-    private static String getLastExecutedTime(long lastExecuted)
-    {
-        if (lastExecuted == 0)
-        {
+    private static String getLastExecutedTime(final long lastExecuted) {
+        if (lastExecuted == 0) {
             return NEVER_SCHEDULED;
         }
         return DATE_FORMAT.format(lastExecuted);
     }
 
-    public String getExecutingHost()
-    {
+    public String getNextScheduled() {
+        return nextScheduled;
+    }
+
+    public void setNextScheduled(final Date nextScheduled) {
+        if (nextScheduled != null) {
+            this.nextScheduled = DATE_FORMAT.format(nextScheduled);
+        } else {
+            this.nextScheduled = NEVER_SCHEDULED;
+        }
+    }
+
+    public void addStatus(final RollupQueryMetricStatus status) {
+        statuses.add(status);
+    }
+
+    public List<RollupQueryMetricStatus> getStatuses() {
+        return statuses;
+    }
+
+    public String getExecutingHost() {
         return executingHost;
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -82,7 +68,7 @@ public class RollupTaskStatus
             return false;
         }
 
-        RollupTaskStatus that = (RollupTaskStatus) o;
+        final RollupTaskStatus that = (RollupTaskStatus) o;
 
         if (!statuses.equals(that.statuses)) {
             return false;
@@ -94,8 +80,7 @@ public class RollupTaskStatus
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = statuses.hashCode();
         result = 31 * result + executingHost.hashCode();
         result = 31 * result + nextScheduled.hashCode();

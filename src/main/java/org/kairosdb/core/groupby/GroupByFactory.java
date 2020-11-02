@@ -27,12 +27,10 @@ import java.lang.reflect.InvocationTargetException;
         name = "group_by",
         label = "Group By"
 )
-public class GroupByFactory extends GenericFeatureProcessorFactory<GroupBy>
-{
+public class GroupByFactory extends GenericFeatureProcessorFactory<GroupBy> {
     @Inject
-    public GroupByFactory(Injector injector)
-            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException
-    {
+    public GroupByFactory(final Injector injector)
+            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         super(injector, GroupBy.class);
     }
 }

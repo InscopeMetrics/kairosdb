@@ -24,9 +24,9 @@ import org.kairosdb.core.annotation.ValidationProperty;
 import org.kairosdb.core.formatter.FormatterException;
 import org.kairosdb.plugin.GroupBy;
 
-import javax.validation.constraints.Min;
 import java.io.StringWriter;
 import java.util.Map;
+import javax.validation.constraints.Min;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -37,8 +37,7 @@ import static com.google.common.base.Preconditions.checkArgument;
         name = "value",
         description = "Groups data points by value."
 )
-public class ValueGroupBy implements GroupBy
-{
+public class ValueGroupBy implements GroupBy {
     @Min(1)
     @FeatureProperty(
             name = "range_size",
@@ -51,69 +50,58 @@ public class ValueGroupBy implements GroupBy
                     )
             }
     )
-private int rangeSize;
+    private int rangeSize;
 
-public ValueGroupBy()
-        {
-        }
+    public ValueGroupBy() {
+    }
 
-public ValueGroupBy(int rangeSize)
-        {
-        checkArgument(rangeSize>0);
+    public ValueGroupBy(final int rangeSize) {
+        checkArgument(rangeSize > 0);
 
-        this.rangeSize=rangeSize;
-        }
+        this.rangeSize = rangeSize;
+    }
 
-@Override
-public int getGroupId(DataPoint dataPoint,Map<String, String> tags)
-        {
-        if(dataPoint.isLong())
-        return(int)(dataPoint.getLongValue()/rangeSize);
-        else if(dataPoint.isDouble())
-        return(int)dataPoint.getDoubleValue()/rangeSize;
+    @Override
+    public int getGroupId(final DataPoint dataPoint, final Map<String, String> tags) {
+        if (dataPoint.isLong())
+            return (int) (dataPoint.getLongValue() / rangeSize);
+        else if (dataPoint.isDouble())
+            return (int) dataPoint.getDoubleValue() / rangeSize;
         else
-        return-1;
-        }
+            return -1;
+    }
 
-@Override
-public GroupByResult getGroupByResult(final int id)
-        {
-        return new GroupByResult()
-        {
-@Override
-public String toJson()throws FormatterException
-        {
-        StringWriter stringWriter=new StringWriter();
-        try
-        {
-        JSONWriter writer=new JSONWriter(stringWriter);
+    @Override
+    public GroupByResult getGroupByResult(final int id) {
+        return new GroupByResult() {
+            @Override
+            public String toJson() throws FormatterException {
+                final StringWriter stringWriter = new StringWriter();
+                try {
+                    final JSONWriter writer = new JSONWriter(stringWriter);
 
-        writer.object();
-        writer.key("name").value("value");
-        writer.key("range_size").value(rangeSize);
+                    writer.object();
+                    writer.key("name").value("value");
+                    writer.key("range_size").value(rangeSize);
 
-        writer.key("group").object();
-        writer.key("group_number").value(id);
-        writer.endObject();
-        writer.endObject();
-        }
-        catch(JSONException e)
-        {
-        throw new FormatterException(e);
-        }
+                    writer.key("group").object();
+                    writer.key("group_number").value(id);
+                    writer.endObject();
+                    writer.endObject();
+                } catch (final JSONException e) {
+                    throw new FormatterException(e);
+                }
 
-        return stringWriter.toString();
-        }
+                return stringWriter.toString();
+            }
         };
-        }
+    }
 
-@Override
-public void setStartDate(long startDate)
-        {
-        }
+    @Override
+    public void setStartDate(final long startDate) {
+    }
 
-public void setRangeSize(int rangeSize)
-        {
-        this.rangeSize=rangeSize;
-        }
-        }
+    public void setRangeSize(final int rangeSize) {
+        this.rangeSize = rangeSize;
+    }
+}
