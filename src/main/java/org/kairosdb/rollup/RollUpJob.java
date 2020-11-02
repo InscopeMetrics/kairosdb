@@ -64,8 +64,6 @@ public class RollUpJob implements InterruptableJob
 			checkState(hostName != null, "hostname was null");
 			checkState(statusStore != null, "statusStore was null");
 
-			Publisher<DataPointEvent> publisher = eventBus.createPublisher(DataPointEvent.class);
-
 			for (Rollup rollup : task.getRollups())
 			{
 				log.info("Executing Rollup Task: " + task.getName() + " for Rollup  " + rollup.getSaveAs());

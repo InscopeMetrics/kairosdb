@@ -137,10 +137,6 @@ public class MetricsResource
 	@Named("kairosdb.log.queries.greater_than")
 	private int m_logQueriesLongerThan = 60;
 
-	@Inject
-	@Named("HOSTNAME")
-	private String hostName = "localhost";
-
 	//Used for setting which API methods are enabled
 	private EnumSet<ServerType> m_serverType = EnumSet.of(ServerType.INGEST, ServerType.QUERY, ServerType.DELETE);
 
