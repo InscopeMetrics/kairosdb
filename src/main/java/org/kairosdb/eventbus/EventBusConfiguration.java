@@ -15,11 +15,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * to your class name. A filter priority is between 0 and 100 inclusive where 0 is the highest priority. The
  * default priority (if unspecified) is 50.
  * For example,
- *
+ * <p>
  * kairosdb.eventbus.filter.priority.org.myStuff.filters.Filter1=30
  */
-public class EventBusConfiguration
-{
+public class EventBusConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(EventBusConfiguration.class);
     private static final String KAIROSDB_EVENTBUS_FILTER_PRIORITY_PREFIX = "kairosdb.eventbus.filter.priority.";
     private static final int PREFIX_LENGTH = KAIROSDB_EVENTBUS_FILTER_PRIORITY_PREFIX.length();
@@ -27,28 +26,24 @@ public class EventBusConfiguration
     private final Map<String, Integer> priorities = new HashMap<>();
 
     @Inject
-    public EventBusConfiguration(Properties properties)
-    {
+    public EventBusConfiguration(final Properties properties) {
         checkNotNull(properties, "properties cannot be null");
 
-        for (Object o : properties.keySet()) {
-            String property = (String) o;
-            if (property.startsWith(KAIROSDB_EVENTBUS_FILTER_PRIORITY_PREFIX))
-            {
-                String className = property.substring(property.indexOf(KAIROSDB_EVENTBUS_FILTER_PRIORITY_PREFIX) + PREFIX_LENGTH);
+        for (final Object o : properties.keySet()) {
+            final String property = (String) o;
+            if (property.startsWith(KAIROSDB_EVENTBUS_FILTER_PRIORITY_PREFIX)) {
+                final String className = property.substring(property.indexOf(KAIROSDB_EVENTBUS_FILTER_PRIORITY_PREFIX) + PREFIX_LENGTH);
                 try {
-                    int priority = Integer.parseInt(properties.getProperty(property));
+                    final int priority = Integer.parseInt(properties.getProperty(property));
                     priorities.put(className, priority);
-                }
-                catch (NumberFormatException e) {
+                } catch (final NumberFormatException e) {
                     logger.error("Priority is invalid " + properties.getProperty(property));
                 }
             }
         }
     }
 
-    public int getFilterPriority(String filterClassName)
-    {
+    public int getFilterPriority(final String filterClassName) {
         return priorities.getOrDefault(filterClassName, PipelineRegistry.DEFAULT_PRIORITY);
     }
 }

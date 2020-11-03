@@ -40,414 +40,345 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- Originally used Jackson to parse, but this approach failed for a very large JSON because
- everything was in memory and we would run out of memory. This parser adds metrics as it walks
- through the stream.
+ * Originally used Jackson to parse, but this approach failed for a very large JSON because
+ * everything was in memory and we would run out of memory. This parser adds metrics as it walks
+ * through the stream.
  */
-public class DataPointsParser
-{
-	private final Publisher<DataPointEvent> m_publisher;
-	private final Reader inputStream;
-	private final Gson gson;
-	private final KairosDataPointFactory dataPointFactory;
+public class DataPointsParser {
+    private final Publisher<DataPointEvent> m_publisher;
+    private final Reader inputStream;
+    private final Gson gson;
+    private final KairosDataPointFactory dataPointFactory;
+    private int dataPointCount;
+    private int ingestTime;
 
-	public int getDataPointCount()
-	{
-		return dataPointCount;
-	}
+    public DataPointsParser(
+            final Publisher<DataPointEvent> publisher,
+            final Reader stream,
+            final Gson gson,
+            final KairosDataPointFactory dataPointFactory) {
+        m_publisher = publisher;
+        this.inputStream = checkNotNull(stream);
+        this.gson = gson;
+        this.dataPointFactory = dataPointFactory;
+    }
 
-	public int getIngestTime()
-	{
-		return ingestTime;
-	}
+    public int getDataPointCount() {
+        return dataPointCount;
+    }
 
-	private int dataPointCount;
-	private int ingestTime;
+    public int getIngestTime() {
+        return ingestTime;
+    }
 
-	public DataPointsParser(Publisher<DataPointEvent> publisher, Reader stream, Gson gson,
-			KairosDataPointFactory dataPointFactory)
-	{
-		m_publisher = publisher;
-		this.inputStream = checkNotNull(stream);
-		this.gson = gson;
-		this.dataPointFactory = dataPointFactory;
-	}
+    public ValidationErrors parse() throws IOException, DatastoreException {
+        final long start = System.currentTimeMillis();
+        final ValidationErrors validationErrors = new ValidationErrors();
 
-	public ValidationErrors parse() throws IOException, DatastoreException
-	{
-		long start = System.currentTimeMillis();
-		ValidationErrors validationErrors = new ValidationErrors();
+        try (final JsonReader reader = new JsonReader(inputStream)) {
+            int metricCount = 0;
 
-		try (JsonReader reader = new JsonReader(inputStream))
-		{
-			int metricCount = 0;
+            if (reader.peek().equals(JsonToken.BEGIN_ARRAY)) {
+                try {
+                    reader.beginArray();
 
-			if (reader.peek().equals(JsonToken.BEGIN_ARRAY))
-			{
-				try
-				{
-					reader.beginArray();
+                    while (reader.hasNext()) {
+                        final NewMetric metric = parseMetric(reader);
+                        validateAndAddDataPoints(metric, validationErrors, metricCount);
+                        metricCount++;
+                    }
+                } catch (final EOFException e) {
+                    validationErrors.addErrorMessage("Invalid json. No content due to end of input.");
+                }
 
-					while (reader.hasNext())
-					{
-						NewMetric metric = parseMetric(reader);
-						validateAndAddDataPoints(metric, validationErrors, metricCount);
-						metricCount++;
-					}
-				}
-				catch (EOFException e)
-				{
-					validationErrors.addErrorMessage("Invalid json. No content due to end of input.");
-				}
+                reader.endArray();
+            } else if (reader.peek().equals(JsonToken.BEGIN_OBJECT)) {
+                final NewMetric metric = parseMetric(reader);
+                validateAndAddDataPoints(metric, validationErrors, 0);
+            } else
+                validationErrors.addErrorMessage("Invalid start of json.");
 
-				reader.endArray();
-			}
-			else if (reader.peek().equals(JsonToken.BEGIN_OBJECT))
-			{
-				NewMetric metric = parseMetric(reader);
-				validateAndAddDataPoints(metric, validationErrors, 0);
-			}
-			else
-				validationErrors.addErrorMessage("Invalid start of json.");
+        } catch (final EOFException e) {
+            validationErrors.addErrorMessage("Invalid json. No content due to end of input.");
+        }
 
-		}
-		catch (EOFException e)
-		{
-			validationErrors.addErrorMessage("Invalid json. No content due to end of input.");
-		}
+        ingestTime = (int) (System.currentTimeMillis() - start);
 
-		ingestTime = (int) (System.currentTimeMillis() - start);
+        return validationErrors;
+    }
 
-		return validationErrors;
-	}
+    private NewMetric parseMetric(final JsonReader reader) {
+        final NewMetric metric;
+        try {
+            metric = gson.fromJson(reader, NewMetric.class);
+        } catch (final IllegalArgumentException e) {
+            // Happens when parsing data points where one of the pair is missing (timestamp or value)
+            throw new JsonSyntaxException("Invalid JSON");
+        }
+        return metric;
+    }
 
-	private NewMetric parseMetric(JsonReader reader)
-	{
-		NewMetric metric;
-		try
-		{
-			metric = gson.fromJson(reader, NewMetric.class);
-		}
-		catch (IllegalArgumentException e)
-		{
-			// Happens when parsing data points where one of the pair is missing (timestamp or value)
-			throw new JsonSyntaxException("Invalid JSON");
-		}
-		return metric;
-	}
+    private String findType(final JsonElement value) throws ValidationException {
+        if (!value.isJsonPrimitive()) {
+            throw new ValidationException("value is an invalid type");
+        }
 
-	private static class Context
-	{
-		private int m_count;
-		private String m_name;
-		private String m_attribute;
+        final JsonPrimitive primitiveValue = (JsonPrimitive) value;
+        if (primitiveValue.isNumber() || (primitiveValue.isString() && Util.isNumber(value.getAsString()))) {
+            final String v = value.getAsString();
 
-		public Context(int count)
-		{
-			m_count = count;
-		}
+            if (!v.contains(".")) {
+                return "long";
+            } else {
+                return "double";
+            }
+        } else
+            return "string";
+    }
 
-		private Context setName(String name)
-		{
-			m_name = name;
-			m_attribute = null;
-			return (this);
-		}
+    private boolean validateAndAddDataPoints(
+            final NewMetric metric,
+            final ValidationErrors errors,
+            final int count)
+            throws DatastoreException, IOException {
+        final ValidationErrors validationErrors = new ValidationErrors();
 
-		private Context setAttribute(String attribute)
-		{
-			m_attribute = attribute;
-			return (this);
-		}
+        final Context context = new Context(count);
+        if (metric.validate()) {
+            if (Validator.isNotNullOrEmpty(validationErrors, context.setAttribute("name"), metric.getName())) {
+                context.setName(metric.getName());
+                //Validator.isValidateCharacterSet(validationErrors, context, metric.getName());
+            }
 
-		public String toString()
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.append("metric[").append(m_count).append("]");
-			if (m_name != null)
-				sb.append("(name=").append(m_name).append(")");
-
-			if (m_attribute != null)
-				sb.append(".").append(m_attribute);
-
-			return (sb.toString());
-		}
-	}
-
-	private static class SubContext
-	{
-		private Context m_context;
-		private String m_contextName;
-		private int m_count;
-		private String m_name;
-		private String m_attribute;
-
-		public SubContext(Context context, String contextName)
-		{
-			m_context = context;
-			m_contextName = contextName;
-		}
-
-		private SubContext setCount(int count)
-		{
-			m_count = count;
-			m_name = null;
-			m_attribute = null;
-			return (this);
-		}
-
-		private SubContext setName(String name)
-		{
-			m_name = name;
-			m_attribute = null;
-			return (this);
-		}
-
-		private SubContext setAttribute(String attribute)
-		{
-			m_attribute = attribute;
-			return (this);
-		}
-
-		public String toString()
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.append(m_context).append(".").append(m_contextName).append("[");
-			if (m_name != null)
-				sb.append(m_name);
-			else
-				sb.append(m_count);
-			sb.append("]");
-
-			if (m_attribute != null)
-				sb.append(".").append(m_attribute);
-
-			return (sb.toString());
-		}
-	}
-
-	private String findType(JsonElement value) throws ValidationException
-	{
-		if (!value.isJsonPrimitive())
-		{
-			throw new ValidationException("value is an invalid type");
-		}
-
-		JsonPrimitive primitiveValue = (JsonPrimitive) value;
-		if (primitiveValue.isNumber() || (primitiveValue.isString() && Util.isNumber(value.getAsString())))
-		{
-			String v = value.getAsString();
-
-			if (!v.contains("."))
-			{
-				return "long";
-			}
-			else
-			{
-				return "double";
-			}
-		}
-		else
-			return "string";
-	}
-
-	private boolean validateAndAddDataPoints(NewMetric metric, ValidationErrors errors, int count) throws DatastoreException, IOException
-	{
-		ValidationErrors validationErrors = new ValidationErrors();
-
-		Context context = new Context(count);
-		if (metric.validate())
-		{
-			if (Validator.isNotNullOrEmpty(validationErrors, context.setAttribute("name"), metric.getName()))
-			{
-				context.setName(metric.getName());
-				//Validator.isValidateCharacterSet(validationErrors, context, metric.getName());
-			}
-
-			if (metric.getTimestamp() != null)
-				Validator.isNotNullOrEmpty(validationErrors, context.setAttribute("value"), metric.getValue());
-			else if (metric.getValue() != null && !metric.getValue().isJsonNull())
-				Validator.isNotNull(validationErrors, context.setAttribute("timestamp"), metric.getTimestamp());
-			//				Validator.isGreaterThanOrEqualTo(validationErrors, context.setAttribute("timestamp"), metric.getTimestamp(), 1);
+            if (metric.getTimestamp() != null)
+                Validator.isNotNullOrEmpty(validationErrors, context.setAttribute("value"), metric.getValue());
+            else if (metric.getValue() != null && !metric.getValue().isJsonNull())
+                Validator.isNotNull(validationErrors, context.setAttribute("timestamp"), metric.getTimestamp());
+            //				Validator.isGreaterThanOrEqualTo(validationErrors, context.setAttribute("timestamp"), metric.getTimestamp(), 1);
 
 
-			if (Validator.isGreaterThanOrEqualTo(validationErrors, context.setAttribute("tags count"), metric.getTags().size(), 1))
-			{
-				int tagCount = 0;
-				SubContext tagContext = new SubContext(context.setAttribute(null), "tag");
+            if (Validator.isGreaterThanOrEqualTo(validationErrors, context.setAttribute("tags count"), metric.getTags().size(), 1)) {
+                int tagCount = 0;
+                final SubContext tagContext = new SubContext(context.setAttribute(null), "tag");
 
-				for (Map.Entry<String, String> entry : metric.getTags().entrySet())
-				{
-					tagContext.setCount(tagCount);
-					if (Validator.isNotNullOrEmpty(validationErrors, tagContext.setAttribute("name"), entry.getKey()))
-					{
-						tagContext.setName(entry.getKey());
-						Validator.isNotNullOrEmpty(validationErrors, tagContext, entry.getKey());
-					}
-					if (Validator.isNotNullOrEmpty(validationErrors, tagContext.setAttribute("value"), entry.getValue()))
-						Validator.isNotNullOrEmpty(validationErrors, tagContext, entry.getValue());
+                for (final Map.Entry<String, String> entry : metric.getTags().entrySet()) {
+                    tagContext.setCount(tagCount);
+                    if (Validator.isNotNullOrEmpty(validationErrors, tagContext.setAttribute("name"), entry.getKey())) {
+                        tagContext.setName(entry.getKey());
+                        Validator.isNotNullOrEmpty(validationErrors, tagContext, entry.getKey());
+                    }
+                    if (Validator.isNotNullOrEmpty(validationErrors, tagContext.setAttribute("value"), entry.getValue()))
+                        Validator.isNotNullOrEmpty(validationErrors, tagContext, entry.getValue());
 
-					tagCount++;
-				}
-			}
-		}
+                    tagCount++;
+                }
+            }
+        }
 
 
-		if (!validationErrors.hasErrors())
-		{
-			ImmutableSortedMap<String, String> tags = ImmutableSortedMap.copyOf(metric.getTags());
+        if (!validationErrors.hasErrors()) {
+            final ImmutableSortedMap<String, String> tags = ImmutableSortedMap.copyOf(metric.getTags());
 
-			if (metric.getTimestamp() != null && metric.getValue() != null)
-			{
-				String type = metric.getType();
+            if (metric.getTimestamp() != null && metric.getValue() != null) {
+                String type = metric.getType();
 
-				if (type == null)
-				{
-					try
-					{
-						type = findType(metric.getValue());
-					}
-					catch (ValidationException e)
-					{
-						validationErrors.addErrorMessage(context + " " + e.getMessage());
-					}
-				}
+                if (type == null) {
+                    try {
+                        type = findType(metric.getValue());
+                    } catch (final ValidationException e) {
+                        validationErrors.addErrorMessage(context + " " + e.getMessage());
+                    }
+                }
 
-				if (type != null)
-				{
-					if (dataPointFactory.isRegisteredType(type))
-					{
-						m_publisher.post(new DataPointEvent(metric.getName(), tags, dataPointFactory.createDataPoint(
-								type, metric.getTimestamp(), metric.getValue()), metric.getTtl()));
-						dataPointCount++;
-					}
-					else
-					{
-						validationErrors.addErrorMessage("Unregistered data point type '" + type + "'");
-					}
-				}
-			}
+                if (type != null) {
+                    if (dataPointFactory.isRegisteredType(type)) {
+                        m_publisher.post(new DataPointEvent(metric.getName(), tags, dataPointFactory.createDataPoint(
+                                type, metric.getTimestamp(), metric.getValue()), metric.getTtl()));
+                        dataPointCount++;
+                    } else {
+                        validationErrors.addErrorMessage("Unregistered data point type '" + type + "'");
+                    }
+                }
+            }
 
-			if (metric.getDatapoints() != null && metric.getDatapoints().length > 0)
-			{
-				int contextCount = 0;
-				SubContext dataPointContext = new SubContext(context, "datapoints");
-				for (JsonElement[] dataPoint : metric.getDatapoints())
-				{
-					dataPointContext.setCount(contextCount);
-					if (dataPoint.length < 1)
-					{
-						validationErrors.addErrorMessage(dataPointContext.setAttribute("timestamp") + " cannot be null or empty.");
-						continue;
-					}
-					else if (dataPoint.length < 2)
-					{
-						validationErrors.addErrorMessage(dataPointContext.setAttribute("value") + " cannot be null or empty.");
-						continue;
-					}
-					else
-					{
-						Long timestamp = null;
-						if (!dataPoint[0].isJsonNull())
-							timestamp = dataPoint[0].getAsLong();
+            if (metric.getDatapoints() != null && metric.getDatapoints().length > 0) {
+                int contextCount = 0;
+                final SubContext dataPointContext = new SubContext(context, "datapoints");
+                for (final JsonElement[] dataPoint : metric.getDatapoints()) {
+                    dataPointContext.setCount(contextCount);
+                    if (dataPoint.length < 1) {
+                        validationErrors.addErrorMessage(dataPointContext.setAttribute("timestamp") + " cannot be null or empty.");
+                        continue;
+                    } else if (dataPoint.length < 2) {
+                        validationErrors.addErrorMessage(dataPointContext.setAttribute("value") + " cannot be null or empty.");
+                        continue;
+                    } else {
+                        Long timestamp = null;
+                        if (!dataPoint[0].isJsonNull())
+                            timestamp = dataPoint[0].getAsLong();
 
-						if (metric.validate() && !Validator.isNotNull(validationErrors, dataPointContext.setAttribute("timestamp"), timestamp))
-							continue;
+                        if (metric.validate() && !Validator.isNotNull(validationErrors, dataPointContext.setAttribute("timestamp"), timestamp))
+                            continue;
 
-						String type = metric.getType();
-						if (dataPoint.length > 2)
-							type = dataPoint[2].getAsString();
+                        String type = metric.getType();
+                        if (dataPoint.length > 2)
+                            type = dataPoint[2].getAsString();
 
-						if (!Validator.isNotNullOrEmpty(validationErrors, dataPointContext.setAttribute("value"), dataPoint[1]))
-							continue;
+                        if (!Validator.isNotNullOrEmpty(validationErrors, dataPointContext.setAttribute("value"), dataPoint[1]))
+                            continue;
 
-						if (type == null)
-						{
-							try
-							{
-								type = findType(dataPoint[1]);
-							}
-							catch (ValidationException e)
-							{
-								validationErrors.addErrorMessage(context + " " + e.getMessage());
-								continue;
-							}
-						}
+                        if (type == null) {
+                            try {
+                                type = findType(dataPoint[1]);
+                            } catch (final ValidationException e) {
+                                validationErrors.addErrorMessage(context + " " + e.getMessage());
+                                continue;
+                            }
+                        }
 
-						if (!dataPointFactory.isRegisteredType(type))
-						{
-							validationErrors.addErrorMessage("Unregistered data point type '" + type + "'");
-							continue;
-						}
+                        if (!dataPointFactory.isRegisteredType(type)) {
+                            validationErrors.addErrorMessage("Unregistered data point type '" + type + "'");
+                            continue;
+                        }
 
-						m_publisher.post(new DataPointEvent(metric.getName(), tags,
-								dataPointFactory.createDataPoint(type, timestamp, dataPoint[1]), metric.getTtl()));
-						dataPointCount++;
-					}
-					contextCount++;
-				}
-			}
-		}
+                        m_publisher.post(new DataPointEvent(metric.getName(), tags,
+                                dataPointFactory.createDataPoint(type, timestamp, dataPoint[1]), metric.getTtl()));
+                        dataPointCount++;
+                    }
+                    contextCount++;
+                }
+            }
+        }
 
-		errors.add(validationErrors);
+        errors.add(validationErrors);
 
-		return !validationErrors.hasErrors();
-	}
+        return !validationErrors.hasErrors();
+    }
 
-	@SuppressWarnings({"MismatchedReadAndWriteOfArray", "UnusedDeclaration"})
-	private static class NewMetric
-	{
-		private String name;
-		private Long timestamp = null;
-		private Long time = null;
-		private JsonElement value;
-		private Map<String, String> tags;
-		private JsonElement[][] datapoints;
-		private boolean skip_validate = false;
-		private String type;
-		private int ttl = 0;
+    private static class Context {
+        private final int m_count;
+        private String m_name;
+        private String m_attribute;
 
-		private String getName()
-		{
-			return name;
-		}
+        public Context(final int count) {
+            m_count = count;
+        }
 
-		public Long getTimestamp()
-		{
-			if (time != null)
-				return time;
-			else
-				return timestamp;
-		}
+        private Context setName(final String name) {
+            m_name = name;
+            m_attribute = null;
+            return (this);
+        }
 
-		public JsonElement getValue()
-		{
-			return value;
-		}
+        private Context setAttribute(final String attribute) {
+            m_attribute = attribute;
+            return (this);
+        }
 
-		public Map<String, String> getTags()
-		{
-			return tags != null ? tags : Collections.<String, String>emptyMap();
-		}
+        public String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append("metric[").append(m_count).append("]");
+            if (m_name != null)
+                sb.append("(name=").append(m_name).append(")");
 
-		private JsonElement[][] getDatapoints()
-		{
-			return datapoints;
-		}
+            if (m_attribute != null)
+                sb.append(".").append(m_attribute);
 
-		private boolean validate()
-		{
-			return !skip_validate;
-		}
+            return (sb.toString());
+        }
+    }
 
-		public String getType()
-		{
-			return type;
-		}
+    private static class SubContext {
+        private final Context m_context;
+        private final String m_contextName;
+        private int m_count;
+        private String m_name;
+        private String m_attribute;
 
-		public int getTtl()
-		{
-			return ttl;
-		}
-	}
+        public SubContext(final Context context, final String contextName) {
+            m_context = context;
+            m_contextName = contextName;
+        }
+
+        private SubContext setCount(final int count) {
+            m_count = count;
+            m_name = null;
+            m_attribute = null;
+            return (this);
+        }
+
+        private SubContext setName(final String name) {
+            m_name = name;
+            m_attribute = null;
+            return (this);
+        }
+
+        private SubContext setAttribute(final String attribute) {
+            m_attribute = attribute;
+            return (this);
+        }
+
+        public String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append(m_context).append(".").append(m_contextName).append("[");
+            if (m_name != null)
+                sb.append(m_name);
+            else
+                sb.append(m_count);
+            sb.append("]");
+
+            if (m_attribute != null)
+                sb.append(".").append(m_attribute);
+
+            return (sb.toString());
+        }
+    }
+
+    @SuppressWarnings({"MismatchedReadAndWriteOfArray", "UnusedDeclaration"})
+    private static class NewMetric {
+        private String name;
+        private final Long timestamp = null;
+        private final Long time = null;
+        private JsonElement value;
+        private Map<String, String> tags;
+        private JsonElement[][] datapoints;
+        private final boolean skip_validate = false;
+        private String type;
+        private final int ttl = 0;
+
+        private String getName() {
+            return name;
+        }
+
+        public Long getTimestamp() {
+            if (time != null)
+                return time;
+            else
+                return timestamp;
+        }
+
+        public JsonElement getValue() {
+            return value;
+        }
+
+        public Map<String, String> getTags() {
+            return tags != null ? tags : Collections.emptyMap();
+        }
+
+        private JsonElement[][] getDatapoints() {
+            return datapoints;
+        }
+
+        private boolean validate() {
+            return !skip_validate;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public int getTtl() {
+            return ttl;
+        }
+    }
 }

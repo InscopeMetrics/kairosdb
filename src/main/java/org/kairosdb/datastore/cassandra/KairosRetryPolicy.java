@@ -13,109 +13,89 @@ import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Named;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.inject.Named;
 
-public class KairosRetryPolicy implements RetryPolicy
-{
-	public static final Logger logger = LoggerFactory.getLogger(KairosRetryPolicy.class);
+public class KairosRetryPolicy implements RetryPolicy {
+    public static final Logger logger = LoggerFactory.getLogger(KairosRetryPolicy.class);
 
-	private final int m_retryCount;
+    private final int m_retryCount;
 
-	private AtomicInteger m_readRetries = new AtomicInteger(0);
-	private AtomicInteger m_writeRetries = new AtomicInteger(0);
-	private AtomicInteger m_unavailableRetries = new AtomicInteger(0);
-	private AtomicInteger m_errorRetries = new AtomicInteger(0);
+    private final AtomicInteger m_readRetries = new AtomicInteger(0);
+    private final AtomicInteger m_writeRetries = new AtomicInteger(0);
+    private final AtomicInteger m_unavailableRetries = new AtomicInteger(0);
+    private final AtomicInteger m_errorRetries = new AtomicInteger(0);
 
-	@Inject
-	@Named("HOSTNAME")
-	private String m_hostName = "localhost";
+    @Inject
+    public KairosRetryPolicy(@Named("kairosdb.datastore.cassandra.request_retry_count") final int retryCount, final PeriodicMetrics periodicMetrics) {
+        m_retryCount = retryCount;
+        periodicMetrics.registerPolledMetric(this::recordMetrics);
+    }
 
-	@Inject
-	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
+    @Override
+    public RetryDecision onReadTimeout(final Statement statement, final ConsistencyLevel cl,
+                                       final int requiredResponses, final int receivedResponses, final boolean dataRetrieved, final int nbRetry) {
+        if (nbRetry == m_retryCount)
+            return RetryDecision.rethrow();
+        else {
+            final int count = m_readRetries.incrementAndGet();
+            return RetryDecision.tryNextHost(cl);
+        }
+    }
 
-	@Inject
-	public KairosRetryPolicy(@Named("kairosdb.datastore.cassandra.request_retry_count") int retryCount, final PeriodicMetrics periodicMetrics)
-	{
-		m_retryCount = retryCount;
-		periodicMetrics.registerPolledMetric(this::recordMetrics);
-	}
+    @Override
+    public RetryDecision onWriteTimeout(final Statement statement, final ConsistencyLevel cl,
+                                        final WriteType writeType, final int requiredAcks, final int receivedAcks, final int nbRetry) {
+        if (nbRetry == m_retryCount)
+            return RetryDecision.rethrow();
+        else {
+            m_writeRetries.incrementAndGet();
+            return RetryDecision.tryNextHost(cl);
+        }
+    }
 
-	@Override
-	public RetryDecision onReadTimeout(Statement statement, ConsistencyLevel cl,
-			int requiredResponses, int receivedResponses, boolean dataRetrieved, int nbRetry)
-	{
-		if (nbRetry == m_retryCount)
-			return RetryDecision.rethrow();
-		else
-		{
-			int count = m_readRetries.incrementAndGet();
-			return RetryDecision.tryNextHost(cl);
-		}
-	}
+    @Override
+    public RetryDecision onUnavailable(final Statement statement, final ConsistencyLevel cl,
+                                       final int requiredReplica, final int aliveReplica, final int nbRetry) {
+        if (nbRetry == m_retryCount)
+            return RetryDecision.rethrow();
+        else {
+            m_unavailableRetries.incrementAndGet();
+            return RetryDecision.tryNextHost(cl);
+        }
+    }
 
-	@Override
-	public RetryDecision onWriteTimeout(Statement statement, ConsistencyLevel cl,
-			WriteType writeType, int requiredAcks, int receivedAcks, int nbRetry)
-	{
-		if (nbRetry == m_retryCount)
-			return RetryDecision.rethrow();
-		else
-		{
-			m_writeRetries.incrementAndGet();
-			return RetryDecision.tryNextHost(cl);
-		}
-	}
+    @Override
+    public RetryDecision onRequestError(final Statement statement, final ConsistencyLevel cl,
+                                        final DriverException e, final int nbRetry) {
+        if (nbRetry == m_retryCount)
+            return RetryDecision.rethrow();
+        else {
+            m_errorRetries.incrementAndGet();
+            return RetryDecision.tryNextHost(cl);
+        }
+    }
 
-	@Override
-	public RetryDecision onUnavailable(Statement statement, ConsistencyLevel cl,
-			int requiredReplica, int aliveReplica, int nbRetry)
-	{
-		if (nbRetry == m_retryCount)
-			return RetryDecision.rethrow();
-		else
-		{
-			m_unavailableRetries.incrementAndGet();
-			return RetryDecision.tryNextHost(cl);
-		}
-	}
+    @Override
+    public void init(final Cluster cluster) {
+        logger.info("Initializing KairosRetryPolicy: retry count set to " + m_retryCount);
+    }
 
-	@Override
-	public RetryDecision onRequestError(Statement statement, ConsistencyLevel cl,
-			DriverException e, int nbRetry)
-	{
-		if (nbRetry == m_retryCount)
-			return RetryDecision.rethrow();
-		else
-		{
-			m_errorRetries.incrementAndGet();
-			return RetryDecision.tryNextHost(cl);
-		}
-	}
+    @Override
+    public void close() {
+        logger.info("Closing KairosRetryPolicy");
+    }
 
-	@Override
-	public void init(Cluster cluster)
-	{
-		logger.info("Initializing KairosRetryPolicy: retry count set to "+m_retryCount);
-	}
-
-	@Override
-	public void close()
-	{
-		logger.info("Closing KairosRetryPolicy");
-	}
-
-	private void recordMetrics(final PeriodicMetrics periodicMetrics)
-	{
-		final int readTimeouts = m_readRetries.getAndSet(0);
-		final int writeTimeouts = m_writeRetries.getAndSet(0);
-		final int unavailable = m_unavailableRetries.getAndSet(0);
-		final int requestError = m_errorRetries.getAndSet(0);
-		final long totalRetries = readTimeouts + writeTimeouts + unavailable + requestError;
-		periodicMetrics.recordGauge("datastore/cassandra/retry_count", totalRetries);
-		periodicMetrics.recordGauge("datastore/cassandra/retry_count/read_timeout", readTimeouts);
-		periodicMetrics.recordGauge("datastore/cassandra/retry_count/write_timeout", writeTimeouts);
-		periodicMetrics.recordGauge("datastore/cassandra/retry_count/unavailable", unavailable);
-		periodicMetrics.recordGauge("datastore/cassandra/retry_count/request_error", requestError);
-	}
+    private void recordMetrics(final PeriodicMetrics periodicMetrics) {
+        final int readTimeouts = m_readRetries.getAndSet(0);
+        final int writeTimeouts = m_writeRetries.getAndSet(0);
+        final int unavailable = m_unavailableRetries.getAndSet(0);
+        final int requestError = m_errorRetries.getAndSet(0);
+        final long totalRetries = readTimeouts + writeTimeouts + unavailable + requestError;
+        periodicMetrics.recordGauge("datastore/cassandra/retry_count", totalRetries);
+        periodicMetrics.recordGauge("datastore/cassandra/retry_count/read_timeout", readTimeouts);
+        periodicMetrics.recordGauge("datastore/cassandra/retry_count/write_timeout", writeTimeouts);
+        periodicMetrics.recordGauge("datastore/cassandra/retry_count/unavailable", unavailable);
+        periodicMetrics.recordGauge("datastore/cassandra/retry_count/request_error", requestError);
+    }
 }

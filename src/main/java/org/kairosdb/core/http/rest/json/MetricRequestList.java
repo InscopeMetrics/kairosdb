@@ -19,23 +19,20 @@ package org.kairosdb.core.http.rest.json;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
+import javax.validation.Valid;
 
-public class MetricRequestList
-{
+public class MetricRequestList {
     @Valid
     List<NewMetricRequest> metricsRequest;
 
     @JsonCreator
-    public MetricRequestList(List<NewMetricRequest> metricsRequest)
-    {
+    public MetricRequestList(final List<NewMetricRequest> metricsRequest) {
         this.metricsRequest = metricsRequest;
     }
 
-    public List<NewMetricRequest> getMetricsRequest()
-    {
+    public List<NewMetricRequest> getMetricsRequest() {
         return Collections.unmodifiableList(metricsRequest);
     }
 }

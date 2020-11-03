@@ -3,12 +3,11 @@ package org.kairosdb.rollup;
 /**
  * Stores the status of Rollup tasks. The key is the rollup task id and the value is the status specified as JSON.
  */
-public interface RollupTaskStatusStore
-{
+public interface RollupTaskStatusStore {
     /**
      * Writes the status of a rollup task to the store.
      *
-     * @param  id task id
+     * @param id     task id
      * @param status status to write to the store.
      */
     void write(String id, RollupTaskStatus status) throws RollUpException;
@@ -21,7 +20,7 @@ public interface RollupTaskStatusStore
      */
     RollupTaskStatus read(String id) throws RollUpException;
 
-     /**
+    /**
      * Removes the status specified by the task id.
      *
      * @param id task id of the status to remove

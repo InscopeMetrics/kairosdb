@@ -28,51 +28,42 @@ import java.util.Iterator;
  */
 @FeatureComponent(
         name = "min",
-		description = "Returns the minimum value data point for the time range."
-)
-public class MinAggregator extends RangeAggregator
-{
-	private DoubleDataPointFactory m_dataPointFactory;
+        description = "Returns the minimum value data point for the time range.")
+public class MinAggregator extends RangeAggregator {
+    private final DoubleDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public MinAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public MinAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new MinDataPointAggregator());
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new MinDataPointAggregator());
+    }
 
-	private class MinDataPointAggregator implements RangeSubAggregator
-	{
+    private class MinDataPointAggregator implements RangeSubAggregator {
 
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			double min = Double.MAX_VALUE;
-			while (dataPointRange.hasNext())
-			{
-				DataPoint dp = dataPointRange.next();
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            double min = Double.MAX_VALUE;
+            while (dataPointRange.hasNext()) {
+                final DataPoint dp = dataPointRange.next();
 
-				min = Math.min(min, dp.getDoubleValue());
-			}
+                min = Math.min(min, dp.getDoubleValue());
+            }
 
-			return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, min));
-		}
-	}
+            return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, min));
+        }
+    }
 }

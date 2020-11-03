@@ -17,19 +17,16 @@ package org.kairosdb.core.datastore;
 
 import com.google.common.collect.SetMultimap;
 
-import java.util.List;
+public interface DatastoreMetricQuery extends PluggableQuery {
+    String getName();
 
-public interface DatastoreMetricQuery extends PluggableQuery
-{
-	String getName();
+    SetMultimap<String, String> getTags();
 
-	SetMultimap<String, String> getTags();
+    long getStartTime();
 
-	long getStartTime();
+    long getEndTime();
 
-	long getEndTime();
+    int getLimit();
 
-	int getLimit();
-
-	Order getOrder();
+    Order getOrder();
 }

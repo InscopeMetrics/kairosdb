@@ -26,7 +26,8 @@ public class CassandraSink implements Sink, KairosMetricReporter {
 
     final ConcurrentMap<Key, SimpleStats> statistics = Maps.newConcurrentMap();
 
-    private CassandraSink(final Builder builder) { }
+    private CassandraSink(final Builder builder) {
+    }
 
     @Override
     public void record(final Event event) {
@@ -51,7 +52,7 @@ public class CassandraSink implements Sink, KairosMetricReporter {
     @Override
     public List<DataPointSet> getMetrics(final long now) {
         final Map<Key, SimpleStats> previousStats;
-        synchronized(this) {
+        synchronized (this) {
             previousStats = new HashMap<>(statistics);
             statistics.clear();
         }

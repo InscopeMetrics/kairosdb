@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 /**
  * Thread local scoped metrics reporter. Rewritten to record metrics against a
  * {@link Metrics} instance.
- *
+ * <p>
  * Original version by bhawkins.
  *
  * @author Ville Koskela (ville dot koskela at inscopemetrics dot io)
@@ -32,7 +32,8 @@ import javax.annotation.Nullable;
 public final class ThreadReporter {
     private static final ThreadLocal<Metrics> s_metrics = new ThreadLocal<>();
 
-    private ThreadReporter() { }
+    private ThreadReporter() {
+    }
 
     public static void initialize(final MetricsFactory metricsFactory) {
         s_metrics.set(metricsFactory.create());

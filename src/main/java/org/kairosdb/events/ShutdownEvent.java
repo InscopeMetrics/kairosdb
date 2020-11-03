@@ -1,5 +1,4 @@
 package org.kairosdb.events;
 
-public class ShutdownEvent
-{
+public class ShutdownEvent {
 }

@@ -13,13 +13,12 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-public class FeaturePropertyMetadata
-{
+public class FeaturePropertyMetadata {
     private String name;
-    private String label;
+    private final String label;
     private String description;
     private boolean optional;
-    private String type;
+    private final String type;
     private String[] options;
     private String defaultValue;
     private String autocomplete;
@@ -27,9 +26,8 @@ public class FeaturePropertyMetadata
     private ImmutableList<FeatureValidationMetadata> validations;
     private ImmutableList<FeaturePropertyMetadata> properties;
 
-    public FeaturePropertyMetadata(String name, String type, String options, String defaultValue, FeatureProperty property)
-            throws ClassNotFoundException
-    {
+    public FeaturePropertyMetadata(final String name, final String type, final String options, final String defaultValue, final FeatureProperty property)
+            throws ClassNotFoundException {
         this.name = isEmpty(property.name()) ? name : property.name();
         this.label = isEmpty(property.label()) ? name : property.label();
         this.description = property.description();
@@ -44,13 +42,12 @@ public class FeaturePropertyMetadata
         fixupName();
     }
 
-    public FeaturePropertyMetadata(String name, FeatureCompoundProperty property, List<FeaturePropertyMetadata> properties)
-    {
+    public FeaturePropertyMetadata(final String name, final FeatureCompoundProperty property, final List<FeaturePropertyMetadata> properties) {
         this.name = isEmpty(property.name()) ? name : property.name();
         this.label = checkNotNull(property.label(), "Label cannot be null");
         this.type = "Object";
 
-        Comparator<FeaturePropertyMetadata> comparator = property.order().length > 0 ?
+        final Comparator<FeaturePropertyMetadata> comparator = property.order().length > 0 ?
                 new ExplicitComparator(Arrays.asList(property.order())) :
                 new LabelComparator();
         properties.sort(comparator);
@@ -59,83 +56,70 @@ public class FeaturePropertyMetadata
         fixupName();
     }
 
-    private void fixupName()
-    {
+    private void fixupName() {
         if (this.name.startsWith("m_"))
             this.name = this.name.substring(2);
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public String getLabel()
-    {
+    public String getLabel() {
         return label;
     }
 
-    public String getDescription()
-    {
+    public String getDescription() {
         return description;
     }
 
-    public boolean isOptional()
-    {
+    public boolean isOptional() {
         return optional;
     }
 
-    public String getType()
-    {
+    public String getType() {
         return type;
     }
 
-    public String[] getOptions()
-    {
+    public String[] getOptions() {
         return options;
     }
 
-    public Object getDefaultValue()
-    {
+    public Object getDefaultValue() {
         return defaultValue;
     }
 
-    public ImmutableList<FeatureValidationMetadata> getValidations() { return validations; }
+    public ImmutableList<FeatureValidationMetadata> getValidations() {
+        return validations;
+    }
 
-    public ImmutableList<FeaturePropertyMetadata> getProperties()
-    {
+    public ImmutableList<FeaturePropertyMetadata> getProperties() {
         return properties;
     }
 
-    private ImmutableList<FeatureValidationMetadata> extractValidators(FeatureProperty property)
-    {
-        LinkedList<FeatureValidationMetadata> validations = new LinkedList<FeatureValidationMetadata>();
+    private ImmutableList<FeatureValidationMetadata> extractValidators(final FeatureProperty property) {
+        final LinkedList<FeatureValidationMetadata> validations = new LinkedList<FeatureValidationMetadata>();
 
-        for (ValidationProperty validator : property.validations())
+        for (final ValidationProperty validator : property.validations())
             validations.addFirst(new FeatureValidationMetadata(validator.expression(), validator.type(), validator.message()));
         return ImmutableList.copyOf(validations);
     }
 
-    private class LabelComparator implements Comparator<FeaturePropertyMetadata>
-    {
+    private class LabelComparator implements Comparator<FeaturePropertyMetadata> {
         @Override
-        public int compare(FeaturePropertyMetadata o1, FeaturePropertyMetadata o2)
-        {
+        public int compare(final FeaturePropertyMetadata o1, final FeaturePropertyMetadata o2) {
             return o1.getLabel().compareTo(o2.getLabel());
         }
     }
 
-    private class ExplicitComparator implements Comparator<FeaturePropertyMetadata>
-    {
-        private List<String> order;
+    private class ExplicitComparator implements Comparator<FeaturePropertyMetadata> {
+        private final List<String> order;
 
-        private ExplicitComparator(List<String> order)
-        {
+        private ExplicitComparator(final List<String> order) {
             this.order = order;
         }
 
-        public int compare(FeaturePropertyMetadata left, FeaturePropertyMetadata right)
-        {
+        public int compare(final FeaturePropertyMetadata left, final FeaturePropertyMetadata right) {
             return Integer.compare(order.indexOf(left.getLabel()), order.indexOf(right.getLabel()));
         }
     }

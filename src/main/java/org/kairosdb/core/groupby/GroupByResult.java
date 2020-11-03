@@ -17,7 +17,6 @@ package org.kairosdb.core.groupby;
 
 import org.kairosdb.core.formatter.FormatterException;
 
-public interface GroupByResult
-{
-	String toJson() throws FormatterException;
+public interface GroupByResult {
+    String toJson() throws FormatterException;
 }

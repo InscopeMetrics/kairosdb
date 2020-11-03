@@ -15,22 +15,18 @@
  */
 package org.kairosdb.core.exception;
 
-public class KairosDBException extends Exception
-{
-	private static final long serialVersionUID = -7898332703863893417L;
+public class KairosDBException extends Exception {
+    private static final long serialVersionUID = -7898332703863893417L;
 
-	public KairosDBException(String message)
-	{
-		super(message);
-	}
+    public KairosDBException(final String message) {
+        super(message);
+    }
 
-	public KairosDBException(String message, Throwable cause)
-	{
-		super(message, cause);
-	}
+    public KairosDBException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 
-	public KairosDBException(Throwable cause)
-	{
-		super(cause);
-	}
+    public KairosDBException(final Throwable cause) {
+        super(cause);
+    }
 }

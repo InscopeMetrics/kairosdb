@@ -20,67 +20,65 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.kairosdb.core.datapoints.LongDataPointFactory;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class MonitorFilter implements Filter
-{
-	private final String hostname;
-	private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<>();
-	private final LongDataPointFactory m_dataPointFactory;
+public class MonitorFilter implements Filter {
+    private final String hostname;
+    private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<>();
+    private final LongDataPointFactory m_dataPointFactory;
 
-	@Inject
-	public MonitorFilter(
-			final @Named("HOSTNAME")String hostname,
-			final LongDataPointFactory dataPointFactory,
-			final PeriodicMetrics periodicMetrics)
-	{
-		this.hostname = checkNotNullOrEmpty(hostname);
-		m_dataPointFactory = dataPointFactory;
+    @Inject
+    public MonitorFilter(
+            final @Named("HOSTNAME") String hostname,
+            final LongDataPointFactory dataPointFactory,
+            final PeriodicMetrics periodicMetrics) {
+        this.hostname = checkNotNullOrEmpty(hostname);
+        m_dataPointFactory = dataPointFactory;
 
-		periodicMetrics.registerPolledMetric(m -> {
-			for (final String resource : counterMap.keySet()) {
-				m.recordGauge(
-					"rest_service/" + resource,
-						counterMap.get(resource).getAndSet(0));
-			}
-		});
-	}
+        periodicMetrics.registerPolledMetric(m -> {
+            for (final String resource : counterMap.keySet()) {
+                m.recordGauge(
+                        "rest_service/" + resource,
+                        counterMap.get(resource).getAndSet(0));
+            }
+        });
+    }
 
-	@Override
-	public void init(FilterConfig filterConfig)
-	{
-	}
+    @Override
+    public void init(final FilterConfig filterConfig) {
+    }
 
-	@Override
-	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException
-	{
-		String path = ((HttpServletRequest)servletRequest).getRequestURI();
-		String resourceName = ((HttpServletRequest) servletRequest).getMethod() + path;
+    @Override
+    public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse, final FilterChain filterChain) throws IOException, ServletException {
+        final String path = ((HttpServletRequest) servletRequest).getRequestURI();
+        final String resourceName = ((HttpServletRequest) servletRequest).getMethod() + path;
 
-		if (resourceName.length() > 0)
-		{
-			AtomicInteger counter = counterMap.get(resourceName);
-			if (counter == null)
-			{
-				counter = new AtomicInteger();
-				AtomicInteger mapValue = counterMap.putIfAbsent(resourceName, counter);
-				counter = (mapValue != null ? mapValue : counter);
-			}
-			counter.incrementAndGet();
-		}
+        if (resourceName.length() > 0) {
+            AtomicInteger counter = counterMap.get(resourceName);
+            if (counter == null) {
+                counter = new AtomicInteger();
+                final AtomicInteger mapValue = counterMap.putIfAbsent(resourceName, counter);
+                counter = (mapValue != null ? mapValue : counter);
+            }
+            counter.incrementAndGet();
+        }
 
-		filterChain.doFilter(servletRequest, servletResponse);
-	}
+        filterChain.doFilter(servletRequest, servletResponse);
+    }
 
-	@Override
-	public void destroy()
-	{
-	}
+    @Override
+    public void destroy() {
+    }
 }

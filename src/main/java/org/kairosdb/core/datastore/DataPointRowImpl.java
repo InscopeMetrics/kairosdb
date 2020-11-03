@@ -17,86 +17,77 @@ package org.kairosdb.core.datastore;
 
 import org.kairosdb.core.DataPoint;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
-public class DataPointRowImpl implements DataPointRow
-{
-	private List<DataPoint> dataPoints = new ArrayList<DataPoint>();
-	private Iterator<DataPoint> iterator;
-	private Map<String, String> tags = new TreeMap<String, String>();
-	private String name;
+public class DataPointRowImpl implements DataPointRow {
+    private final List<DataPoint> dataPoints = new ArrayList<DataPoint>();
+    private Iterator<DataPoint> iterator;
+    private final Map<String, String> tags = new TreeMap<String, String>();
+    private String name;
 
-	public void addTag(String name, String value)
-	{
-		tags.put(name, value);
-	}
+    public void addTag(final String name, final String value) {
+        tags.put(name, value);
+    }
 
-	public void setName(String name)
-	{
-		this.name = name;
-	}
+    @Override
+    public String getName() {
+        return (name);
+    }
 
-	@Override
-	public String getName()
-	{
-		return (name);
-	}
+    public void setName(final String name) {
+        this.name = name;
+    }
 
-	@Override
-	public String getDatastoreType()
-	{
-		return dataPoints.get(0).getDataStoreDataType();
-	}
+    @Override
+    public String getDatastoreType() {
+        return dataPoints.get(0).getDataStoreDataType();
+    }
 
-	@Override
-	public Set<String> getTagNames()
-	{
-		return (tags.keySet());
-	}
+    @Override
+    public Set<String> getTagNames() {
+        return (tags.keySet());
+    }
 
-	@Override
-	public String getTagValue(String tag)
-	{
-		return (tags.get(tag));
-	}
+    @Override
+    public String getTagValue(final String tag) {
+        return (tags.get(tag));
+    }
 
+    @Override
+    public void close() {
+    }
 
-	@Override
-	public void close()
-	{
-	}
+    @Override
+    public int getDataPointCount() {
+        return dataPoints.size();
+    }
 
-	@Override
-	public int getDataPointCount()
-	{
-		return dataPoints.size();
-	}
+    public void addDataPoint(final DataPoint dataPoint) {
+        dataPoints.add(dataPoint);
+    }
 
-	public void addDataPoint(DataPoint dataPoint)
-	{
-		dataPoints.add(dataPoint);
-	}
+    @Override
+    public boolean hasNext() {
+        if (iterator == null)
+            iterator = dataPoints.iterator();
 
-	@Override
-	public boolean hasNext()
-	{
-		if (iterator == null)
-			iterator = dataPoints.iterator();
+        return (iterator.hasNext());
+    }
 
-		return (iterator.hasNext());
-	}
+    @Override
+    public DataPoint next() {
+        if (iterator == null)
+            iterator = dataPoints.iterator();
 
-	@Override
-	public DataPoint next()
-	{
-		if (iterator == null)
-			iterator = dataPoints.iterator();
+        return (iterator.next());
+    }
 
-		return (iterator.next());
-	}
-
-	@Override
-	public void remove()
-	{
-	}
+    @Override
+    public void remove() {
+    }
 }

@@ -20,39 +20,32 @@ import java.util.List;
 
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
 
-public class ValidationErrors
-{
-	private List<String> errors = new ArrayList<String>();
+public class ValidationErrors {
+    private final List<String> errors = new ArrayList<String>();
 
-	@SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-	public void addErrorMessage(String message)
-	{
-		checkNotNullOrEmpty(message);
-		errors.add(message);
-	}
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    public void addErrorMessage(final String message) {
+        checkNotNullOrEmpty(message);
+        errors.add(message);
+    }
 
-	public void add(ValidationErrors errors)
-	{
-		this.errors.addAll(errors.getErrors());
-	}
+    public void add(final ValidationErrors errors) {
+        this.errors.addAll(errors.getErrors());
+    }
 
-	public boolean hasErrors()
-	{
-		return errors.size() > 0;
-	}
+    public boolean hasErrors() {
+        return errors.size() > 0;
+    }
 
-	public List<String> getErrors()
-	{
-		return errors;
-	}
+    public List<String> getErrors() {
+        return errors;
+    }
 
-	public String getFirstError()
-	{
-		return errors.get(0);
-	}
+    public String getFirstError() {
+        return errors.get(0);
+    }
 
-	public int size()
-	{
-		return errors.size();
-	}
+    public int size() {
+        return errors.size();
+    }
 }

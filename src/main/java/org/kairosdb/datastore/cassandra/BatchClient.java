@@ -5,19 +5,18 @@ import org.kairosdb.core.DataPoint;
 import java.io.IOException;
 
 /**
- Created by bhawkins on 12/12/16.
+ * Created by bhawkins on 12/12/16.
  */
-public interface BatchClient
-{
-	void addRowKey(String metricName, DataPointsRowKey rowKey, int rowKeyTtl);
+public interface BatchClient {
+    void addRowKey(String metricName, DataPointsRowKey rowKey, int rowKeyTtl);
 
-	void addMetricName(String metricName);
+    void addMetricName(String metricName);
 
-	void addTagName(String tagName);
+    void addTagName(String tagName);
 
-	void addTagValue(String value);
+    void addTagValue(String value);
 
-	void addDataPoint(DataPointsRowKey rowKey, int columnTime, DataPoint dataPoint, int ttl) throws IOException;
+    void addDataPoint(DataPointsRowKey rowKey, int columnTime, DataPoint dataPoint, int ttl) throws IOException;
 
-	void submitBatch();
+    void submitBatch();
 }

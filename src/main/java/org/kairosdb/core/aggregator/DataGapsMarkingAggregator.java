@@ -24,47 +24,37 @@ import java.util.Iterator;
 
 @FeatureComponent(
         name = "gaps",
-		description = "Marks gaps in data according to sampling rate with a null data point."
-)
-public class DataGapsMarkingAggregator extends RangeAggregator
-{
+        description = "Marks gaps in data according to sampling rate with a null data point.")
+public class DataGapsMarkingAggregator extends RangeAggregator {
 
+    @Inject
+    public DataGapsMarkingAggregator() {
+        super(true);
+    }
 
-	@Inject
-	public DataGapsMarkingAggregator()
-	{
-		super(true);
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new MarkDataGapsAggregator());
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new MarkDataGapsAggregator());
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return true;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return true;
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return groupType;
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return groupType;
-	}
+    private static class MarkDataGapsAggregator implements RangeSubAggregator {
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            if (dataPointRange.hasNext()) {
+                return ImmutableList.copyOf(dataPointRange);
+            }
 
-	private static class MarkDataGapsAggregator implements RangeSubAggregator
-	{
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			if (dataPointRange.hasNext())
-			{
-				return ImmutableList.copyOf(dataPointRange);
-			}
-
-			return Collections.singletonList(new NullDataPoint(returnTime));
-		}
-	}
+            return Collections.singletonList(new NullDataPoint(returnTime));
+        }
+    }
 }

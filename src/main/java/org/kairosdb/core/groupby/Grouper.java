@@ -29,87 +29,75 @@ import java.util.Map;
 /**
  * Groups data points based on a list of GroupBys.
  */
-public class Grouper
-{
-	private final KairosDataPointFactory m_dataPointFactory;
+public class Grouper {
+    private final KairosDataPointFactory m_dataPointFactory;
 
-	public Grouper(KairosDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    public Grouper(final KairosDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	/**
-	 * Groups data points by group bys.
-	 *
-	 * @param groupBys list of group bys
-	 * @param dataPointGroupList list of data point groups to group
-	 * @return list of data point groups
-	 */
-	public List<DataPointGroup> group(List<GroupBy> groupBys, List<DataPointGroup> dataPointGroupList) throws IOException
-	{
-		if (groupBys.size() < 1)
-			return dataPointGroupList;
+    /**
+     * Groups data points by group bys.
+     *
+     * @param groupBys           list of group bys
+     * @param dataPointGroupList list of data point groups to group
+     * @return list of data point groups
+     */
+    public List<DataPointGroup> group(final List<GroupBy> groupBys, final List<DataPointGroup> dataPointGroupList) throws IOException {
+        if (groupBys.size() < 1)
+            return dataPointGroupList;
 
-		List<DataPointGroup> dataPointGroups = new ArrayList<DataPointGroup>();
-		for (DataPointGroup dataPointGroup : dataPointGroupList)
-		{
-			Map<List<Integer>, Group> groupIdsToGroup = new LinkedHashMap<List<Integer>, Group>();
-			Map<String, String> tags = getTags(dataPointGroup);
+        final List<DataPointGroup> dataPointGroups = new ArrayList<DataPointGroup>();
+        for (final DataPointGroup dataPointGroup : dataPointGroupList) {
+            final Map<List<Integer>, Group> groupIdsToGroup = new LinkedHashMap<List<Integer>, Group>();
+            final Map<String, String> tags = getTags(dataPointGroup);
 
-			while (dataPointGroup.hasNext())
-			{
-				DataPoint dataPoint = dataPointGroup.next();
+            while (dataPointGroup.hasNext()) {
+                final DataPoint dataPoint = dataPointGroup.next();
 
-				List<Integer> groupIds = new ArrayList<Integer>();
-				List<GroupByResult> results = new ArrayList<GroupByResult>();
-				for (GroupBy groupBy : groupBys)
-				{
-					int groupId = groupBy.getGroupId(dataPoint, tags);
-					groupIds.add(groupId);
-					results.add(groupBy.getGroupByResult(groupId));
-				}
+                final List<Integer> groupIds = new ArrayList<Integer>();
+                final List<GroupByResult> results = new ArrayList<GroupByResult>();
+                for (final GroupBy groupBy : groupBys) {
+                    final int groupId = groupBy.getGroupId(dataPoint, tags);
+                    groupIds.add(groupId);
+                    results.add(groupBy.getGroupByResult(groupId));
+                }
 
-				// add to group
-				Group group = getGroup(groupIdsToGroup, dataPointGroup, groupIds, results);
-				group.addDataPoint(dataPoint);
-			}
+                // add to group
+                final Group group = getGroup(groupIdsToGroup, dataPointGroup, groupIds, results);
+                group.addDataPoint(dataPoint);
+            }
 
-			for (Group group : groupIdsToGroup.values())
-			{
-				if (!dataPointGroup.getGroupByResult().isEmpty())
-				{
-					group.addGroupByResults(dataPointGroup.getGroupByResult());
-				}
-				dataPointGroups.add(group.getDataPointGroup());
-			}
+            for (final Group group : groupIdsToGroup.values()) {
+                if (!dataPointGroup.getGroupByResult().isEmpty()) {
+                    group.addGroupByResults(dataPointGroup.getGroupByResult());
+                }
+                dataPointGroups.add(group.getDataPointGroup());
+            }
 
-			dataPointGroup.close();
-		}
+            dataPointGroup.close();
+        }
 
 
-		return dataPointGroups;
-	}
+        return dataPointGroups;
+    }
 
-	private Group getGroup(Map<List<Integer>, Group> groupIdsToGroup, DataPointGroup dataPointGroup, List<Integer> groupIds, List<GroupByResult> results) throws IOException
-	{
-		Group group = groupIdsToGroup.get(groupIds);
-		if (group == null)
-		{
-			group = Group.createGroup(dataPointGroup, groupIds, results, m_dataPointFactory);
-			groupIdsToGroup.put(groupIds, group);
-		}
-		return group;
-	}
+    private Group getGroup(final Map<List<Integer>, Group> groupIdsToGroup, final DataPointGroup dataPointGroup, final List<Integer> groupIds, final List<GroupByResult> results) throws IOException {
+        Group group = groupIdsToGroup.get(groupIds);
+        if (group == null) {
+            group = Group.createGroup(dataPointGroup, groupIds, results, m_dataPointFactory);
+            groupIdsToGroup.put(groupIds, group);
+        }
+        return group;
+    }
 
-	private Map<String, String> getTags(DataPointGroup dataPointGroup)
-	{
-		Map<String, String> map = new LinkedHashMap<String, String>();
-		for (String tagName : dataPointGroup.getTagNames())
-		{
-			map.put(tagName, dataPointGroup.getTagValues(tagName).iterator().next());
-		}
+    private Map<String, String> getTags(final DataPointGroup dataPointGroup) {
+        final Map<String, String> map = new LinkedHashMap<String, String>();
+        for (final String tagName : dataPointGroup.getTagNames()) {
+            map.put(tagName, dataPointGroup.getTagValues(tagName).iterator().next());
+        }
 
-		return map;
-	}
+        return map;
+    }
 
 }

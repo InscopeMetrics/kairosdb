@@ -16,36 +16,30 @@
 
 package org.kairosdb.datastore.cassandra;
 
-public class LongOrDouble
-{
-	private boolean m_isLong;
-	private long m_longValue;
-	private double m_doubleValue;
+public class LongOrDouble {
+    private final boolean m_isLong;
+    private long m_longValue;
+    private double m_doubleValue;
 
-	public LongOrDouble(long longValue)
-	{
-		m_isLong = true;
-		m_longValue = longValue;
-	}
+    public LongOrDouble(final long longValue) {
+        m_isLong = true;
+        m_longValue = longValue;
+    }
 
-	public LongOrDouble(double doubleValue)
-	{
-		m_isLong = false;
-		m_doubleValue = doubleValue;
-	}
+    public LongOrDouble(final double doubleValue) {
+        m_isLong = false;
+        m_doubleValue = doubleValue;
+    }
 
-	public boolean isLong()
-	{
-		return m_isLong;
-	}
+    public boolean isLong() {
+        return m_isLong;
+    }
 
-	public long getLongValue()
-	{
-		return m_longValue;
-	}
+    public long getLongValue() {
+        return m_longValue;
+    }
 
-	public double getDoubleValue()
-	{
-		return m_doubleValue;
-	}
+    public double getDoubleValue() {
+        return m_doubleValue;
+    }
 }

@@ -4,12 +4,10 @@ import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
 
-public class AnnotationUtilsTest
-{
+public class AnnotationUtilsTest {
     @Test(expected = NullPointerException.class)
     public void test_getPropertyMetadata_nullClass_invalid()
-            throws InvocationTargetException, NoSuchMethodException, ClassNotFoundException, IllegalAccessException
-    {
+            throws InvocationTargetException, NoSuchMethodException, ClassNotFoundException, IllegalAccessException {
         AnnotationUtils.getPropertyMetadata(null);
     }
 }

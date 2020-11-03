@@ -5,21 +5,20 @@ import java.util.Set;
 
 /**
  * Maintains which Kairos servers are executing which roll-up configuration.
- *
+ * <p>
  * Uses 2 service keys.
- *
+ * <p>
  * Assignment Service key is a mapping from roll-up ID to Kairos server assignment
  * Score Service Key is a mapping from roll-up ID to roll-up score.
- *
+ * <p>
  * The score is an indication of how much processing is needed by the roll-up service.
  * Any roll-up that runs every hour or longer is given a score of 1. Anything that runs more often
  * receives a higher score. Assignments are made based on the score to try to balance the work
  * done by each roll-up server.
- *
+ * <p>
  * Assignments are made by the first roll-up server that detects a configuration is not assigned.
  */
-public interface RollUpAssignmentStore
-{
+public interface RollUpAssignmentStore {
     /**
      * Returns the last time assignments were modified.
      *
@@ -38,6 +37,7 @@ public interface RollUpAssignmentStore
 
     /**
      * Returns the list of ids assigned to the given host
+     *
      * @param host hostname
      * @return list of ids assigned to the host or an empty list
      */
@@ -45,8 +45,9 @@ public interface RollUpAssignmentStore
 
     /**
      * Assigns hostName to the task id.
+     *
      * @param unassignedId roll-up task id
-     * @param hostName host to assign
+     * @param hostName     host to assign
      */
     void setAssignment(String unassignedId, String hostName) throws RollUpException;
 

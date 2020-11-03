@@ -1,4 +1,4 @@
-    package org.kairosdb.rollup;
+package org.kairosdb.rollup;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
@@ -15,18 +15,16 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertThat;
 
-public class RollUpAssignmentStoreImplTest
-{
+public class RollUpAssignmentStoreImplTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private FakeServiceKeyStore fakeKeyStore = new FakeServiceKeyStore();
-    private RollUpAssignmentStore store = new RollUpAssignmentStoreImpl(fakeKeyStore);
+    private final FakeServiceKeyStore fakeKeyStore = new FakeServiceKeyStore();
+    private final RollUpAssignmentStore store = new RollUpAssignmentStoreImpl(fakeKeyStore);
 
     @Before
     public void setup()
-            throws RollUpException
-    {
+            throws RollUpException {
         store.setAssignment("id1", "host1");
         store.setAssignment("id2", "host2");
         store.setAssignment("id3", "host3");
@@ -35,8 +33,7 @@ public class RollUpAssignmentStoreImplTest
     }
 
     @Test
-    public void test_constructor_nullKeystore_invalid()
-    {
+    public void test_constructor_nullKeystore_invalid() {
         expectedException.expect(NullPointerException.class);
         expectedException.expectMessage("serviceKeyStore cannot be null");
 
@@ -45,8 +42,7 @@ public class RollUpAssignmentStoreImplTest
 
     @Test
     public void test_assigedIds()
-            throws RollUpException
-    {
+            throws RollUpException {
         Collection<String> ids = store.getAssignedIds("host1");
 
         assertThat(ids.size(), equalTo(1));
@@ -65,9 +61,8 @@ public class RollUpAssignmentStoreImplTest
 
     @Test
     public void test_assignmentIds()
-            throws RollUpException
-    {
-        Set<String> assignmentIds = store.getAssignmentIds();
+            throws RollUpException {
+        final Set<String> assignmentIds = store.getAssignmentIds();
 
         assertThat(assignmentIds.size(), equalTo(5));
         assertThat(assignmentIds, hasItems("id1", "id2", "id3", "id4", "id5"));
@@ -75,9 +70,8 @@ public class RollUpAssignmentStoreImplTest
 
     @Test
     public void test_assignments()
-            throws RollUpException
-    {
-        Map<String, String> assignments = store.getAssignments();
+            throws RollUpException {
+        final Map<String, String> assignments = store.getAssignments();
 
         assertThat(assignments.size(), equalTo(5));
         assertThat(assignments.get("id1"), equalTo("host1"));
@@ -89,11 +83,10 @@ public class RollUpAssignmentStoreImplTest
 
     @Test
     public void test_removeAssignments()
-            throws RollUpException
-    {
+            throws RollUpException {
         store.removeAssignments(ImmutableSet.of("id2", "id4"));
 
-        Map<String, String> assignments = store.getAssignments();
+        final Map<String, String> assignments = store.getAssignments();
 
         assertThat(assignments.size(), equalTo(3));
         assertThat(assignments.get("id1"), equalTo("host1"));

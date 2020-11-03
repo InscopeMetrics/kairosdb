@@ -4,19 +4,18 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 
 /**
- Created by bhawkins on 2/9/16.
+ * Created by bhawkins on 2/9/16.
  */
-public interface CassandraClient
-{
-	Session getKeyspaceSession();
+public interface CassandraClient {
+    Session getKeyspaceSession();
 
-	Session getSession();
+    Session getSession();
 
-	String getKeyspace();
+    String getKeyspace();
 
-	String getReplication();
+    String getReplication();
 
-	LoadBalancingPolicy getWriteLoadBalancingPolicy();
+    LoadBalancingPolicy getWriteLoadBalancingPolicy();
 
-	void close();
+    void close();
 }

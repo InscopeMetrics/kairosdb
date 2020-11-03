@@ -15,36 +15,30 @@
  */
 package org.kairosdb.core.http.rest.validation;
 
+import java.util.Map;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
-import java.util.Map;
 
-public class ValidMapValidator implements ConstraintValidator<ValidMapRequired, Map<String, String>>
-{
-	@Override
-	public void initialize(ValidMapRequired validMapRequired)
-	{
-	}
+public class ValidMapValidator implements ConstraintValidator<ValidMapRequired, Map<String, String>> {
+    @Override
+    public void initialize(final ValidMapRequired validMapRequired) {
+    }
 
-	@Override
-	public boolean isValid(Map<String, String> map, ConstraintValidatorContext context)
-	{
-		for (String key : map.keySet())
-		{
-			if (key == null || key.isEmpty())
-			{
-				context.disableDefaultConstraintViolation(); // disable violation message
-				context.buildConstraintViolationWithTemplate("key value cannot be null or empty").addConstraintViolation();  // add message
-				return false;
-			}
-			if (map.get(key) == null || map.get(key).isEmpty())
-			{
-				context.disableDefaultConstraintViolation(); // disable violation message
-				context.buildConstraintViolationWithTemplate("value cannot be null or empty for key: " + key).addConstraintViolation();  // add message
-				return false;
-			}
-		}
+    @Override
+    public boolean isValid(final Map<String, String> map, final ConstraintValidatorContext context) {
+        for (final String key : map.keySet()) {
+            if (key == null || key.isEmpty()) {
+                context.disableDefaultConstraintViolation(); // disable violation message
+                context.buildConstraintViolationWithTemplate("key value cannot be null or empty").addConstraintViolation();  // add message
+                return false;
+            }
+            if (map.get(key) == null || map.get(key).isEmpty()) {
+                context.disableDefaultConstraintViolation(); // disable violation message
+                context.buildConstraintViolationWithTemplate("value cannot be null or empty for key: " + key).addConstraintViolation();  // add message
+                return false;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 }

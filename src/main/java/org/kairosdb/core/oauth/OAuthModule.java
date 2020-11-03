@@ -18,44 +18,38 @@ package org.kairosdb.core.oauth;
 
 import com.google.inject.servlet.ServletModule;
 
-import javax.inject.Singleton;
 import java.util.Properties;
+import javax.inject.Singleton;
 
-public class OAuthModule extends ServletModule
-{
-	public static final String CONSUMER_PREFIX = "kairosdb.oauth.consumer.";
+public class OAuthModule extends ServletModule {
+    public static final String CONSUMER_PREFIX = "kairosdb.oauth.consumer.";
 
-	private ConsumerTokenStore m_tokenStore;
+    private final ConsumerTokenStore m_tokenStore;
 
-	public OAuthModule(Properties props)
-	{
-		m_tokenStore = new ConsumerTokenStore();
+    public OAuthModule(final Properties props) {
+        m_tokenStore = new ConsumerTokenStore();
 
-		for (Object key : props.keySet())
-		{
-			String strKey = (String)key;
+        for (final Object key : props.keySet()) {
+            final String strKey = (String) key;
 
-			if (strKey.startsWith(CONSUMER_PREFIX))
-			{
-				String consumerKey = strKey.substring(CONSUMER_PREFIX.length());
-				String consumerToken = (String)props.get(key);
+            if (strKey.startsWith(CONSUMER_PREFIX)) {
+                final String consumerKey = strKey.substring(CONSUMER_PREFIX.length());
+                final String consumerToken = (String) props.get(key);
 
-				m_tokenStore.addToken(consumerKey, consumerToken);
-			}
-		}
-	}
+                m_tokenStore.addToken(consumerKey, consumerToken);
+            }
+        }
+    }
 
-	public ConsumerTokenStore getTokenStore()
-	{
-		return (m_tokenStore);
-	}
+    public ConsumerTokenStore getTokenStore() {
+        return (m_tokenStore);
+    }
 
-	@Override
-	protected void configureServlets()
-	{
-		bind(ConsumerTokenStore.class).toInstance(m_tokenStore);
+    @Override
+    protected void configureServlets() {
+        bind(ConsumerTokenStore.class).toInstance(m_tokenStore);
 
-		bind(OAuthFilter.class).in(Singleton.class);
-		filter("/api/*").through(OAuthFilter.class);
-	}
+        bind(OAuthFilter.class).in(Singleton.class);
+        filter("/api/*").through(OAuthFilter.class);
+    }
 }

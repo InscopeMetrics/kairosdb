@@ -19,80 +19,75 @@ package org.kairosdb.core;
 import com.google.common.collect.ImmutableSortedMap;
 import org.kairosdb.util.Tags;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-public class DataPointSet
-{
-	private final String m_name;
-	private final ImmutableSortedMap.Builder<String, String> m_tags;
-	private final List<DataPoint> m_dataPoints;
+public class DataPointSet {
+    private final String m_name;
+    private final ImmutableSortedMap.Builder<String, String> m_tags;
+    private final List<DataPoint> m_dataPoints;
 
-	public DataPointSet(String name)
-	{
-		m_name = name;
-		m_tags = Tags.create();
-		m_dataPoints = new ArrayList<>();
-	}
+    public DataPointSet(final String name) {
+        m_name = name;
+        m_tags = Tags.create();
+        m_dataPoints = new ArrayList<>();
+    }
 
-	public DataPointSet(String mName, Map<String, String> tags, List<DataPoint> dataPoints)
-	{
-		this.m_name = mName;
-		this.m_tags = Tags.create().putAll(tags);
-		this.m_dataPoints = new ArrayList<>(dataPoints);
-	}
-
-
-	public void addTag(String name, String value)
-	{
-		m_tags.put(name, value);
-	}
-
-	@Override
-	public String toString()
-	{
-		return "DataPointSet{" +
-				"m_name='" + m_name + '\'' +
-				", m_tags=" + m_tags +
-				", m_dataPoints=" + m_dataPoints +
-				'}';
-	}
-
-	public void addDataPoint(DataPoint dp)
-	{
-		m_dataPoints.add(dp);
-	}
-
-	public String getName() { return (m_name); }
-
-	public ImmutableSortedMap<String, String> getTags()
-	{
-		return m_tags.build();
-	}
-
-	public List<DataPoint> getDataPoints()
-	{
-		return (Collections.unmodifiableList(m_dataPoints));
-	}
+    public DataPointSet(final String mName, final Map<String, String> tags, final List<DataPoint> dataPoints) {
+        this.m_name = mName;
+        this.m_tags = Tags.create().putAll(tags);
+        this.m_dataPoints = new ArrayList<>(dataPoints);
+    }
 
 
-	@Override
-	public boolean equals(Object o)
-	{
-		if (this == o) return true;
-		if (!(o instanceof DataPointSet)) return false;
+    public void addTag(final String name, final String value) {
+        m_tags.put(name, value);
+    }
 
-		DataPointSet that = (DataPointSet) o;
+    @Override
+    public String toString() {
+        return "DataPointSet{" +
+                "m_name='" + m_name + '\'' +
+                ", m_tags=" + m_tags +
+                ", m_dataPoints=" + m_dataPoints +
+                '}';
+    }
 
-		return m_name.equals(that.m_name) && m_tags.equals(that.m_tags) && m_dataPoints.equals(that.m_dataPoints);
+    public void addDataPoint(final DataPoint dp) {
+        m_dataPoints.add(dp);
+    }
 
-	}
+    public String getName() {
+        return (m_name);
+    }
 
-	@Override
-	public int hashCode()
-	{
-		int result = m_name.hashCode();
-		result = 31 * result + m_tags.hashCode();
-		result = 31 * result + m_dataPoints.hashCode();
-		return result;
-	}
+    public ImmutableSortedMap<String, String> getTags() {
+        return m_tags.build();
+    }
+
+    public List<DataPoint> getDataPoints() {
+        return (Collections.unmodifiableList(m_dataPoints));
+    }
+
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DataPointSet)) return false;
+
+        final DataPointSet that = (DataPointSet) o;
+
+        return m_name.equals(that.m_name) && m_tags.equals(that.m_tags) && m_dataPoints.equals(that.m_dataPoints);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = m_name.hashCode();
+        result = 31 * result + m_tags.hashCode();
+        result = 31 * result + m_dataPoints.hashCode();
+        return result;
+    }
 }

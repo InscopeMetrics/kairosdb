@@ -35,122 +35,108 @@ import java.util.Iterator;
 import static java.lang.Math.floor;
 
 @FeatureComponent(
-		name = "percentile",
-		description = "Finds the percentile of the data range."
-)
-public class PercentileAggregator extends RangeAggregator
-{
-	public static final Logger logger = LoggerFactory.getLogger(PercentileAggregator.class);
+        name = "percentile",
+        description = "Finds the percentile of the data range.")
+public class PercentileAggregator extends RangeAggregator {
+    public static final Logger logger = LoggerFactory.getLogger(PercentileAggregator.class);
 
-	private DoubleDataPointFactory m_dataPointFactory;
+    private final DoubleDataPointFactory m_dataPointFactory;
+    @NonZero
+    @FeatureProperty(
+            label = "Percentile",
+            description = "Data points returned will be in this percentile.",
+            default_value = "0.1",
+            validations = {
+                    @ValidationProperty(
+                            expression = "value > 0",
+                            message = "Percentile must be greater than 0."
+                    ),
+                    @ValidationProperty(
+                            expression = "value < 1",
+                            message = "Percentile must be smaller than 1."
+                    )
+            }
+    )
+    private double percentile;
 
-	@Inject
-	public PercentileAggregator(DoubleDataPointFactory dataPointFactory)
-	{
-		m_dataPointFactory = dataPointFactory;
-	}
+    @Inject
+    public PercentileAggregator(final DoubleDataPointFactory dataPointFactory) {
+        m_dataPointFactory = dataPointFactory;
+    }
 
-	@Override
-	public boolean canAggregate(String groupType)
-	{
-		return DataPoint.GROUP_NUMBER.equals(groupType);
-	}
+    @Override
+    public boolean canAggregate(final String groupType) {
+        return DataPoint.GROUP_NUMBER.equals(groupType);
+    }
 
-	@Override
-	public String getAggregatedGroupType(String groupType)
-	{
-		return m_dataPointFactory.getGroupType();
-	}
+    @Override
+    public String getAggregatedGroupType(final String groupType) {
+        return m_dataPointFactory.getGroupType();
+    }
 
-	@NonZero
-	@FeatureProperty(
-			label = "Percentile",
-			description = "Data points returned will be in this percentile.",
-			default_value = "0.1",
-            validations =  {
-					@ValidationProperty(
-							expression = "value > 0",
-							message = "Percentile must be greater than 0."
-					),
-					@ValidationProperty(
-							expression = "value < 1",
-							message = "Percentile must be smaller than 1."
-					)
-			}
-	)
-	private double percentile;
+    public void setPercentile(final double percentile) {
+        this.percentile = percentile;
+    }
 
-	public void setPercentile(double percentile)
-	{
-		this.percentile = percentile;
-	}
+    @Override
+    protected RangeSubAggregator getSubAggregator() {
+        return (new PercentileDataPointAggregator());
+    }
 
-	@Override
-	protected RangeSubAggregator getSubAggregator()
-	{
-		return (new PercentileDataPointAggregator());
-	}
-
-	private class PercentileDataPointAggregator implements RangeSubAggregator
-	{
-		private double[] values;
-		private Reservoir reservoir;
-		private double percentileValue;
+    private class PercentileDataPointAggregator implements RangeSubAggregator {
+        private double[] values;
 
 
-		@Override
-		public Iterable<DataPoint> getNextDataPoints(long returnTime, Iterator<DataPoint> dataPointRange)
-		{
-			reservoir = new UniformReservoir();
+        @Override
+        public Iterable<DataPoint> getNextDataPoints(final long returnTime, final Iterator<DataPoint> dataPointRange) {
+            final Reservoir reservoir = new UniformReservoir();
 
-			while (dataPointRange.hasNext())
-			{
-				reservoir.update(dataPointRange.next().getDoubleValue());
-			}
-			getAndSortValues(reservoir.getValues());
-			percentileValue = getValue(percentile);
+            while (dataPointRange.hasNext()) {
+                reservoir.update(dataPointRange.next().getDoubleValue());
+            }
+            getAndSortValues(reservoir.getValues());
+            final double percentileValue = getValue(percentile);
 
-			if (logger.isDebugEnabled())
-			{
-				logger.debug("Aggregating the " + percentile + " percentile");
-			}
+            if (logger.isDebugEnabled()) {
+                logger.debug("Aggregating the " + percentile + " percentile");
+            }
 
-			return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, percentileValue));
-		}
+            return Collections.singletonList(m_dataPointFactory.createDataPoint(returnTime, percentileValue));
+        }
 
-		private void getAndSortValues(double[] values){
-			this.values = values;
-			Arrays.sort(this.values);
-		}
+        private void getAndSortValues(final double[] values) {
+            this.values = values;
+            Arrays.sort(this.values);
+        }
 
-		/**
-		 * Returns the value at the given quantile.
-		 *
-		 * @param quantile    a given quantile, in {@code [0..1]}
-		 * @return the value in the distribution at {@code quantile}
-		 */
-		private double getValue(double quantile) {
-			if (quantile < 0.0 || quantile > 1.0) {
-				throw new IllegalArgumentException(quantile + " is not in [0..1]");
-			}
+        /**
+         * Returns the value at the given quantile.
+         *
+         * @param quantile a given quantile, in {@code [0..1]}
+         * @return the value in the distribution at {@code quantile}
+         */
+        private double getValue(final double quantile) {
+            if (quantile < 0.0 || quantile > 1.0) {
+                throw new IllegalArgumentException(quantile + " is not in [0..1]");
+            }
 
-			if (values.length == 0) {
-				return 0.0;
-			}
+            if (values.length == 0) {
+                return 0.0;
+            }
 
-			final double pos = quantile * (values.length + 1);
+            final double pos = quantile * (values.length + 1);
 
-			if (pos < 1) {
-				return values[0];
-			}
+            if (pos < 1) {
+                return values[0];
+            }
 
-			if (pos >= values.length) {
-				return values[values.length - 1];
-			}
+            if (pos >= values.length) {
+                return values[values.length - 1];
+            }
 
-			final double lower = values[(int) pos - 1];
-			final double upper = values[(int) pos];
-			return lower + (pos - floor(pos)) * (upper - lower);
-		}
-	}
+            final double lower = values[(int) pos - 1];
+            final double upper = values[(int) pos];
+            return lower + (pos - floor(pos)) * (upper - lower);
+        }
+    }
 }

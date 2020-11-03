@@ -26,105 +26,99 @@ import org.kairosdb.testing.ListDataPointGroup;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class RateAggregatorTest
-{
-	@Test(expected = NullPointerException.class)
-	public void test_nullSet_invalid()
-	{
-		new RateAggregator(new DoubleDataPointFactoryImpl()).aggregate(null);
-	}
+public class RateAggregatorTest {
+    @Test(expected = NullPointerException.class)
+    public void test_nullSet_invalid() {
+        new RateAggregator(new DoubleDataPointFactoryImpl()).aggregate(null);
+    }
 
-	@Test
-	public void test_steadyRate()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("rate");
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(2, 20));
-		group.addDataPoint(new LongDataPoint(3, 30));
-		group.addDataPoint(new LongDataPoint(4, 40));
+    @Test
+    public void test_steadyRate() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(2, 20));
+        group.addDataPoint(new LongDataPoint(3, 30));
+        group.addDataPoint(new LongDataPoint(4, 40));
 
-		RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
-		DataPointGroup results = rateAggregator.aggregate(group);
+        final RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = rateAggregator.aggregate(group);
 
-		DataPoint dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(2L));
-		assertThat(dp.getDoubleValue(), equalTo(10.0));
+        DataPoint dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(2L));
+        assertThat(dp.getDoubleValue(), equalTo(10.0));
 
-		dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(3L));
-		assertThat(dp.getDoubleValue(), equalTo(10.0));
+        dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(3L));
+        assertThat(dp.getDoubleValue(), equalTo(10.0));
 
-		dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(4L));
-		assertThat(dp.getDoubleValue(), equalTo(10.0));
-	}
+        dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(4L));
+        assertThat(dp.getDoubleValue(), equalTo(10.0));
+    }
 
-	@Test
-	public void test_steadyRateOver2Sec()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("rate");
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(3, 20));
-		group.addDataPoint(new LongDataPoint(5, 30));
-		group.addDataPoint(new LongDataPoint(7, 40));
+    @Test
+    public void test_steadyRateOver2Sec() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(3, 20));
+        group.addDataPoint(new LongDataPoint(5, 30));
+        group.addDataPoint(new LongDataPoint(7, 40));
 
-		RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
-		DataPointGroup results = rateAggregator.aggregate(group);
+        final RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = rateAggregator.aggregate(group);
 
-		DataPoint dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(3L));
-		assertThat(dp.getDoubleValue(), equalTo(5.0));
+        DataPoint dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(3L));
+        assertThat(dp.getDoubleValue(), equalTo(5.0));
 
-		dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(5L));
-		assertThat(dp.getDoubleValue(), equalTo(5.0));
+        dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(5L));
+        assertThat(dp.getDoubleValue(), equalTo(5.0));
 
-		dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(7L));
-		assertThat(dp.getDoubleValue(), equalTo(5.0));
-	}
+        dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(7L));
+        assertThat(dp.getDoubleValue(), equalTo(5.0));
+    }
 
-	@Test
-	public void test_changingRate()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("rate");
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(2, 10));
-		group.addDataPoint(new LongDataPoint(3, 5));
-		group.addDataPoint(new LongDataPoint(4, 20));
+    @Test
+    public void test_changingRate() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(2, 10));
+        group.addDataPoint(new LongDataPoint(3, 5));
+        group.addDataPoint(new LongDataPoint(4, 20));
 
-		RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
-		DataPointGroup results = rateAggregator.aggregate(group);
+        final RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = rateAggregator.aggregate(group);
 
-		DataPoint dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(2L));
-		assertThat(dp.getDoubleValue(), equalTo(0.0));
+        DataPoint dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(2L));
+        assertThat(dp.getDoubleValue(), equalTo(0.0));
 
-		dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(3L));
-		assertThat(dp.getDoubleValue(), equalTo(-5.0));
+        dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(3L));
+        assertThat(dp.getDoubleValue(), equalTo(-5.0));
 
-		dp = results.next();
-		assertThat(dp.getTimestamp(), equalTo(4L));
-		assertThat(dp.getDoubleValue(), equalTo(15.0));
-	}
+        dp = results.next();
+        assertThat(dp.getTimestamp(), equalTo(4L));
+        assertThat(dp.getDoubleValue(), equalTo(15.0));
+    }
 
 
-	@Test(expected = IllegalStateException.class)
-	public void test_dataPointsAtSameTime()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("rate");
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(1, 15));
-		group.addDataPoint(new LongDataPoint(2, 5));
-		group.addDataPoint(new LongDataPoint(2, 20));
-		group.addDataPoint(new LongDataPoint(3, 30));
+    @Test(expected = IllegalStateException.class)
+    public void test_dataPointsAtSameTime() {
+        final ListDataPointGroup group = new ListDataPointGroup("rate");
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(1, 15));
+        group.addDataPoint(new LongDataPoint(2, 5));
+        group.addDataPoint(new LongDataPoint(2, 20));
+        group.addDataPoint(new LongDataPoint(3, 30));
 
 
-		RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
-		DataPointGroup results = rateAggregator.aggregate(group);
+        final RateAggregator rateAggregator = new RateAggregator(new DoubleDataPointFactoryImpl());
+        final DataPointGroup results = rateAggregator.aggregate(group);
 
-		DataPoint dp = results.next();
-	}
+        final DataPoint dp = results.next();
+    }
 
 }

@@ -28,40 +28,35 @@ import org.slf4j.LoggerFactory;
 
 import static org.quartz.TriggerBuilder.newTrigger;
 
-public class CacheFileCleaner implements KairosDBJob
-{
-	public static final Logger logger = LoggerFactory.getLogger(CacheFileCleaner.class);
-	public static final String CLEANING_SCHEDULE = "kairosdb.query_cache.cache_file_cleaner_schedule";
+public class CacheFileCleaner implements KairosDBJob {
+    public static final Logger logger = LoggerFactory.getLogger(CacheFileCleaner.class);
+    public static final String CLEANING_SCHEDULE = "kairosdb.query_cache.cache_file_cleaner_schedule";
 
-	private final KairosDatastore datastore;
-	private String schedule;
+    private final KairosDatastore datastore;
+    private final String schedule;
 
-	@Inject
-	public CacheFileCleaner(@Named(CLEANING_SCHEDULE) String schedule, KairosDatastore datastore)
-	{
-		this.datastore = datastore;
-		this.schedule = schedule;
-	}
+    @Inject
+    public CacheFileCleaner(@Named(CLEANING_SCHEDULE) final String schedule, final KairosDatastore datastore) {
+        this.datastore = datastore;
+        this.schedule = schedule;
+    }
 
-	@Override
-	public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException
-	{
-		logger.debug("Executing job...");
-		datastore.cleanCacheDir(true);
-		logger.debug("Job Completed");
-	}
+    @Override
+    public void execute(final JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        logger.debug("Executing job...");
+        datastore.cleanCacheDir(true);
+        logger.debug("Job Completed");
+    }
 
-	@Override
-	public Trigger getTrigger()
-	{
-		return newTrigger()
-				.withIdentity(this.getClass().getSimpleName())
-				.withSchedule(CronScheduleBuilder.cronSchedule(schedule))
-				.build();
-	}
+    @Override
+    public Trigger getTrigger() {
+        return newTrigger()
+                .withIdentity(this.getClass().getSimpleName())
+                .withSchedule(CronScheduleBuilder.cronSchedule(schedule))
+                .build();
+    }
 
-	@Override
-	public void interrupt()
-	{
-	}
+    @Override
+    public void interrupt() {
+    }
 }

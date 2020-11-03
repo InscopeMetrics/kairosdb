@@ -19,25 +19,22 @@ package org.kairosdb.testing;
 import com.google.common.collect.ImmutableList;
 import org.apache.bval.jsr303.ApacheValidationProvider;
 
+import java.util.Collection;
+import java.util.List;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
-import java.util.Collection;
-import java.util.List;
 
-public class BeanValidationHelper
-{
-	public static final Validator VALIDATOR = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
+public class BeanValidationHelper {
+    public static final Validator VALIDATOR = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
 
-	public static List<String> messagesFor(Collection<? extends ConstraintViolation<?>> violations)
-	{
-		ImmutableList.Builder<String> messages = new ImmutableList.Builder<String>();
-		for (ConstraintViolation<?> violation : violations)
-		{
-			messages.add(violation.getPropertyPath().toString() + " " + violation.getMessage());
-		}
+    public static List<String> messagesFor(final Collection<? extends ConstraintViolation<?>> violations) {
+        final ImmutableList.Builder<String> messages = new ImmutableList.Builder<String>();
+        for (final ConstraintViolation<?> violation : violations) {
+            messages.add(violation.getPropertyPath().toString() + " " + violation.getMessage());
+        }
 
-		return messages.build();
-	}
+        return messages.build();
+    }
 
 }

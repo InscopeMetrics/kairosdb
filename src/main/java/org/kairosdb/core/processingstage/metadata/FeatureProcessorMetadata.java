@@ -5,15 +5,13 @@ import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.List;
 
-public class FeatureProcessorMetadata
-{
+public class FeatureProcessorMetadata {
     private final String name;
     private final String label;
     private final String description;
     private final ImmutableList<FeaturePropertyMetadata> properties;
 
-    public FeatureProcessorMetadata(String name, String label, String description, List<FeaturePropertyMetadata> properties)
-    {
+    public FeatureProcessorMetadata(final String name, final String label, final String description, final List<FeaturePropertyMetadata> properties) {
         this.name = name;
         this.label = label;
         this.description = description;
@@ -22,20 +20,19 @@ public class FeatureProcessorMetadata
         this.properties = ImmutableList.copyOf(properties);
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public String getLabel() { return label; }
+    public String getLabel() {
+        return label;
+    }
 
-    public String getDescription()
-    {
+    public String getDescription() {
         return description;
     }
 
-    public ImmutableList<FeaturePropertyMetadata> getProperties()
-    {
+    public ImmutableList<FeaturePropertyMetadata> getProperties() {
         return properties;
     }
 }

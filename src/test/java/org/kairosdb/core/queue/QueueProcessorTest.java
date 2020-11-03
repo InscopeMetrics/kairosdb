@@ -33,236 +33,211 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- Created by bhawkins on 10/15/16.
+ * Created by bhawkins on 10/15/16.
  */
-public class QueueProcessorTest
-{
-	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
+public class QueueProcessorTest {
+    private final LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
 
-	private QueueProcessor.DeliveryThread m_deliveryThread;
-	private PeriodicMetrics m_periodicMetrics = Mockito.mock(PeriodicMetrics.class);
+    private QueueProcessor.DeliveryThread m_deliveryThread;
+    private final PeriodicMetrics m_periodicMetrics = Mockito.mock(PeriodicMetrics.class);
 
-	private class TestExecutor implements ExecutorService
-	{
-		@Override
-		public void execute(Runnable command)
-		{
-			m_deliveryThread = (QueueProcessor.DeliveryThread)command;
-		}
+    @Before
+    public void setup() {
+        m_deliveryThread = null;
+    }
 
-		@Override
-		public void shutdown()
-		{
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void test_bigArray_readingEmptyArray() {
+        final BigArray bigArray = new BigArray("big_array", "kairos_queue", 512 * 1024 * 1024);
 
-		}
+        final long index = bigArray.getTailIndex();
+        final byte[] data = bigArray.get(index);
+    }
 
-		@Override
-		public List<Runnable> shutdownNow()
-		{
-			return null;
-		}
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void test_bigArray_readingNonExistingIndex() {
+        final BigArray bigArray = new BigArray("big_array", "kairos_queue", 512 * 1024 * 1024);
 
-		@Override
-		public boolean isShutdown()
-		{
-			return false;
-		}
+        long index = bigArray.getTailIndex();
+        index++;
+        final byte[] data = bigArray.get(index);
+    }
 
-		@Override
-		public boolean isTerminated()
-		{
-			return false;
-		}
+    private DataPointEvent createDataPointEvent() {
+        final ImmutableSortedMap<String, String> tags =
+                ImmutableSortedMap.<String, String>naturalOrder()
+                        .put("tag1", "val1")
+                        .put("tag2", "val2")
+                        .put("tag3", "val3").build();
 
-		@Override
-		public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException
-		{
-			return false;
-		}
+        final DataPoint dataPoint = m_longDataPointFactory.createDataPoint(123L, 43);
+        final DataPointEvent event = new DataPointEvent("new_metric", tags, dataPoint, 500);
 
-		@Override
-		public <T> Future<T> submit(Callable<T> task)
-		{
-			return null;
-		}
+        return event;
+    }
 
-		@Override
-		public <T> Future<T> submit(Runnable task, T result)
-		{
-			return null;
-		}
+    @Test
+    public void test_eventIsPulledFromMemoryQueue() throws DatastoreException {
+        final BigArray bigArray = mock(BigArray.class);
 
-		@Override
-		public Future<?> submit(Runnable task)
-		{
-			return null;
-		}
+        when(bigArray.append(any())).thenReturn(0L);
+        when(bigArray.getTailIndex()).thenReturn(0L);
+        when(bigArray.getHeadIndex()).thenReturn(1L);
 
-		@Override
-		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException
-		{
-			return null;
-		}
+        final DataPointEventSerializer serializer = new DataPointEventSerializer(new TestDataPointFactory());
+        final ProcessorHandler processorHandler = mock(ProcessorHandler.class);
 
-		@Override
-		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException
-		{
-			return null;
-		}
+        final QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
+                bigArray, new TestExecutor(), m_periodicMetrics, 2, 10, 500, 1, 500);
 
-		@Override
-		public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException
-		{
-			return null;
-		}
+        queueProcessor.setProcessorHandler(processorHandler);
 
-		@Override
-		public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException
-		{
-			return null;
-		}
-	}
+        final DataPointEvent event = createDataPointEvent();
 
-	@Before
-	public void setup()
-	{
-		m_deliveryThread = null;
-	}
+        queueProcessor.put(event);
 
-	@Test(expected = IndexOutOfBoundsException.class)
-	public void test_bigArray_readingEmptyArray()
-	{
-		BigArray bigArray = new BigArray("big_array", "kairos_queue", 512*1024*1024);
+        m_deliveryThread.setRunOnce(true);
+        m_deliveryThread.run();
 
-		long index = bigArray.getTailIndex();
-		byte[] data = bigArray.get(index);
-	}
+        verify(bigArray, times(1)).append(eq(serializer.serializeEvent(event)));
+        verify(processorHandler, times(1)).handleEvents(eq(Arrays.asList(event)), any(), eq(false));
+        verify(bigArray, times(0)).get(anyLong());
+    }
 
-	@Test(expected = IndexOutOfBoundsException.class)
-	public void test_bigArray_readingNonExistingIndex()
-	{
-		BigArray bigArray = new BigArray("big_array", "kairos_queue", 512*1024*1024);
+    @Test
+    public void test_eventIsPulledFromMemoryQueueThenBigArray() throws DatastoreException {
+        final BigArray bigArray = mock(BigArray.class);
 
-		long index = bigArray.getTailIndex();
-		index ++;
-		byte[] data = bigArray.get(index);
-	}
+        when(bigArray.append(any())).thenReturn(0L);
+        when(bigArray.getHeadIndex()).thenReturn(2L);
 
-	private DataPointEvent createDataPointEvent()
-	{
-		ImmutableSortedMap<String, String> tags =
-				ImmutableSortedMap.<String, String>naturalOrder()
-						.put("tag1", "val1")
-						.put("tag2", "val2")
-						.put("tag3", "val3").build();
+        final DataPointEventSerializer serializer = new DataPointEventSerializer(new TestDataPointFactory());
+        final ProcessorHandler processorHandler = mock(ProcessorHandler.class);
 
-		DataPoint dataPoint = m_longDataPointFactory.createDataPoint(123L, 43);
-		DataPointEvent event = new DataPointEvent("new_metric", tags, dataPoint, 500);
+        final QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
+                bigArray, new TestExecutor(), m_periodicMetrics, 3, 1, 500, 1, 500);
 
-		return event;
-	}
+        queueProcessor.setProcessorHandler(processorHandler);
 
+        final DataPointEvent event = createDataPointEvent();
 
-	@Test
-	public void test_eventIsPulledFromMemoryQueue() throws DatastoreException
-	{
-		BigArray bigArray = mock(BigArray.class);
+        queueProcessor.put(event);
+        when(bigArray.append(any())).thenReturn(1L);
+        queueProcessor.put(event);
 
-		when(bigArray.append(any())).thenReturn(0L);
-		when(bigArray.getTailIndex()).thenReturn(0L);
-		when(bigArray.getHeadIndex()).thenReturn(1L);
+        when(bigArray.get(0L)).thenReturn(serializer.serializeEvent(event));
+        when(bigArray.get(1L)).thenReturn(serializer.serializeEvent(event));
 
-		DataPointEventSerializer serializer = new DataPointEventSerializer(new TestDataPointFactory());
-		ProcessorHandler processorHandler = mock(ProcessorHandler.class);
+        m_deliveryThread.setRunOnce(true);
+        m_deliveryThread.run();
 
-		QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
-				bigArray, new TestExecutor(), m_periodicMetrics, 2, 10, 500, 1, 500);
+        verify(bigArray, times(2)).append(eq(serializer.serializeEvent(event)));
+        verify(processorHandler, times(1)).handleEvents(eq(Arrays.asList(event, event)), any(), eq(false));
+        verify(bigArray, times(1)).get(anyLong());
+    }
 
-		queueProcessor.setProcessorHandler(processorHandler);
+    @Test
+    public void test_checkPointIsCalled() throws DatastoreException {
+        final EventBus eventBus = mock(EventBus.class);
+        final BigArray bigArray = mock(BigArray.class);
 
-		DataPointEvent event = createDataPointEvent();
+        when(bigArray.append(any())).thenReturn(0L);
+        when(bigArray.getHeadIndex()).thenReturn(2L);
 
-		queueProcessor.put(event);
+        final DataPointEventSerializer serializer = new DataPointEventSerializer(new TestDataPointFactory());
+        final ProcessorHandler processorHandler = new ProcessorHandler() {
+            @Override
+            public void handleEvents(final List<DataPointEvent> events, final EventCompletionCallBack eventCompletionCallBack, final boolean fullBatch) {
+                System.out.println("Handling events " + events.size());
+                eventCompletionCallBack.complete();
+            }
+        };
 
-		m_deliveryThread.setRunOnce(true);
-		m_deliveryThread.run();
+        final QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
+                bigArray, new TestExecutor(), m_periodicMetrics, 3, 2, -1, 1, 500);
 
-		verify(bigArray, times(1)).append(eq(serializer.serializeEvent(event)));
-		verify(processorHandler, times(1)).handleEvents(eq(Arrays.asList(event)), any(), eq(false));
-		verify(bigArray, times(0)).get(anyLong());
-	}
+        queueProcessor.setProcessorHandler(processorHandler);
 
-	@Test
-	public void test_eventIsPulledFromMemoryQueueThenBigArray() throws DatastoreException
-	{
-		BigArray bigArray = mock(BigArray.class);
+        final DataPointEvent event = createDataPointEvent();
 
-		when(bigArray.append(any())).thenReturn(0L);
-		when(bigArray.getHeadIndex()).thenReturn(2L);
+        queueProcessor.put(event);
+        when(bigArray.append(any())).thenReturn(1L);
+        queueProcessor.put(event);
 
-		DataPointEventSerializer serializer = new DataPointEventSerializer(new TestDataPointFactory());
-		ProcessorHandler processorHandler = mock(ProcessorHandler.class);
+        when(bigArray.get(1L)).thenReturn(serializer.serializeEvent(event));
 
-		QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
-				bigArray, new TestExecutor(), m_periodicMetrics, 3, 1, 500, 1, 500);
+        m_deliveryThread.setRunOnce(true);
+        m_deliveryThread.run();
 
-		queueProcessor.setProcessorHandler(processorHandler);
+        verify(bigArray, times(2)).append(eq(serializer.serializeEvent(event)));
+        //verify(bigArray, times(1)).get(anyLong()); //Item taken from memory
+        verify(bigArray, times(1)).removeBeforeIndex(eq(1l));
+    }
 
-		DataPointEvent event = createDataPointEvent();
+    private class TestExecutor implements ExecutorService {
+        @Override
+        public void execute(final Runnable command) {
+            m_deliveryThread = (QueueProcessor.DeliveryThread) command;
+        }
 
-		queueProcessor.put(event);
-		when(bigArray.append(any())).thenReturn(1L);
-		queueProcessor.put(event);
+        @Override
+        public void shutdown() {
 
-		when(bigArray.get(0L)).thenReturn(serializer.serializeEvent(event));
-		when(bigArray.get(1L)).thenReturn(serializer.serializeEvent(event));
+        }
 
-		m_deliveryThread.setRunOnce(true);
-		m_deliveryThread.run();
+        @Override
+        public List<Runnable> shutdownNow() {
+            return null;
+        }
 
-		verify(bigArray, times(2)).append(eq(serializer.serializeEvent(event)));
-		verify(processorHandler, times(1)).handleEvents(eq(Arrays.asList(event, event)), any(), eq(false));
-		verify(bigArray, times(1)).get(anyLong());
-	}
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
 
-	@Test
-	public void test_checkPointIsCalled() throws DatastoreException
-	{
-		final EventBus eventBus = mock(EventBus.class);
-		BigArray bigArray = mock(BigArray.class);
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
 
-		when(bigArray.append(any())).thenReturn(0L);
-		when(bigArray.getHeadIndex()).thenReturn(2L);
+        @Override
+        public boolean awaitTermination(final long timeout, final TimeUnit unit) throws InterruptedException {
+            return false;
+        }
 
-		DataPointEventSerializer serializer = new DataPointEventSerializer(new TestDataPointFactory());
-		ProcessorHandler processorHandler = new ProcessorHandler()
-		{
-			@Override
-			public void handleEvents(List<DataPointEvent> events, EventCompletionCallBack eventCompletionCallBack, boolean fullBatch)
-			{
-				System.out.println("Handling events "+events.size());
-				eventCompletionCallBack.complete();
-			}
-		};
+        @Override
+        public <T> Future<T> submit(final Callable<T> task) {
+            return null;
+        }
 
-		QueueProcessor queueProcessor = new FileQueueProcessor(serializer,
-				bigArray, new TestExecutor(), m_periodicMetrics, 3, 2, -1, 1, 500);
+        @Override
+        public <T> Future<T> submit(final Runnable task, final T result) {
+            return null;
+        }
 
-		queueProcessor.setProcessorHandler(processorHandler);
+        @Override
+        public Future<?> submit(final Runnable task) {
+            return null;
+        }
 
-		DataPointEvent event = createDataPointEvent();
+        @Override
+        public <T> List<Future<T>> invokeAll(final Collection<? extends Callable<T>> tasks) throws InterruptedException {
+            return null;
+        }
 
-		queueProcessor.put(event);
-		when(bigArray.append(any())).thenReturn(1L);
-		queueProcessor.put(event);
+        @Override
+        public <T> List<Future<T>> invokeAll(final Collection<? extends Callable<T>> tasks, final long timeout, final TimeUnit unit) throws InterruptedException {
+            return null;
+        }
 
-		when(bigArray.get(1L)).thenReturn(serializer.serializeEvent(event));
+        @Override
+        public <T> T invokeAny(final Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+            return null;
+        }
 
-		m_deliveryThread.setRunOnce(true);
-		m_deliveryThread.run();
-
-		verify(bigArray, times(2)).append(eq(serializer.serializeEvent(event)));
-		//verify(bigArray, times(1)).get(anyLong()); //Item taken from memory
-		verify(bigArray, times(1)).removeBeforeIndex(eq(1l));
-	}
+        @Override
+        public <T> T invokeAny(final Collection<? extends Callable<T>> tasks, final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            return null;
+        }
+    }
 }

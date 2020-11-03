@@ -29,244 +29,233 @@ import org.kairosdb.testing.ListDataPointGroup;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class LastAggregatorTest
-{
-	private LastAggregator aggregator;
+public class LastAggregatorTest {
+    private LastAggregator aggregator;
 
-	@Before
-	public void setup()
-	{
-		aggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
-	}
+    @Before
+    public void setup() {
+        aggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
+    }
 
-	@Test(expected = NullPointerException.class)
-	public void test_nullSet_invalid()
-	{
-		aggregator.aggregate(null);
-	}
+    @Test(expected = NullPointerException.class)
+    public void test_nullSet_invalid() {
+        aggregator.aggregate(null);
+    }
 
-	@Test
-	public void test_longValues()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(1, 20));
-		group.addDataPoint(new LongDataPoint(1, 3));
-		group.addDataPoint(new LongDataPoint(2, 1));
-		group.addDataPoint(new LongDataPoint(2, 3));
-		group.addDataPoint(new LongDataPoint(2, 5));
-		group.addDataPoint(new LongDataPoint(3, 25));
+    @Test
+    public void test_longValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(1, 20));
+        group.addDataPoint(new LongDataPoint(1, 3));
+        group.addDataPoint(new LongDataPoint(2, 1));
+        group.addDataPoint(new LongDataPoint(2, 3));
+        group.addDataPoint(new LongDataPoint(2, 5));
+        group.addDataPoint(new LongDataPoint(3, 25));
 
-		DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(3L));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(3L));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getLongValue(), equalTo(5L));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getLongValue(), equalTo(5L));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getLongValue(), equalTo(25L));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getLongValue(), equalTo(25L));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_doubleValues()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new DoubleDataPoint(1, 10.0));
-		group.addDataPoint(new DoubleDataPoint(1, 20.3));
-		group.addDataPoint(new DoubleDataPoint(1, 3.0));
-		group.addDataPoint(new DoubleDataPoint(2, 1.0));
-		group.addDataPoint(new DoubleDataPoint(2, 3.2));
-		group.addDataPoint(new DoubleDataPoint(2, 5.0));
-		group.addDataPoint(new DoubleDataPoint(3, 25.1));
+    @Test
+    public void test_doubleValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new DoubleDataPoint(1, 10.0));
+        group.addDataPoint(new DoubleDataPoint(1, 20.3));
+        group.addDataPoint(new DoubleDataPoint(1, 3.0));
+        group.addDataPoint(new DoubleDataPoint(2, 1.0));
+        group.addDataPoint(new DoubleDataPoint(2, 3.2));
+        group.addDataPoint(new DoubleDataPoint(2, 5.0));
+        group.addDataPoint(new DoubleDataPoint(3, 25.1));
 
-		DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(3.0));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(3.0));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(5.0));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(5.0));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(25.1));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(25.1));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_mixedTypeValues()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new DoubleDataPoint(1, 10.0));
-		group.addDataPoint(new DoubleDataPoint(1, 20.3));
-		group.addDataPoint(new LongDataPoint(1, 3));
-		group.addDataPoint(new LongDataPoint(2, 1));
-		group.addDataPoint(new DoubleDataPoint(2, 3.2));
-		group.addDataPoint(new DoubleDataPoint(2, 5.0));
-		group.addDataPoint(new DoubleDataPoint(3, 25.1));
+    @Test
+    public void test_mixedTypeValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new DoubleDataPoint(1, 10.0));
+        group.addDataPoint(new DoubleDataPoint(1, 20.3));
+        group.addDataPoint(new LongDataPoint(1, 3));
+        group.addDataPoint(new LongDataPoint(2, 1));
+        group.addDataPoint(new DoubleDataPoint(2, 3.2));
+        group.addDataPoint(new DoubleDataPoint(2, 5.0));
+        group.addDataPoint(new DoubleDataPoint(3, 25.1));
 
-		DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(3.0));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(3.0));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(5.0));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(5.0));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(25.1));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(25.1));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_withNegativeValues()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new DoubleDataPoint(1, -10.0));
-		group.addDataPoint(new DoubleDataPoint(1, -20.3));
-		group.addDataPoint(new LongDataPoint(1, -3));
-		group.addDataPoint(new DoubleDataPoint(2, 1.0));
-		group.addDataPoint(new DoubleDataPoint(2, -3.2));
-		group.addDataPoint(new DoubleDataPoint(2, -5.0));
-		group.addDataPoint(new DoubleDataPoint(3, -25.1));
-		group.addDataPoint(new DoubleDataPoint(3, -10.1));
+    @Test
+    public void test_withNegativeValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new DoubleDataPoint(1, -10.0));
+        group.addDataPoint(new DoubleDataPoint(1, -20.3));
+        group.addDataPoint(new LongDataPoint(1, -3));
+        group.addDataPoint(new DoubleDataPoint(2, 1.0));
+        group.addDataPoint(new DoubleDataPoint(2, -3.2));
+        group.addDataPoint(new DoubleDataPoint(2, -5.0));
+        group.addDataPoint(new DoubleDataPoint(3, -25.1));
+        group.addDataPoint(new DoubleDataPoint(3, -10.1));
 
-		DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(-3.0));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(-3.0));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(2L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(-5.0));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(2L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(-5.0));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getDoubleValue(), equalTo(-10.1));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getDoubleValue(), equalTo(-10.1));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_legacyLongValues()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new LegacyLongDataPoint(1, 10));
-		group.addDataPoint(new LegacyLongDataPoint(1, 20));
-		group.addDataPoint(new LegacyLongDataPoint(1, 3));
-		group.addDataPoint(new LegacyLongDataPoint(1, 1));
-		group.addDataPoint(new LegacyLongDataPoint(1, 3));
-		group.addDataPoint(new LegacyLongDataPoint(1, 5));
-		group.addDataPoint(new LegacyLongDataPoint(1, 25));
+    @Test
+    public void test_legacyLongValues() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new LegacyLongDataPoint(1, 10));
+        group.addDataPoint(new LegacyLongDataPoint(1, 20));
+        group.addDataPoint(new LegacyLongDataPoint(1, 3));
+        group.addDataPoint(new LegacyLongDataPoint(1, 1));
+        group.addDataPoint(new LegacyLongDataPoint(1, 3));
+        group.addDataPoint(new LegacyLongDataPoint(1, 5));
+        group.addDataPoint(new LegacyLongDataPoint(1, 25));
 
-		DataPointGroup results = aggregator.aggregate(group);
+        final DataPointGroup results = aggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(1L));
-		assertThat(dataPoint.getLongValue(), equalTo(25L));
+        final DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(1L));
+        assertThat(dataPoint.getLongValue(), equalTo(25L));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_alignStartOn()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new LongDataPoint(0, 11));
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(2, 20));
-		group.addDataPoint(new LongDataPoint(3, 3));
-		group.addDataPoint(new LongDataPoint(5, 1));
-		group.addDataPoint(new LongDataPoint(6, 3));
-		group.addDataPoint(new LongDataPoint(7, 5));
-		group.addDataPoint(new LongDataPoint(8, 25));
+    @Test
+    public void test_alignStartOn() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new LongDataPoint(0, 11));
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(2, 20));
+        group.addDataPoint(new LongDataPoint(3, 3));
+        group.addDataPoint(new LongDataPoint(5, 1));
+        group.addDataPoint(new LongDataPoint(6, 3));
+        group.addDataPoint(new LongDataPoint(7, 5));
+        group.addDataPoint(new LongDataPoint(8, 25));
 
-		LastAggregator lastAggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
-		lastAggregator.setSampling(new Sampling(5, TimeUnit.MILLISECONDS));
-		lastAggregator.setAlignStartTime(true);
-		DataPointGroup results = lastAggregator.aggregate(group);
+        final LastAggregator lastAggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
+        lastAggregator.setSampling(new Sampling(5, TimeUnit.MILLISECONDS));
+        lastAggregator.setAlignStartTime(true);
+        final DataPointGroup results = lastAggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(0L));
-		assertThat(dataPoint.getLongValue(), equalTo(3L));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(0L));
+        assertThat(dataPoint.getLongValue(), equalTo(3L));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(5L));
-		assertThat(dataPoint.getLongValue(), equalTo(25L));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(5L));
+        assertThat(dataPoint.getLongValue(), equalTo(25L));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_alignStartOff()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new LongDataPoint(0, 11));
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(2, 20));
-		group.addDataPoint(new LongDataPoint(3, 3));
-		group.addDataPoint(new LongDataPoint(5, 1));
-		group.addDataPoint(new LongDataPoint(6, 3));
-		group.addDataPoint(new LongDataPoint(7, 5));
-		group.addDataPoint(new LongDataPoint(8, 25));
+    @Test
+    public void test_alignStartOff() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new LongDataPoint(0, 11));
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(2, 20));
+        group.addDataPoint(new LongDataPoint(3, 3));
+        group.addDataPoint(new LongDataPoint(5, 1));
+        group.addDataPoint(new LongDataPoint(6, 3));
+        group.addDataPoint(new LongDataPoint(7, 5));
+        group.addDataPoint(new LongDataPoint(8, 25));
 
-		LastAggregator lastAggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
-		lastAggregator.setSampling(new Sampling(5, TimeUnit.MILLISECONDS));
-		lastAggregator.setAlignStartTime(false);
-		DataPointGroup results = lastAggregator.aggregate(group);
+        final LastAggregator lastAggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
+        lastAggregator.setSampling(new Sampling(5, TimeUnit.MILLISECONDS));
+        lastAggregator.setAlignStartTime(false);
+        final DataPointGroup results = lastAggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(3L));
-		assertThat(dataPoint.getLongValue(), equalTo(3L));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(3L));
+        assertThat(dataPoint.getLongValue(), equalTo(3L));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(8L));
-		assertThat(dataPoint.getLongValue(), equalTo(25L));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(8L));
+        assertThat(dataPoint.getLongValue(), equalTo(25L));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 
-	@Test
-	public void test_alignEndOn()
-	{
-		ListDataPointGroup group = new ListDataPointGroup("group");
-		group.addDataPoint(new LongDataPoint(0, 11));
-		group.addDataPoint(new LongDataPoint(1, 10));
-		group.addDataPoint(new LongDataPoint(2, 20));
-		group.addDataPoint(new LongDataPoint(3, 3));
-		group.addDataPoint(new LongDataPoint(5, 1));
-		group.addDataPoint(new LongDataPoint(6, 3));
-		group.addDataPoint(new LongDataPoint(7, 5));
-		group.addDataPoint(new LongDataPoint(8, 25));
+    @Test
+    public void test_alignEndOn() {
+        final ListDataPointGroup group = new ListDataPointGroup("group");
+        group.addDataPoint(new LongDataPoint(0, 11));
+        group.addDataPoint(new LongDataPoint(1, 10));
+        group.addDataPoint(new LongDataPoint(2, 20));
+        group.addDataPoint(new LongDataPoint(3, 3));
+        group.addDataPoint(new LongDataPoint(5, 1));
+        group.addDataPoint(new LongDataPoint(6, 3));
+        group.addDataPoint(new LongDataPoint(7, 5));
+        group.addDataPoint(new LongDataPoint(8, 25));
 
-		LastAggregator lastAggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
-		lastAggregator.setSampling(new Sampling(5, TimeUnit.MILLISECONDS));
-		lastAggregator.setAlignEndTime(true);
-		DataPointGroup results = lastAggregator.aggregate(group);
+        final LastAggregator lastAggregator = new LastAggregator(new DoubleDataPointFactoryImpl());
+        lastAggregator.setSampling(new Sampling(5, TimeUnit.MILLISECONDS));
+        lastAggregator.setAlignEndTime(true);
+        final DataPointGroup results = lastAggregator.aggregate(group);
 
-		DataPoint dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(5L));
-		assertThat(dataPoint.getLongValue(), equalTo(3L));
+        DataPoint dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(5L));
+        assertThat(dataPoint.getLongValue(), equalTo(3L));
 
-		dataPoint = results.next();
-		assertThat(dataPoint.getTimestamp(), equalTo(10L));
-		assertThat(dataPoint.getLongValue(), equalTo(25L));
+        dataPoint = results.next();
+        assertThat(dataPoint.getTimestamp(), equalTo(10L));
+        assertThat(dataPoint.getLongValue(), equalTo(25L));
 
-		assertThat(results.hasNext(), equalTo(false));
-	}
+        assertThat(results.hasNext(), equalTo(false));
+    }
 }

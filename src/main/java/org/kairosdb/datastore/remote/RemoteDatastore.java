@@ -59,455 +59,381 @@ import java.util.zip.GZIPOutputStream;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 
-public class RemoteDatastore implements Datastore
-{
-	public static final Logger logger = LoggerFactory.getLogger(RemoteDatastore.class);
-	public static final String DATA_DIR_PROP = "kairosdb.datastore.remote.data_dir";
-	public static final String REMOTE_URL_PROP = "kairosdb.datastore.remote.remote_url";
-	public static final String METRIC_PREFIX_FILTER = "kairosdb.datastore.remote.prefix_filter";
+public class RemoteDatastore implements Datastore {
+    public static final Logger logger = LoggerFactory.getLogger(RemoteDatastore.class);
+    public static final String DATA_DIR_PROP = "kairosdb.datastore.remote.data_dir";
+    public static final String REMOTE_URL_PROP = "kairosdb.datastore.remote.remote_url";
+    public static final String METRIC_PREFIX_FILTER = "kairosdb.datastore.remote.prefix_filter";
 
-	public static final String FILE_SIZE_METRIC = "kairosdb.datastore.remote.file_size";
-	public static final String ZIP_FILE_SIZE_METRIC = "kairosdb.datastore.remote.zip_file_size";
-	public static final String WRITE_SIZE_METRIC = "kairosdb.datastore.remote.write_size";
-	public static final String TIME_TO_SEND_METRIC = "kairosdb.datastore.remote.time_to_send";
+    public static final String FILE_SIZE_METRIC = "kairosdb.datastore.remote.file_size";
+    public static final String ZIP_FILE_SIZE_METRIC = "kairosdb.datastore.remote.zip_file_size";
+    public static final String WRITE_SIZE_METRIC = "kairosdb.datastore.remote.write_size";
+    public static final String TIME_TO_SEND_METRIC = "kairosdb.datastore.remote.time_to_send";
 
-	private final Object m_dataFileLock = new Object();
-	private final Object m_sendLock = new Object();
-	private BufferedWriter m_dataWriter;
-	private String m_dataFileName;
-	private volatile boolean m_firstDataPoint = true;
-	private String m_dataDirectory;
-	private String m_remoteUrl;
-	private int m_dataPointCounter;
+    private final Object m_dataFileLock = new Object();
+    private final Object m_sendLock = new Object();
+    private final Object m_mapLock = new Object();  //Lock for the above map
+    private BufferedWriter m_dataWriter;
+    private String m_dataFileName;
+    private volatile boolean m_firstDataPoint = true;
+    private final String m_dataDirectory;
+    private final String m_remoteUrl;
+    private int m_dataPointCounter;
+    private volatile Multimap<DataPointKey, DataPoint> m_dataPointMultimap;
+    private final CloseableHttpClient m_client;
+    private boolean m_running;
 
-	private volatile Multimap<DataPointKey, DataPoint> m_dataPointMultimap;
-	private final Object m_mapLock = new Object();  //Lock for the above map
+    @Inject
+    @Named("HOSTNAME")
+    private String m_hostName = "localhost";
 
-	private CloseableHttpClient m_client;
-	private boolean m_running;
+    private String[] m_prefixFilterArray = new String[0];
 
-	@Inject
-	@Named("HOSTNAME")
-	private String m_hostName = "localhost";
+    @Inject
+    private final LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
 
-	private String[] m_prefixFilterArray = new String[0];
+    @Inject
+    public RemoteDatastore(@Named(DATA_DIR_PROP) final String dataDir,
+                           @Named(REMOTE_URL_PROP) final String remoteUrl) throws IOException, DatastoreException {
+        m_dataDirectory = dataDir;
+        m_remoteUrl = remoteUrl;
+        m_client = HttpClients.createDefault();
 
-	@Inject
-	private LongDataPointFactory m_longDataPointFactory = new LongDataPointFactoryImpl();
+        createNewMap();
 
-	@Inject(optional = true)
-	public void setPrefixFilter(@Named(METRIC_PREFIX_FILTER) String prefixFilter)
-	{
-		if (!isNullOrEmpty(prefixFilter))
-		{
-			m_prefixFilterArray = prefixFilter.replaceAll("\\s+","").split(",");
-			logger.info("List of metric prefixes to forward to remote KairosDB: " + Arrays.toString(m_prefixFilterArray));
-		}
-	}
+        //This is to check and make sure the remote kairos is there and properly configured.
+        getKairosVersion();
 
+        sendAllZipfiles();
+        openDataFile();
+        m_running = true;
 
-	@Inject
-	public RemoteDatastore(@Named(DATA_DIR_PROP) String dataDir,
-			@Named(REMOTE_URL_PROP) String remoteUrl) throws IOException, DatastoreException
-	{
-		m_dataDirectory = dataDir;
-		m_remoteUrl = remoteUrl;
-		m_client = HttpClients.createDefault();
+        final Thread flushThread = new Thread(() -> {
+            while (m_running) {
+                try {
+                    flushMap();
 
-		createNewMap();
+                    Thread.sleep(2000);
+                } catch (final Exception e) {
+                    logger.error("Error flushing map", e);
+                }
+            }
+        });
 
-		//This is to check and make sure the remote kairos is there and properly configured.
-		getKairosVersion();
+        flushThread.setName("Remote flush");
 
-		sendAllZipfiles();
-		openDataFile();
-		m_running = true;
+        flushThread.start();
 
-		Thread flushThread = new Thread(() -> {
-			while (m_running)
-			{
-				try
-				{
-					flushMap();
+    }
 
-					Thread.sleep(2000);
-				}
-				catch (Exception e)
-				{
-					logger.error("Error flushing map", e);
-				}
-			}
-		});
+    @Inject(optional = true)
+    public void setPrefixFilter(@Named(METRIC_PREFIX_FILTER) final String prefixFilter) {
+        if (!isNullOrEmpty(prefixFilter)) {
+            m_prefixFilterArray = prefixFilter.replaceAll("\\s+", "").split(",");
+            logger.info("List of metric prefixes to forward to remote KairosDB: " + Arrays.toString(m_prefixFilterArray));
+        }
+    }
 
-		flushThread.setName("Remote flush");
+    private Multimap<DataPointKey, DataPoint> createNewMap() {
+        final Multimap<DataPointKey, DataPoint> ret;
+        synchronized (m_mapLock) {
+            ret = m_dataPointMultimap;
 
-		flushThread.start();
+            m_dataPointMultimap = ArrayListMultimap.create();
+        }
 
-	}
+        return ret;
+    }
 
-	private Multimap<DataPointKey, DataPoint> createNewMap()
-	{
-		Multimap<DataPointKey, DataPoint> ret;
-		synchronized (m_mapLock)
-		{
-			ret = m_dataPointMultimap;
+    private void flushMap() {
+        final Multimap<DataPointKey, DataPoint> flushMap = createNewMap();
 
-			m_dataPointMultimap = ArrayListMultimap.create();
-		}
+        synchronized (m_dataFileLock) {
+            try {
+                try {
+                    for (final DataPointKey dataPointKey : flushMap.keySet()) {
+                        //We have to clear the writer every time or it gets confused
+                        //because we are only writing partial json each time.
+                        final JSONWriter writer = new JSONWriter(m_dataWriter);
 
-		return ret;
-	}
+                        if (!m_firstDataPoint) {
+                            m_dataWriter.write(",\n");
+                        }
+                        m_firstDataPoint = false;
 
-	private void flushMap()
-	{
-		Multimap<DataPointKey, DataPoint> flushMap = createNewMap();
+                        writer.object();
 
-		synchronized (m_dataFileLock)
-		{
-			try
-			{
-				try
-				{
-					for (DataPointKey dataPointKey : flushMap.keySet())
-					{
-						//We have to clear the writer every time or it gets confused
-						//because we are only writing partial json each time.
-						JSONWriter writer = new JSONWriter(m_dataWriter);
+                        writer.key("name").value(dataPointKey.getName());
+                        writer.key("ttl").value(dataPointKey.getTtl());
+                        writer.key("skip_validate").value(true);
+                        writer.key("tags").object();
+                        final SortedMap<String, String> tags = dataPointKey.getTags();
+                        for (final String tag : tags.keySet()) {
+                            writer.key(tag).value(tags.get(tag));
+                        }
+                        writer.endObject();
 
-						if (!m_firstDataPoint)
-						{
-							m_dataWriter.write(",\n");
-						}
-						m_firstDataPoint = false;
-
-						writer.object();
-
-						writer.key("name").value(dataPointKey.getName());
-						writer.key("ttl").value(dataPointKey.getTtl());
-						writer.key("skip_validate").value(true);
-						writer.key("tags").object();
-						SortedMap<String, String> tags = dataPointKey.getTags();
-						for (String tag : tags.keySet())
-						{
-							writer.key(tag).value(tags.get(tag));
-						}
-						writer.endObject();
-
-						writer.key("datapoints").array();
-						for (DataPoint dataPoint : flushMap.get(dataPointKey))
-						{
-							m_dataPointCounter++;
-							writer.array();
-							writer.value(dataPoint.getTimestamp());
-							dataPoint.writeValueToJson(writer);
-							writer.value(dataPoint.getApiDataType());
+                        writer.key("datapoints").array();
+                        for (final DataPoint dataPoint : flushMap.get(dataPointKey)) {
+                            m_dataPointCounter++;
+                            writer.array();
+                            writer.value(dataPoint.getTimestamp());
+                            dataPoint.writeValueToJson(writer);
+                            writer.value(dataPoint.getApiDataType());
 							/*if (dataPoint.isLong())
 								writer.value(dataPoint.getLongValue());
 							else
 								writer.value(dataPoint.getDoubleValue());*/
-							writer.endArray();
-						}
-						writer.endArray();
+                            writer.endArray();
+                        }
+                        writer.endArray();
 
-						writer.endObject();
-					}
-				}
-				catch (JSONException e)
-				{
-					logger.error("Unable to write datapoints to file", e);
-				}
+                        writer.endObject();
+                    }
+                } catch (final JSONException e) {
+                    logger.error("Unable to write datapoints to file", e);
+                }
 
-				m_dataWriter.flush();
-			}
-			catch (IOException e)
-			{
-				logger.error("Unable to write datapoints to file", e);
-			}
-		}
-	}
+                m_dataWriter.flush();
+            } catch (final IOException e) {
+                logger.error("Unable to write datapoints to file", e);
+            }
+        }
+    }
 
-	private void getKairosVersion() throws DatastoreException
-	{
-		try
-		{
-			HttpGet get = new HttpGet(m_remoteUrl + "/api/v1/version");
+    private void getKairosVersion() throws DatastoreException {
+        try {
+            final HttpGet get = new HttpGet(m_remoteUrl + "/api/v1/version");
 
-			try (CloseableHttpResponse response = m_client.execute(get))
-			{
-				ByteArrayOutputStream bout = new ByteArrayOutputStream();
-				response.getEntity().writeTo(bout);
+            try (final CloseableHttpResponse response = m_client.execute(get)) {
+                final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                response.getEntity().writeTo(bout);
 
-				JSONObject respJson = new JSONObject(bout.toString("UTF-8"));
+                final JSONObject respJson = new JSONObject(bout.toString("UTF-8"));
 
-				logger.info("Connecting to remote Kairos version: " + respJson.getString("version"));
-			}
-		}
-		catch (IOException e)
-		{
-			throw new DatastoreException("Unable to connect to remote kairos node.", e);
-		}
-		catch (JSONException e)
-		{
-			throw new DatastoreException("Unable to parse response from remote kairos node.", e);
-		}
-	}
+                logger.info("Connecting to remote Kairos version: " + respJson.getString("version"));
+            }
+        } catch (final IOException e) {
+            throw new DatastoreException("Unable to connect to remote kairos node.", e);
+        } catch (final JSONException e) {
+            throw new DatastoreException("Unable to parse response from remote kairos node.", e);
+        }
+    }
 
-	private void openDataFile() throws IOException
-	{
-		m_dataFileName = m_dataDirectory + "/" + System.currentTimeMillis();
+    private void openDataFile() throws IOException {
+        m_dataFileName = m_dataDirectory + "/" + System.currentTimeMillis();
 
-		m_dataWriter = new BufferedWriter(new FileWriter(m_dataFileName));
-		m_dataWriter.write("[\n");
-		m_firstDataPoint = true;
-		m_dataPointCounter = 0;
-	}
+        m_dataWriter = new BufferedWriter(new FileWriter(m_dataFileName));
+        m_dataWriter.write("[\n");
+        m_firstDataPoint = true;
+        m_dataPointCounter = 0;
+    }
 
-	private void closeDataFile() throws IOException
-	{
-		m_dataWriter.write("]");
-		m_dataWriter.flush();
-		m_dataWriter.close();
-	}
+    private void closeDataFile() throws IOException {
+        m_dataWriter.write("]");
+        m_dataWriter.flush();
+        m_dataWriter.close();
+    }
 
-	@Override
-	public void close() throws InterruptedException, DatastoreException
-	{
-		try
-		{
-			m_running = false;
-			flushMap();
-			synchronized (m_dataFileLock)
-			{
-				closeDataFile();
-			}
+    @Override
+    public void close() throws InterruptedException, DatastoreException {
+        try {
+            m_running = false;
+            flushMap();
+            synchronized (m_dataFileLock) {
+                closeDataFile();
+            }
 
-			zipFile(m_dataFileName);
-			sendAllZipfiles();
-		}
-		catch (IOException e)
-		{
-			logger.error("Unable to send data files while closing down", e);
-		}
-	}
+            zipFile(m_dataFileName);
+            sendAllZipfiles();
+        } catch (final IOException e) {
+            logger.error("Unable to send data files while closing down", e);
+        }
+    }
 
-	@Subscribe
-	public void shutdown(ShutdownEvent shutdownEvent)
-	{
-		try
-		{
-			close();
-		}
-		catch (InterruptedException | DatastoreException e)
-		{
-			logger.error("Remote shutdown failure", e);
-		}
-	}
+    @Subscribe
+    public void shutdown(final ShutdownEvent shutdownEvent) {
+        try {
+            close();
+        } catch (final InterruptedException | DatastoreException e) {
+            logger.error("Remote shutdown failure", e);
+        }
+    }
 
-	@Subscribe
-	public void putDataPoint(DataPointEvent event) throws DatastoreException
-	{
-		String metricName = event.getMetricName();
+    @Subscribe
+    public void putDataPoint(final DataPointEvent event) throws DatastoreException {
+        final String metricName = event.getMetricName();
 
-		if (m_prefixFilterArray.length != 0)
-		{
-			boolean prefixMatch = false;
-			for (String prefixFilter : m_prefixFilterArray)
-			{
-				if (metricName.startsWith(prefixFilter))
-				{
-					prefixMatch = true;
-					break;
-				}
-			}
+        if (m_prefixFilterArray.length != 0) {
+            boolean prefixMatch = false;
+            for (final String prefixFilter : m_prefixFilterArray) {
+                if (metricName.startsWith(prefixFilter)) {
+                    prefixMatch = true;
+                    break;
+                }
+            }
 
-			if (!prefixMatch)
-				return;
-		}
+            if (!prefixMatch)
+                return;
+        }
 
-		DataPointKey key = new DataPointKey(metricName, event.getTags(),
-				event.getDataPoint().getApiDataType(), event.getTtl());
+        final DataPointKey key = new DataPointKey(metricName, event.getTags(),
+                event.getDataPoint().getApiDataType(), event.getTtl());
 
-		synchronized (m_mapLock)
-		{
-			m_dataPointMultimap.put(key, event.getDataPoint());
-		}
-	}
+        synchronized (m_mapLock) {
+            m_dataPointMultimap.put(key, event.getDataPoint());
+        }
+    }
 
-	/**
-	 Sends a single zip file
+    /**
+     * Sends a single zip file
+     *
+     * @param zipFile Name of the zip file in the data directory.
+     * @throws IOException
+     */
+    private void sendZipfile(final String zipFile) throws IOException {
+        logger.debug("Sending {}", zipFile);
+        final HttpPost post = new HttpPost(m_remoteUrl + "/api/v1/datapoints");
 
-	 @param zipFile Name of the zip file in the data directory.
-	 @throws IOException
-	 */
-	private void sendZipfile(String zipFile) throws IOException
-	{
-		logger.debug("Sending {}", zipFile);
-		HttpPost post = new HttpPost(m_remoteUrl + "/api/v1/datapoints");
+        final File zipFileObj = new File(m_dataDirectory, zipFile);
+        final FileInputStream zipStream = new FileInputStream(zipFileObj);
+        post.setHeader("Content-Type", "application/gzip");
 
-		File zipFileObj = new File(m_dataDirectory, zipFile);
-		FileInputStream zipStream = new FileInputStream(zipFileObj);
-		post.setHeader("Content-Type", "application/gzip");
+        post.setEntity(new InputStreamEntity(zipStream, zipFileObj.length()));
+        try (final CloseableHttpResponse response = m_client.execute(post)) {
 
-		post.setEntity(new InputStreamEntity(zipStream, zipFileObj.length()));
-		try (CloseableHttpResponse response = m_client.execute(post))
-		{
+            zipStream.close();
+            if (response.getStatusLine().getStatusCode() == 204) {
+                zipFileObj.delete();
+            } else {
+                final ByteArrayOutputStream body = new ByteArrayOutputStream();
+                response.getEntity().writeTo(body);
+                logger.error("Unable to send file " + zipFile + ": " + response.getStatusLine() +
+                        " - " + body.toString("UTF-8"));
+            }
+        }
+    }
 
-			zipStream.close();
-			if (response.getStatusLine().getStatusCode() == 204)
-			{
-				zipFileObj.delete();
-			}
-			else
-			{
-				ByteArrayOutputStream body = new ByteArrayOutputStream();
-				response.getEntity().writeTo(body);
-				logger.error("Unable to send file " + zipFile + ": " + response.getStatusLine() +
-						" - " + body.toString("UTF-8"));
-			}
-		}
-	}
+    /**
+     * Tries to send all zip files in the data directory.
+     */
+    private void sendAllZipfiles() throws IOException {
+        final File dataDirectory = new File(m_dataDirectory);
 
-	/**
-	 Tries to send all zip files in the data directory.
-	 */
-	private void sendAllZipfiles() throws IOException
-	{
-		File dataDirectory = new File(m_dataDirectory);
+        final String[] zipFiles = dataDirectory.list(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String name) {
+                return (name.endsWith(".gz"));
+            }
+        });
+        if (zipFiles == null)
+            return;
 
-		String[] zipFiles = dataDirectory.list(new FilenameFilter()
-		{
-			@Override
-			public boolean accept(File dir, String name)
-			{
-				return (name.endsWith(".gz"));
-			}
-		});
-		if (zipFiles == null)
-			return;
-
-		for (String zipFile : zipFiles)
-		{
-			try
-			{
-				sendZipfile(zipFile);
-			}
-			catch (IOException e)
-			{
-				logger.error("Unable to send data file " + zipFile);
-				throw (e);
-			}
-		}
-	}
+        for (final String zipFile : zipFiles) {
+            try {
+                sendZipfile(zipFile);
+            } catch (final IOException e) {
+                logger.error("Unable to send data file " + zipFile);
+                throw (e);
+            }
+        }
+    }
 
 
-	/**
-	 Compresses the given file and removes the uncompressed file
+    /**
+     * Compresses the given file and removes the uncompressed file
+     *
+     * @param file
+     * @return Size of the zip file
+     */
+    private long zipFile(final String file) throws IOException {
+        final String zipFile = file + ".gz";
 
-	 @param file
-	 @return Size of the zip file
-	 */
-	private long zipFile(String file) throws IOException
-	{
-		String zipFile = file + ".gz";
+        final FileInputStream is = new FileInputStream(file);
+        final GZIPOutputStream gout = new GZIPOutputStream(new FileOutputStream(zipFile));
 
-		FileInputStream is = new FileInputStream(file);
-		GZIPOutputStream gout = new GZIPOutputStream(new FileOutputStream(zipFile));
+        final byte[] buffer = new byte[1024];
+        int readSize = 0;
+        while ((readSize = is.read(buffer)) != -1)
+            gout.write(buffer, 0, readSize);
 
-		byte[] buffer = new byte[1024];
-		int readSize = 0;
-		while ((readSize = is.read(buffer)) != -1)
-			gout.write(buffer, 0, readSize);
+        is.close();
+        gout.flush();
+        gout.close();
 
-		is.close();
-		gout.flush();
-		gout.close();
+        //delete uncompressed file
+        new File(file).delete();
 
-		//delete uncompressed file
-		new File(file).delete();
-
-		return (new File(zipFile).length());
-	}
-
-
-	public void sendData() throws IOException
-	{
-		synchronized (m_sendLock)
-		{
-			String oldDataFile = m_dataFileName;
-			long now = System.currentTimeMillis();
-
-			long fileSize = (new File(m_dataFileName)).length();
-
-			ImmutableSortedMap<String, String> tags = ImmutableSortedMap.<String, String>naturalOrder()
-					.put("host", m_hostName)
-					.build();
-
-			synchronized (m_dataFileLock)
-			{
-				closeDataFile();
-				openDataFile();
-			}
-
-			long zipSize = zipFile(oldDataFile);
-
-			sendAllZipfiles();
-
-			long timeToSend = System.currentTimeMillis() - now;
-
-			try
-			{
-				putDataPoint(new DataPointEvent(FILE_SIZE_METRIC, tags, m_longDataPointFactory.createDataPoint(now, fileSize), 0));
-				putDataPoint(new DataPointEvent(WRITE_SIZE_METRIC, tags, m_longDataPointFactory.createDataPoint(now, m_dataPointCounter), 0));
-				putDataPoint(new DataPointEvent(ZIP_FILE_SIZE_METRIC, tags, m_longDataPointFactory.createDataPoint(now, zipSize), 0));
-				putDataPoint(new DataPointEvent(TIME_TO_SEND_METRIC, tags, m_longDataPointFactory.createDataPoint(now, timeToSend), 0));
-			}
-			catch (DatastoreException e)
-			{
-				logger.error("Error writing remote metrics", e);
-			}
-		}
-	}
+        return (new File(zipFile).length());
+    }
 
 
-	@Override
-	public Iterable<String> getMetricNames(String prefix) throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+    public void sendData() throws IOException {
+        synchronized (m_sendLock) {
+            final String oldDataFile = m_dataFileName;
+            final long now = System.currentTimeMillis();
 
-	@Override
-	public Iterable<String> getTagNames() throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+            final long fileSize = (new File(m_dataFileName)).length();
 
-	@Override
-	public Iterable<String> getTagValues() throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+            final ImmutableSortedMap<String, String> tags = ImmutableSortedMap.<String, String>naturalOrder()
+                    .put("host", m_hostName)
+                    .build();
 
-	@Override
-	public void queryDatabase(DatastoreMetricQuery query, QueryCallback queryCallback) throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+            synchronized (m_dataFileLock) {
+                closeDataFile();
+                openDataFile();
+            }
 
-	@Override
-	public void deleteDataPoints(DatastoreMetricQuery deleteQuery) throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+            final long zipSize = zipFile(oldDataFile);
 
-	@Override
-	public TagSet queryMetricTags(DatastoreMetricQuery query) throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+            sendAllZipfiles();
 
-	@Override
-	public long queryCardinality(DatastoreMetricQuery query) throws DatastoreException
-	{
-		throw new DatastoreException("Method not implemented.");
-	}
+            final long timeToSend = System.currentTimeMillis() - now;
+
+            try {
+                putDataPoint(new DataPointEvent(FILE_SIZE_METRIC, tags, m_longDataPointFactory.createDataPoint(now, fileSize), 0));
+                putDataPoint(new DataPointEvent(WRITE_SIZE_METRIC, tags, m_longDataPointFactory.createDataPoint(now, m_dataPointCounter), 0));
+                putDataPoint(new DataPointEvent(ZIP_FILE_SIZE_METRIC, tags, m_longDataPointFactory.createDataPoint(now, zipSize), 0));
+                putDataPoint(new DataPointEvent(TIME_TO_SEND_METRIC, tags, m_longDataPointFactory.createDataPoint(now, timeToSend), 0));
+            } catch (final DatastoreException e) {
+                logger.error("Error writing remote metrics", e);
+            }
+        }
+    }
+
+
+    @Override
+    public Iterable<String> getMetricNames(final String prefix) throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
+
+    @Override
+    public Iterable<String> getTagNames() throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
+
+    @Override
+    public Iterable<String> getTagValues() throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
+
+    @Override
+    public void queryDatabase(final DatastoreMetricQuery query, final QueryCallback queryCallback) throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
+
+    @Override
+    public void deleteDataPoints(final DatastoreMetricQuery deleteQuery) throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
+
+    @Override
+    public TagSet queryMetricTags(final DatastoreMetricQuery query) throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
+
+    @Override
+    public long queryCardinality(final DatastoreMetricQuery query) throws DatastoreException {
+        throw new DatastoreException("Method not implemented.");
+    }
 }

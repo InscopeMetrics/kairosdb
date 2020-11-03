@@ -24,7 +24,7 @@ import org.kairosdb.datastore.cassandra.CassandraConfiguration;
 /**
  * Ensure that nothing in the kairosdb.properties file would result in
  * unexpected behavior. Throw a KairosDBException upon startup if so.
- *
+ * <p>
  * Field injection is not ideal, but you can not provide defaults with
  * constructor injection.
  *

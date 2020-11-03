@@ -20,7 +20,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,106 +35,89 @@ import java.util.Map;
 /**
  * Converts a query response to a metric that could be pushed back into KairosDB.
  */
-public class ResponseToMetricConverter
-{
-	Gson gson = new GsonBuilder().create();
+public class ResponseToMetricConverter {
+    Gson gson = new GsonBuilder().create();
 
-	public static void main(String[] args) throws IOException
-	{
-		ResponseToMetricConverter converter = new ResponseToMetricConverter();
-		File outFile = new File(args[1]);
-		converter.convert(new FileInputStream(args[0]), new FileOutputStream(outFile));
-	}
+    public static void main(final String[] args) throws IOException {
+        final ResponseToMetricConverter converter = new ResponseToMetricConverter();
+        final File outFile = new File(args[1]);
+        converter.convert(new FileInputStream(args[0]), new FileOutputStream(outFile));
+    }
 
-	public void convert(InputStream inputStream, OutputStream outStream) throws IOException
-	{
+    public void convert(final InputStream inputStream, final OutputStream outStream) throws IOException {
 
-		try (JsonReader reader = new JsonReader(new InputStreamReader(inputStream));
-		     JsonWriter writer = new JsonWriter(new OutputStreamWriter(outStream)))
-		{
-			writer.beginArray();
+        try (final JsonReader reader = new JsonReader(new InputStreamReader(inputStream));
+             final JsonWriter writer = new JsonWriter(new OutputStreamWriter(outStream))) {
+            writer.beginArray();
 
-			// Queries array
-			reader.beginObject();
-			while (reader.hasNext())
-			{
-				String token = reader.nextName();
-				if (token.equals("queries"))
-				{
-					reader.beginArray();
+            // Queries array
+            reader.beginObject();
+            while (reader.hasNext()) {
+                String token = reader.nextName();
+                if (token.equals("queries")) {
+                    reader.beginArray();
 
-					while (reader.hasNext())
-					{
-						reader.beginObject();
-						token = reader.nextName();
-						if (token.equals("results"))
-						{
-							parseResults(reader, writer);
-						}
-						reader.endObject();
-					}
+                    while (reader.hasNext()) {
+                        reader.beginObject();
+                        token = reader.nextName();
+                        if (token.equals("results")) {
+                            parseResults(reader, writer);
+                        }
+                        reader.endObject();
+                    }
 
-					reader.endArray();
-				}
-			}
-			reader.endObject();
+                    reader.endArray();
+                }
+            }
+            reader.endObject();
 
-			writer.endArray();
-		}
-		catch (RuntimeException e)
-		{
-			e.printStackTrace();
-		}
-	}
+            writer.endArray();
+        } catch (final RuntimeException e) {
+            e.printStackTrace();
+        }
+    }
 
-	private void parseResults(JsonReader reader, JsonWriter writer) throws IOException
-	{
-		reader.beginArray();
-		while (reader.hasNext())
-		{
-			MetricFrom metricFrom = gson.fromJson(reader, MetricFrom.class);
-			MetricTo metricTo = new MetricTo(metricFrom);
-			gson.toJson(metricTo, MetricTo.class, writer);
-		}
+    private void parseResults(final JsonReader reader, final JsonWriter writer) throws IOException {
+        reader.beginArray();
+        while (reader.hasNext()) {
+            final MetricFrom metricFrom = gson.fromJson(reader, MetricFrom.class);
+            final MetricTo metricTo = new MetricTo(metricFrom);
+            gson.toJson(metricTo, MetricTo.class, writer);
+        }
 
-		reader.endArray();
-	}
+        reader.endArray();
+    }
 
-	private static class MetricFrom
-	{
-		private String name;
+    private static class MetricFrom {
+        private String name;
 
-		private Map<String, String[]> tags;
+        private Map<String, String[]> tags;
 
-		private long[][] values;
+        private long[][] values;
 
-		private GroupBy[] groupBy;
-	}
+        private GroupBy[] groupBy;
+    }
 
-	private class GroupBy
-	{
-		private String name;
+    private static class MetricTo {
+        private final String name;
+        private final Map<String, String> tags = new HashMap<String, String>();
+        private final long[][] datapoints;
 
-		private String[] tags;
+        private MetricTo(final MetricFrom from) {
+            this.name = from.name;
+            this.datapoints = Arrays.copyOf(from.values, from.values.length);
 
-		private Map<String, String> group;
-	}
+            for (final Map.Entry<String, String[]> entry : from.tags.entrySet()) {
+                tags.put(entry.getKey(), entry.getValue()[0]);
+            }
+        }
+    }
 
-	private static class MetricTo
-	{
-		private String name;
-		private Map<String, String> tags = new HashMap<String, String>();
-		private long[][] datapoints;
+    private class GroupBy {
+        private String name;
 
-		private MetricTo(MetricFrom from)
-		{
-			this.name = from.name;
-			this.datapoints = Arrays.copyOf(from.values, from.values.length);
+        private String[] tags;
 
-			for (Map.Entry<String, String[]> entry : from.tags.entrySet())
-			{
-				tags.put(entry.getKey(), entry.getValue()[0]);
-			}
-		}
-	}
+        private Map<String, String> group;
+    }
 }

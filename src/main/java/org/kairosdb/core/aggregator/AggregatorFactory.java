@@ -25,14 +25,11 @@ import java.lang.reflect.InvocationTargetException;
 
 @Feature(
         name = "aggregators",
-        label = "Aggregator"
-)
-public class AggregatorFactory extends GenericFeatureProcessorFactory<Aggregator>
-{
+        label = "Aggregator")
+public class AggregatorFactory extends GenericFeatureProcessorFactory<Aggregator> {
     @Inject
-    public AggregatorFactory(Injector injector)
-            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException
-    {
+    public AggregatorFactory(final Injector injector)
+            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         super(injector, Aggregator.class);
     }
 }

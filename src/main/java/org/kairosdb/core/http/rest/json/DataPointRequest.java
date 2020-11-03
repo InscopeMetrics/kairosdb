@@ -21,28 +21,24 @@ import org.apache.bval.constraints.NotEmpty;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
-public class DataPointRequest
-{
-	@NotNull
-	@NotEmpty
-	private String value;
+public class DataPointRequest {
+    @NotNull
+    @NotEmpty
+    private final String value;
 
-	@Min(1)
-	private long timestamp;
+    @Min(1)
+    private final long timestamp;
 
-	public DataPointRequest(long timestamp, String value)
-	{
-		this.timestamp = timestamp;
-		this.value = value;
-	}
+    public DataPointRequest(final long timestamp, final String value) {
+        this.timestamp = timestamp;
+        this.value = value;
+    }
 
-	public String getValue()
-	{
-		return value;
-	}
+    public String getValue() {
+        return value;
+    }
 
-	public long getTimestamp()
-	{
-		return timestamp;
-	}
+    public long getTimestamp() {
+        return timestamp;
+    }
 }
