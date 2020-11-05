@@ -26,15 +26,14 @@ public class DatastoreQueryHealthCheckTest {
     public void setup() throws DatastoreException {
         datastore = mock(KairosDatastore.class);
         query = mock(DatastoreQuery.class);
-        //when(datastore.getMetricNames()).thenReturn(Collections.<String>emptyList());
         when(datastore.createQuery(any(QueryMetric.class))).thenReturn(query);
 
-        healthCheck = new DatastoreQueryHealthCheck(datastore);
+        healthCheck = new DatastoreQueryHealthCheck(datastore, "foo/bar", null);
     }
 
     @Test(expected = NullPointerException.class)
     public void testConstructorNullDatastoreInvalid() {
-        new DatastoreQueryHealthCheck(null);
+        new DatastoreQueryHealthCheck(null, "foo/bar", null);
     }
 
     @Test

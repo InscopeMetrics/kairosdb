@@ -73,9 +73,9 @@ public class HealthCheckResourceTest {
     private class TestHealthCheckService implements HealthCheckService {
         @Override
         public List<HealthStatus> getChecks() {
-            final List<HealthStatus> list = new ArrayList<HealthStatus>();
+            final List<HealthStatus> list = new ArrayList<>();
             list.add(new TestHealthStatus());
-            list.add(new DatastoreQueryHealthCheck(datastore));
+            list.add(new DatastoreQueryHealthCheck(datastore, "foo/bar", null));
 
             return list;
         }
