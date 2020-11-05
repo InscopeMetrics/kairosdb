@@ -37,6 +37,71 @@ import static org.junit.Assert.assertTrue;
 public final class MetricReportingModuleTest {
 
     @Test
+    public void testParseTaggerBuildersEmpty() {
+        assertTrue(MetricReportingModule.parseTaggerBuilders(new Properties()).isEmpty());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testParseTaggerBuildersDoesNotExist() {
+        final Properties properties = new Properties();
+        properties.put("kairosdb.reporter.tagger.foo.bar.class", "com.example.taggers.DoesNotExist");
+        MetricReportingModule.parseTaggerBuilders(properties);
+    }
+
+    @Test
+    public void testParseTaggerBuildersSingle() {
+        final Properties properties = new Properties();
+        properties.put("kairosdb.reporter.tagger.foo.bar.class", "org.kairosdb.core.reporting.NoTagsTagger");
+        final Map<String, Class<?>> taggerBuilders = MetricReportingModule.parseTaggerBuilders(properties);
+        assertEquals(1, taggerBuilders.size());
+        assertTrue(taggerBuilders.containsKey("foo.bar"));
+        assertEquals(NoTagsTagger.Builder.class, taggerBuilders.get("foo.bar"));
+    }
+
+    @Test
+    public void testParseTaggerBuildersMultiple() {
+        final Properties properties = new Properties();
+        properties.put("kairosdb.reporter.tagger.foo.bar.class", "org.kairosdb.core.reporting.NoTagsTagger");
+        properties.put("kairosdb.reporter.tagger.abc.class", "org.kairosdb.core.reporting.MetricNameTagger");
+        final Map<String, Class<?>> taggerBuilders = MetricReportingModule.parseTaggerBuilders(properties);
+        assertEquals(2, taggerBuilders.size());
+        assertTrue(taggerBuilders.containsKey("foo.bar"));
+        assertTrue(taggerBuilders.containsKey("abc"));
+        assertEquals(NoTagsTagger.Builder.class, taggerBuilders.get("foo.bar"));
+        assertEquals(MetricNameTagger.Builder.class, taggerBuilders.get("abc"));
+    }
+
+    @Test
+    public void testLoadTaggersEmpty() {
+        assertTrue(MetricReportingModule.loadTaggers(Collections.emptyMap(), new Properties()).isEmpty());
+    }
+
+    @Test
+    public void testLoadTaggersSingleNoConfig() {
+        final Properties properties = new Properties();
+        final Map<String, Class<?>> taggerBuilders = Collections.singletonMap("foo.bar", NoTagsTagger.Builder.class);
+        final Map<String, Tagger> taggers = MetricReportingModule.loadTaggers(taggerBuilders, properties);
+        assertEquals(1, taggers.size());
+        assertTrue(taggers.get("foo.bar") instanceof NoTagsTagger);
+    }
+
+    @Test
+    public void testLoadTaggersSingleWithConfig() {
+        final Properties properties = new Properties();
+        properties.put("kairosdb.reporter.tagger.foo.bar.tags.0", "tagA");
+        properties.put("kairosdb.reporter.tagger.foo.bar.tags.1", "tagB");
+        properties.put("kairosdb.reporter.tagger.foo.bar.mappedTags.foo", "bar");
+        final Map<String, Class<?>> taggerBuilders = Collections.singletonMap("foo.bar", TagTagger.Builder.class);
+        final Map<String, Tagger> taggers = MetricReportingModule.loadTaggers(taggerBuilders, properties);
+        assertEquals(1, taggers.size());
+        assertTrue(taggers.get("foo.bar") instanceof TagTagger);
+        final TagTagger tagTagger = (TagTagger) taggers.get("foo.bar");
+        assertEquals("tagA", tagTagger.getTagMapping().get("tagA"));
+        assertEquals("tagB", tagTagger.getTagMapping().get("tagB"));
+        assertEquals("bar", tagTagger.getTagMapping().get("foo"));
+    }
+
+    @Test
     public void testParseSinkBuildersEmpty() {
         assertTrue(MetricReportingModule.parseSinkBuilders("").isEmpty());
     }
