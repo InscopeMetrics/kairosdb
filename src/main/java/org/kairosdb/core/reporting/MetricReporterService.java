@@ -37,10 +37,9 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 public class MetricReporterService implements KairosDBJob {
     public static final Logger logger = LoggerFactory.getLogger(MetricReporterService.class);
-
-    public static final String HOSTNAME = "HOSTNAME";
     public static final String SCHEDULE_PROPERTY = "kairosdb.reporter.schedule";
     public static final String REPORTER_TTL = "kairosdb.reporter.ttl";
+
     private final String m_schedule;
     private final int m_ttl;
     private final Publisher<DataPointEvent> m_publisher;
