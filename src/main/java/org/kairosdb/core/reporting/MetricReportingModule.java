@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.fasterxml.jackson.dataformat.javaprop.JavaPropsMapper;
 import com.fasterxml.jackson.dataformat.javaprop.JavaPropsSchema;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Strings;
@@ -54,6 +55,8 @@ public class MetricReportingModule extends ServletModule {
     private static final String SERVICE_TAG_KEY = "kairosdb.reporter.service";
     private static final String CLUSTER_TAG_KEY = "kairosdb.reporter.cluster";
     private static final String JVM_PERIOD_KEY = "kairosdb.reporter.jvm_period";
+    private static final String TAGGER_KEY_PREFIX = "kairosdb.reporter.tagger.";
+    private static final String TAGGER_CLASS_SUFFIX = ".class";
 
     static {
         // Shamelessly copied from ArpNetworking commons:
@@ -61,6 +64,7 @@ public class MetricReportingModule extends ServletModule {
         // TODO(Ville): Replace Gson with Jackson throughout KDB and use injected ObjectMapper
         PROPERTIES_MAPPER.registerModule(new Jdk8Module());
         PROPERTIES_MAPPER.registerModule(new JavaTimeModule());
+        PROPERTIES_MAPPER.registerModule(new GuavaModule());
         PROPERTIES_MAPPER.configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true);
         PROPERTIES_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         PROPERTIES_MAPPER.configure(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE, false);
@@ -74,6 +78,48 @@ public class MetricReportingModule extends ServletModule {
 
     public MetricReportingModule(final Properties properties) {
         this.properties = properties;
+    }
+
+    static Map<String, Class<?>> parseTaggerBuilders(final Properties properties) {
+        final Map<String, Class<?>> taggerBuilders = Maps.newHashMap();
+        for (final String key : properties.stringPropertyNames()) {
+            if (key.startsWith(TAGGER_KEY_PREFIX) && key.endsWith(TAGGER_CLASS_SUFFIX)) {
+                final String taggerImplAsString = properties.getProperty(key);
+                try {
+                    @SuppressWarnings("unchecked") final Class<?> taggerBuilderClass = Class.forName(taggerImplAsString.trim() + "$Builder");
+                    taggerBuilders.put(
+                            key.substring(0, key.length() - TAGGER_CLASS_SUFFIX.length())
+                                    .substring(TAGGER_KEY_PREFIX.length()),
+                            taggerBuilderClass);
+                } catch (final ClassNotFoundException e) {
+                    throw new RuntimeException("Tagger class not found: " + taggerImplAsString, e);
+                }
+            }
+        }
+        return taggerBuilders;
+    }
+
+    static Map<String, Tagger> loadTaggers(final Map<String, Class<?>> taggerBuilders, final Properties properties) {
+        final JavaPropsSchema schema = new JavaPropsSchema()
+                .withFirstArrayOffset(0);
+        final Map<String, Tagger> taggers = Maps.newHashMap();
+        for (final Map.Entry<String, Class<?>> entry : taggerBuilders.entrySet()) {
+            final String taggerKey = entry.getKey();
+            final Class<?> builderClass = entry.getValue();
+            try {
+                final Object builder = PROPERTIES_MAPPER.readPropertiesAs(
+                        properties,
+                        schema.withPrefix(TAGGER_KEY_PREFIX + taggerKey),
+                        builderClass);
+
+                @SuppressWarnings("unchecked") final org.kairosdb.core.reporting.Tagger tagger =
+                        (org.kairosdb.core.reporting.Tagger) builderClass.getMethod("build").invoke(builder);
+                taggers.put(taggerKey, tagger);
+            } catch (final Exception e) {
+                throw new RuntimeException(String.format("Unable to create tagger %s from %s", builderClass, taggerKey), e);
+            }
+        }
+        return taggers;
     }
 
     static List<Class<?>> parseSinkBuilders(final String sinkImplsAsString) {
@@ -118,6 +164,11 @@ public class MetricReportingModule extends ServletModule {
     @Override
     protected void configureServlets() {
         bind(MetricReporterService.class).in(Singleton.class);
+
+        final Map<String, Tagger> taggers = loadTaggers(parseTaggerBuilders(properties), properties);
+        for (final Map.Entry<String, Tagger> entry : taggers.entrySet()) {
+            bind(Tagger.class).annotatedWith(Names.named(entry.getKey())).toInstance(entry.getValue());
+        }
 
         final Map<String, Sink> sinks = loadSinks(parseSinkBuilders(properties.getProperty(SINKS_KEY)), properties);
         for (final Map.Entry<String, Sink> entry : sinks.entrySet()) {
