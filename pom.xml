@@ -108,6 +108,7 @@
     <apache.commons.math.version>3.2</apache.commons.math.version>
     <apache.httpclient.version>4.3.6</apache.httpclient.version>
     <apache.httpcore.version>4.3.3</apache.httpcore.version>
+    <arpnetworking.commons.version>1.18.3</arpnetworking.commons.version>
     <bigqueue.version>1.6.0.0</bigqueue.version>
     <bval.jsr303.version>0.5</bval.jsr303.version>
     <cassandra.driver.core.version>3.6.0</cassandra.driver.core.version>
@@ -540,6 +541,11 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
+      <groupId>com.arpnetworking.commons</groupId>
+      <artifactId>commons</artifactId>
+      <version>${arpnetworking.commons.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.arpnetworking.metrics</groupId>
       <artifactId>metrics-client</artifactId>
       <version>${metrics.client.version}</version>
@@ -686,6 +692,11 @@
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-guava</artifactId>
       <version>${jackson.version}</version>
     </dependency>
 
