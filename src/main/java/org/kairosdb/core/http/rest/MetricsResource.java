@@ -46,6 +46,8 @@ import org.kairosdb.core.http.rest.json.JsonResponseBuilder;
 import org.kairosdb.core.http.rest.json.Query;
 import org.kairosdb.core.http.rest.json.QueryParser;
 import org.kairosdb.core.http.rest.json.ValidationErrors;
+import org.kairosdb.core.reporting.NoTagsTagger;
+import org.kairosdb.core.reporting.Tagger;
 import org.kairosdb.core.reporting.ThreadReporter;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Publisher;
@@ -133,6 +135,10 @@ public class MetricsResource {
     @Inject(optional = true)
     @Named("kairosdb.log.queries.greater_than")
     private int m_logQueriesLongerThan = 60;
+
+    @Inject(optional = true)
+    @Named("rest.query")
+    private Tagger restQueryTagger = new NoTagsTagger.Builder().build();
 
     //Used for setting which API methods are enabled
     private EnumSet<ServerType> m_serverType = EnumSet.of(ServerType.INGEST, ServerType.QUERY, ServerType.DELETE);
@@ -335,9 +341,9 @@ public class MetricsResource {
             m_ingestedDataPoints.addAndGet(parser.getDataPointCount());
             m_ingestTime.addAndGet(parser.getIngestTime());
 
-            if (!validationErrors.hasErrors())
+            if (!validationErrors.hasErrors()) {
                 return setHeaders(Response.status(Response.Status.NO_CONTENT)).build();
-            else {
+            } else {
                 final JsonResponseBuilder builder = new JsonResponseBuilder(Response.Status.BAD_REQUEST);
                 for (final String errorMessage : validationErrors.getErrors()) {
                     builder.addError(errorMessage);
@@ -527,12 +533,9 @@ public class MetricsResource {
 
             final List<QueryMetric> queries = mainQuery.getQueryMetrics();
 
-            int queryCount = 0;
             for (final QueryMetric query : queries) {
-                queryCount++;
                 ThreadReporter.initialize(metricsFactory);
-                ThreadReporter.addTag("metric_name", query.getName());
-                ThreadReporter.addTag("query_index", String.valueOf(queryCount));
+                restQueryTagger.applyTagsToThreadReporter(query::getName, query::getTags);
 
                 final DatastoreQuery dq = datastore.createQuery(query);
                 final long startQuery = System.currentTimeMillis();

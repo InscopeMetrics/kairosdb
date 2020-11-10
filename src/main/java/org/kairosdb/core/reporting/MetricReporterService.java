@@ -19,8 +19,6 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.DataPointSet;
-import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.kairosdb.core.scheduler.KairosDBJob;
 import org.kairosdb.eventbus.FilterEventBus;
 import org.kairosdb.eventbus.Publisher;
@@ -37,6 +35,7 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 public class MetricReporterService implements KairosDBJob {
     public static final Logger logger = LoggerFactory.getLogger(MetricReporterService.class);
+
     public static final String SCHEDULE_PROPERTY = "kairosdb.reporter.schedule";
     public static final String REPORTER_TTL = "kairosdb.reporter.ttl";
 
