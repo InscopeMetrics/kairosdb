@@ -28,7 +28,9 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 /**
- * Applies the metric name as a tag.
+ * Applies the select tags in the context as a tag.
+ *
+ * This tagger only uses the information from the provided tags supplier.
  *
  * @author Ville Koskela (ville dot koskela at inscopemetrics dot io)
  */
@@ -73,7 +75,7 @@ public class TagTagger implements Tagger {
     }
 
     /**
-     * {@link com.arpnetworking.commons.builder.Builder} implementation for {@link MetricNameTagger}.
+     * {@link com.arpnetworking.commons.builder.Builder} implementation for {@link TagTagger}.
      */
     public static final class Builder implements com.arpnetworking.commons.builder.Builder<TagTagger> {
 
@@ -113,7 +115,7 @@ public class TagTagger implements Tagger {
         private boolean validate() {
             final Set<String> mappedTargetTags = Sets.newHashSet(mappedTags.values());
 
-            // Assert that no two mapped dimensions target the same value
+            // Assert that no two mapped tags target the same value
             if (mappedTargetTags.size() != mappedTags.size()) {
                 LOGGER.warn(String.format(
                         "Invalid TagTagger; reason: Mapped tags target the same key name, mappedTags: %s",
@@ -121,7 +123,7 @@ public class TagTagger implements Tagger {
                 return false;
             }
 
-            // Assert that no mapped dimension target is also a dimension
+            // Assert that no mapped tags target is also a tag
             if (!Sets.intersection(mappedTargetTags, tags).isEmpty()) {
                 LOGGER.warn(String.format(
                         "Invalid TagTagger; reason: Mapped tags overlap with (unmapped) tags, tags: %s, mappedTags: %s",
@@ -133,11 +135,11 @@ public class TagTagger implements Tagger {
             // NOTE: This does mean that a logically equivalent overlap would be
             // disallowed. For example:
             //
-            // dimensions = {"a", "b"}
-            // mappedDimensions = {"b": "b"}
+            // tags = {"a", "b"}
+            // mappedTags = {"b": "b"}
             //
-            // This is logically valid because the dimension rule for "b" and the
-            // mapped dimension rule for "b" are equivalent! However, the current
+            // This is logically valid because the tag rule for "b" and the
+            // mapped tag rule for "b" are equivalent! However, the current
             // check disallows this.
 
             return true;

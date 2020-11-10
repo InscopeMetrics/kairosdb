@@ -29,6 +29,8 @@ import javax.annotation.Nullable;
  * however, can be configured with a split string and segment count to promote
  * a prefix (e.g. "my/foo/bar/metric", split="/", segments=2 => "my/foo").
  *
+ * This tagger only uses the information from the provided metric name supplier.
+ *
  * @author Ville Koskela (ville dot koskela at inscopemetrics dot io)
  */
 public class MetricNameTagger implements Tagger {

@@ -22,6 +22,9 @@ import java.util.function.Supplier;
 /**
  * Does not apply any tags.
  *
+ * This tagger does not use any of the information from the provided metric name
+ * or tags suppliers.
+ *
  * @author Ville Koskela (ville dot koskela at inscopemetrics dot io)
  */
 public final class NoTagsTagger implements Tagger {

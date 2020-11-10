@@ -112,7 +112,7 @@ public class MetricReportingModule extends ServletModule {
                         schema.withPrefix(TAGGER_KEY_PREFIX + taggerKey),
                         builderClass);
 
-                @SuppressWarnings("unchecked") final org.kairosdb.core.reporting.Tagger tagger =
+                @SuppressWarnings("unchecked") final Tagger tagger =
                         (org.kairosdb.core.reporting.Tagger) builderClass.getMethod("build").invoke(builder);
                 taggers.put(taggerKey, tagger);
             } catch (final Exception e) {
