@@ -166,7 +166,7 @@ public class CQLBatch {
         if (rowKeyBatch.size() != 0) {
             m_session.execute(rowKeyBatch);
             m_periodicMetrics.recordGauge(
-                    "kairosdb/datastore/cassandra/row_keys/write_batch_size",
+                    "datastore/cassandra/row_keys/write_batch_size",
                     rowKeyBatch.size());
         }
 

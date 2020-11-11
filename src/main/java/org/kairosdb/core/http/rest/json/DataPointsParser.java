@@ -16,6 +16,9 @@
 
 package org.kairosdb.core.http.rest.json;
 
+import com.arpnetworking.metrics.Metrics;
+import com.arpnetworking.metrics.MetricsFactory;
+import com.arpnetworking.metrics.impl.NoOpMetricsFactory;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -23,8 +26,12 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.KairosDataPointFactory;
 import org.kairosdb.core.exception.DatastoreException;
+import org.kairosdb.core.reporting.NoTagsTagger;
+import org.kairosdb.core.reporting.Tagger;
+import org.kairosdb.core.reporting.ThreadReporter;
 import org.kairosdb.eventbus.Publisher;
 import org.kairosdb.events.DataPointEvent;
 import org.kairosdb.util.Util;
@@ -49,6 +56,8 @@ public class DataPointsParser {
     private final Reader inputStream;
     private final Gson gson;
     private final KairosDataPointFactory dataPointFactory;
+    private final MetricsFactory metricsFactory;
+    private final Tagger tagger;
     private int dataPointCount;
     private int ingestTime;
 
@@ -57,10 +66,28 @@ public class DataPointsParser {
             final Reader stream,
             final Gson gson,
             final KairosDataPointFactory dataPointFactory) {
+        this(
+                publisher,
+                stream,
+                gson,
+                dataPointFactory,
+                new NoOpMetricsFactory(),
+                new NoTagsTagger.Builder().build());
+    }
+
+    public DataPointsParser(
+            final Publisher<DataPointEvent> publisher,
+            final Reader stream,
+            final Gson gson,
+            final KairosDataPointFactory dataPointFactory,
+            final MetricsFactory metricsFactory,
+            final Tagger tagger) {
         m_publisher = publisher;
         this.inputStream = checkNotNull(stream);
         this.gson = gson;
         this.dataPointFactory = dataPointFactory;
+        this.metricsFactory = metricsFactory;
+        this.tagger = tagger;
     }
 
     public int getDataPointCount() {
@@ -192,9 +219,22 @@ public class DataPointsParser {
 
                 if (type != null) {
                     if (dataPointFactory.isRegisteredType(type)) {
-                        m_publisher.post(new DataPointEvent(metric.getName(), tags, dataPointFactory.createDataPoint(
-                                type, metric.getTimestamp(), metric.getValue()), metric.getTtl()));
-                        dataPointCount++;
+                        // New scope required here to allow tagging based on context (e.g. metric name or tags).
+                        // This is normally a bad idea; however, the data is either:
+                        // 1) Aggregated by KDB in memory through CassandraSink
+                        // 2) Aggregated by MAD
+                        // 3) Sent to some other metrics system and thus no feedback loop
+                        try (Metrics metrics = metricsFactory.create()) {
+                            final DataPoint dataPoint = dataPointFactory.createDataPoint(
+                                    type,
+                                    metric.getTimestamp(),
+                                    metric.getValue());
+                            m_publisher.post(new DataPointEvent(metric.getName(), tags, dataPoint, metric.getTtl()));
+
+                            tagger.applyTagsToMetrics(metrics, metric::getName, tags::asMultimap);
+                            metrics.incrementCounter("parser/samples", dataPoint.getSampleCount());
+                            dataPointCount++;
+                        }
                     } else {
                         validationErrors.addErrorMessage("Unregistered data point type '" + type + "'");
                     }
@@ -240,10 +280,26 @@ public class DataPointsParser {
                             validationErrors.addErrorMessage("Unregistered data point type '" + type + "'");
                             continue;
                         }
+                        // New scope required here to allow tagging based on context (e.g. metric name or tags).
+                        // This is normally a bad idea; however, the data is either:
+                        // 1) Aggregated by KDB in memory through CassandraSink
+                        // 2) Aggregated by MAD
+                        // 3) Sent to some other metrics system and thus no feedback loop
+                        try (Metrics metrics = metricsFactory.create()) {
+                            final DataPoint dataPointObj = dataPointFactory.createDataPoint(
+                                    type,
+                                    timestamp,
+                                    dataPoint[1]);
+                            m_publisher.post(new DataPointEvent(
+                                    metric.getName(),
+                                    tags,
+                                    dataPointObj,
+                                    metric.getTtl()));
 
-                        m_publisher.post(new DataPointEvent(metric.getName(), tags,
-                                dataPointFactory.createDataPoint(type, timestamp, dataPoint[1]), metric.getTtl()));
-                        dataPointCount++;
+                            tagger.applyTagsToMetrics(metrics, metric::getName, tags::asMultimap);
+                            metrics.incrementCounter("parser/samples", dataPointObj.getSampleCount());
+                            dataPointCount++;
+                        }
                     }
                     contextCount++;
                 }
