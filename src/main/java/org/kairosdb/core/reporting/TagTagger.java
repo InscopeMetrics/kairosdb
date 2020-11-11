@@ -15,6 +15,7 @@
  */
 package org.kairosdb.core.reporting;
 
+import com.arpnetworking.metrics.Metrics;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -52,6 +53,16 @@ public class TagTagger implements Tagger {
             final Supplier<String> metricName,
             final Supplier<SetMultimap<String, String>> tags) {
         applyTags(tags, ThreadReporter::addTag);
+    }
+
+    @Override
+    public void applyTagsToMetrics(
+            final Metrics metrics,
+            final Supplier<String> metricName,
+            final Supplier<SetMultimap<String, String>> tags) {
+        applyTags(
+                tags,
+                metrics::addAnnotation);
     }
 
     ImmutableMap<String, String> getTagMapping() {

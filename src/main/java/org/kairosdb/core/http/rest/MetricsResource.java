@@ -140,6 +140,10 @@ public class MetricsResource {
     @Named("rest.query")
     private Tagger restQueryTagger = new NoTagsTagger.Builder().build();
 
+    @Inject(optional = true)
+    @Named("rest.datapoints")
+    private Tagger restDatapointsTagger = new NoTagsTagger.Builder().build();
+
     //Used for setting which API methods are enabled
     private EnumSet<ServerType> m_serverType = EnumSet.of(ServerType.INGEST, ServerType.QUERY, ServerType.DELETE);
 
@@ -298,8 +302,13 @@ public class MetricsResource {
     public Response add(final InputStream json) throws InvalidServerTypeException {
         checkServerType(ServerType.INGEST, "JSON /datapoints", "POST");
         try {
-            final DataPointsParser parser = new DataPointsParser(m_publisher, new InputStreamReader(json, StandardCharsets.UTF_8),
-                    gson, m_kairosDataPointFactory);
+            final DataPointsParser parser = new DataPointsParser(
+                    m_publisher,
+                    new InputStreamReader(json, StandardCharsets.UTF_8),
+                    gson,
+                    m_kairosDataPointFactory,
+                    metricsFactory,
+                    restDatapointsTagger);
             final ValidationErrors validationErrors = parser.parse();
 
             m_ingestedDataPoints.addAndGet(parser.getDataPointCount());

@@ -15,6 +15,7 @@
  */
 package org.kairosdb.core.reporting;
 
+import com.arpnetworking.metrics.Metrics;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.SetMultimap;
@@ -48,6 +49,16 @@ public class MetricNameTagger implements Tagger {
             final Supplier<String> metricName,
             final Supplier<SetMultimap<String, String>> tags) {
         applyMetricName(metricName, ThreadReporter::addTag);
+    }
+
+    @Override
+    public void applyTagsToMetrics(
+            final Metrics metrics,
+            final Supplier<String> metricName,
+            final Supplier<SetMultimap<String, String>> tags) {
+        applyMetricName(
+                metricName,
+                metrics::addAnnotation);
     }
 
     void applyMetricName(
