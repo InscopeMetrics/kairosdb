@@ -59,10 +59,10 @@ public class KairosDatastore {
     public static final Logger logger = LoggerFactory.getLogger(KairosDatastore.class);
     public static final String QUERY_CACHE_DIR = "kairosdb.query_cache.cache_dir";
     public static final String KEEP_CACHE_FILES = "kairosdb.query_cache.keep_cache_files";
-    public static final String QUERY_METRIC_TIME = "kairosdb.datastore.query_time";
-    public static final String QUERIES_WAITING_METRIC_NAME = "kairosdb.datastore.queries_waiting";
-    public static final String QUERY_SAMPLE_SIZE = "kairosdb.datastore.query_sample_size";
-    public static final String QUERY_ROW_COUNT = "kairosdb.datastore.query_row_count";
+    public static final String QUERY_METRIC_TIME = "datastore/query_time";
+    public static final String QUERIES_WAITING_METRIC_NAME = "datastore/queries_waiting";
+    public static final String QUERY_SAMPLE_SIZE = "datastore/query_sample_size";
+    public static final String QUERY_ROW_COUNT = "datastore/query_row_count";
 
     private final Datastore m_datastore;
     private final QueryQueuingManager m_queuingManager;

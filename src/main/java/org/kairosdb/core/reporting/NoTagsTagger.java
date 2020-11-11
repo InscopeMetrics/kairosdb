@@ -15,6 +15,7 @@
  */
 package org.kairosdb.core.reporting;
 
+import com.arpnetworking.metrics.Metrics;
 import com.google.common.collect.SetMultimap;
 
 import java.util.function.Supplier;
@@ -35,6 +36,14 @@ public final class NoTagsTagger implements Tagger {
 
     @Override
     public void applyTagsToThreadReporter(
+            final Supplier<String> metricName,
+            final Supplier<SetMultimap<String, String>> tags) {
+        // Intentionally empty
+    }
+
+    @Override
+    public void applyTagsToMetrics(
+            final Metrics metrics,
             final Supplier<String> metricName,
             final Supplier<SetMultimap<String, String>> tags) {
         // Intentionally empty

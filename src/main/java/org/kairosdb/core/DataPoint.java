@@ -52,4 +52,7 @@ public interface DataPoint {
 
     void setDataPointGroup(DataPointGroup dataPointGroup);
 
+    default long getSampleCount() {
+        return 1L;
+    }
 }

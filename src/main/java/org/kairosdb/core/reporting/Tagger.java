@@ -15,6 +15,7 @@
  */
 package org.kairosdb.core.reporting;
 
+import com.arpnetworking.metrics.Metrics;
 import com.google.common.collect.SetMultimap;
 
 import java.util.function.Supplier;
@@ -29,6 +30,19 @@ public interface Tagger {
      * @param tags supplies the tags if available
      */
     void applyTagsToThreadReporter(
+            Supplier<String> metricName,
+            Supplier<SetMultimap<String, String>> tags);
+
+    /**
+     * Applies the tags from the available information to the
+     * supplied {@link Metrics} instance.
+     *
+     * @param metrics the {@link Metrics} instance to add tags to
+     * @param metricName supplies the metric name if available
+     * @param tags supplies the tags if available
+     */
+    void applyTagsToMetrics(
+            Metrics metrics,
             Supplier<String> metricName,
             Supplier<SetMultimap<String, String>> tags);
 }

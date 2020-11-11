@@ -93,9 +93,9 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
     public static final long ROW_WIDTH = 1814400000L; //3 Weeks wide
 
-    public static final String KEY_QUERY_TIME = "kairosdb.datastore.cassandra.key_query_time";
-    public static final String ROW_KEY_COUNT = "kairosdb.datastore.cassandra.row_key_count";
-    public static final String RAW_ROW_KEY_COUNT = "kairosdb.datastore.cassandra.raw_row_key_count";
+    public static final String KEY_QUERY_TIME = "datastore/cassandra/key_query_time";
+    public static final String ROW_KEY_COUNT = "datastore/cassandra/row_key_count";
+    public static final String RAW_ROW_KEY_COUNT = "datastore/cassandra/raw_row_key_count";
 
 
     public static final String ROW_KEY_METRIC_NAMES = "metric_names";
