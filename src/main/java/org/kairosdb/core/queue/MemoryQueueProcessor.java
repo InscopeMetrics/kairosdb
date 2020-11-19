@@ -51,7 +51,7 @@ public class MemoryQueueProcessor extends QueueProcessor {
     public void put(final DataPointEvent dataPointEvent) {
         if (!m_queue.offer(dataPointEvent)) {
             m_droppedSamplesCount.addAndGet(dataPointEvent.getDataPoint().getSampleCount());
-            logger.error("Error putting data");
+            logger.error("Error putting data; memory queue full");
         }
     }
 
