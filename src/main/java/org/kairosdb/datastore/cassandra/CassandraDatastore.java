@@ -57,7 +57,6 @@ import org.kairosdb.util.MemoryMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -80,7 +79,6 @@ import javax.annotation.Nullable;
 import javax.inject.Named;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.kairosdb.datastore.cassandra.CassandraConfiguration.KEYSPACE_PROPERTY;
 
 public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceKeyStore {
     public static final Logger logger = LoggerFactory.getLogger(CassandraDatastore.class);
@@ -233,12 +231,11 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     }
 
     @Override
-    public void handleEvents(final List<DataPointEvent> events, final EventCompletionCallBack eventCompletionCallBack,
-                             final boolean fullBatch) {
-        final BatchHandler batchHandler;
-
-        batchHandler = m_batchHandlerFactory.create(events, eventCompletionCallBack, fullBatch);
-
+    public void handleEvents(
+            final List<DataPointEvent> events,
+            final EventCompletionCallBack eventCompletionCallBack,
+            final boolean fullBatch) {
+        final BatchHandler batchHandler = m_batchHandlerFactory.create(events, eventCompletionCallBack, fullBatch);
         m_congestionExecutor.submit(batchHandler);
     }
 
@@ -1003,7 +1000,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
 
         @Override
-        public DataPointWriter startDataPointSet(final String dataType, final SortedMap<String, String> tags) throws IOException {
+        public DataPointWriter startDataPointSet(final String dataType, final SortedMap<String, String> tags) {
             return new DeleteDatePointWriter(dataType, tags);
         }
 
@@ -1020,12 +1017,12 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             }
 
             @Override
-            public void addDataPoint(final DataPoint datapoint) throws IOException {
+            public void addDataPoint(final DataPoint datapoint) {
                 m_dataPoints.add(datapoint);
 
                 if (m_dataPoints.size() > m_batchSize) {
                     final List<DataPoint> dataPoints = m_dataPoints;
-                    m_dataPoints = new ArrayList<DataPoint>();
+                    m_dataPoints = new ArrayList<>();
 
                     final DeleteBatchHandler deleteBatchHandler = m_deleteBatchHandlerFactory.create(
                             m_metricName, m_tags, dataPoints, s_dontCareCallBack);
@@ -1035,7 +1032,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 if (m_dataPoints.size() != 0) {
                     final DeleteBatchHandler deleteBatchHandler = m_deleteBatchHandlerFactory.create(
                             m_metricName, m_tags, m_dataPoints, s_dontCareCallBack);
