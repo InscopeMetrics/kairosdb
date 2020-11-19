@@ -81,7 +81,7 @@ public abstract class QueueProcessor {
 
     protected abstract int getAvailableDataPointEvents();
 
-    protected abstract EventCompletionCallBack getCompletionCallBack();
+    protected abstract EventCompletionCallBack getCompletionCallBack(final List<DataPointEvent> batch);
 
     protected abstract void addReportedMetrics(PeriodicMetrics periodicMetrics);
 
@@ -142,7 +142,7 @@ public abstract class QueueProcessor {
 
                     final List<DataPointEvent> results = get(m_batchSize);
                     //getCompletionCallBack must be called after get()
-                    final EventCompletionCallBack callbackToPass = getCompletionCallBack();
+                    final EventCompletionCallBack callbackToPass = getCompletionCallBack(results);
 
                     m_periodicMetrics.recordGauge("queue/batch_stats", results.size());
 
