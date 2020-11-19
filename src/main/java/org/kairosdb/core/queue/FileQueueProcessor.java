@@ -171,7 +171,7 @@ public class FileQueueProcessor extends QueueProcessor {
     }
 
     @Override
-    protected EventCompletionCallBack getCompletionCallBack() {
+    protected EventCompletionCallBack getCompletionCallBack(final List<DataPointEvent> batch) {
         final CompletionCallBack callbackToReturn = m_lastCallback;
 
         if (m_stopwatch.elapsed(TimeUnit.SECONDS) > m_secondsTillCheckpoint) {
