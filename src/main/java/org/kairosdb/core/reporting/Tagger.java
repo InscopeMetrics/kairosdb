@@ -16,6 +16,7 @@
 package org.kairosdb.core.reporting;
 
 import com.arpnetworking.metrics.Metrics;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 import java.util.function.Supplier;
@@ -43,6 +44,17 @@ public interface Tagger {
      */
     void applyTagsToMetrics(
             Metrics metrics,
+            Supplier<String> metricName,
+            Supplier<SetMultimap<String, String>> tags);
+
+    /**
+     * Returns the tags from the available information.
+     *
+     * @param metricName supplies the metric name if available
+     * @param tags supplies the tags if available
+     * @return the extracted tags
+     */
+    Multimap<String, String> createTags(
             Supplier<String> metricName,
             Supplier<SetMultimap<String, String>> tags);
 }

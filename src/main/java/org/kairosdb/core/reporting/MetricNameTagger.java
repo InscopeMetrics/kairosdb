@@ -18,6 +18,9 @@ package org.kairosdb.core.reporting;
 import com.arpnetworking.metrics.Metrics;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 import java.util.Arrays;
@@ -59,6 +62,15 @@ public class MetricNameTagger implements Tagger {
         applyMetricName(
                 metricName,
                 metrics::addAnnotation);
+    }
+
+    @Override
+    public Multimap<String, String> createTags(
+            Supplier<String> metricName,
+            Supplier<SetMultimap<String, String>> tags) {
+        final Multimap<String, String> result = HashMultimap.create();
+        applyMetricName(metricName, result::put);
+        return result;
     }
 
     void applyMetricName(

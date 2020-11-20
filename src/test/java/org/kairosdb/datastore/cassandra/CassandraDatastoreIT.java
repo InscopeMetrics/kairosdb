@@ -15,6 +15,8 @@
  */
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.Metrics;
+import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
@@ -255,6 +257,9 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         if (System.getProperty("dockerHostAddress") != null)
             cassandraHost = System.getProperty("dockerHostAddress");
 
+        final MetricsFactory metricsFactory = Mockito.mock(MetricsFactory.class);
+        final Metrics metrics = Mockito.mock(Metrics.class);
+        Mockito.doReturn(metrics).when(metricsFactory).create();
         final PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
         final CassandraConfiguration configuration = new CassandraConfiguration("kairosdb_test");
         configuration.setHostList(cassandraHost);
@@ -279,7 +284,14 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
                 m_schema,
                 session,
                 dataPointFactory,
-                new MemoryQueueProcessor(Executors.newSingleThreadExecutor(), periodicMetrics, 1000, 10000, 10, 500),
+                new MemoryQueueProcessor(
+                        Executors.newSingleThreadExecutor(),
+                        metricsFactory,
+                        periodicMetrics,
+                        1000,
+                        10000,
+                        10,
+                        500),
                 new IngestExecutorService(s_eventBus, periodicMetrics, 1),
                 new CassandraModule.BatchHandlerFactory() {
                     @Override
