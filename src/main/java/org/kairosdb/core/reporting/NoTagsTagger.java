@@ -16,6 +16,8 @@
 package org.kairosdb.core.reporting;
 
 import com.arpnetworking.metrics.Metrics;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 import java.util.function.Supplier;
@@ -47,6 +49,13 @@ public final class NoTagsTagger implements Tagger {
             final Supplier<String> metricName,
             final Supplier<SetMultimap<String, String>> tags) {
         // Intentionally empty
+    }
+
+    @Override
+    public Multimap<String, String> createTags(
+            Supplier<String> metricName,
+            Supplier<SetMultimap<String, String>> tags) {
+        return ImmutableMultimap.of();
     }
 
     /**

@@ -15,6 +15,8 @@
  */
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.Metrics;
+import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.google.common.collect.HashMultimap;
@@ -260,17 +262,20 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         if (System.getProperty("dockerHostAddress") != null)
             cassandraHost = System.getProperty("dockerHostAddress");
 
+        final MetricsFactory metricsFactory = Mockito.mock(MetricsFactory.class);
+        final Metrics metrics = Mockito.mock(Metrics.class);
+        Mockito.doReturn(metrics).when(metricsFactory).create();
         ImmutableMap<String, ? extends Object> configMap = ImmutableMap.<String, Object>builder()
                 .put("kairosdb.datastore.cassandra.write_cluster.keyspace", "kairosdb_test")
                 .put("kairosdb.datastore.cassandra.write_cluster.cql_host_list", Collections.singletonList(cassandraHost))
                 .build();
 
-        KairosRootConfig config = new KairosRootConfig();
+        final KairosRootConfig config = new KairosRootConfig();
         config.load(configMap);
 
-        PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
-        CassandraConfiguration configuration = new CassandraConfiguration(config);
-        CassandraClientImpl client = new CassandraClientImpl(configuration.getWriteCluster(), periodicMetrics);
+        final PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
+        final CassandraConfiguration configuration = new CassandraConfiguration(config);
+        final CassandraClientImpl client = new CassandraClientImpl(configuration.getWriteCluster(), periodicMetrics);
         client.init();
         m_clusterConnection = new ClusterConnection(client, EnumSet.of(ClusterConnection.Type.WRITE, ClusterConnection.Type.META));
         DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>(1024);
@@ -291,7 +296,14 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
                 m_clusterConnection,
                 Collections.emptyList(),
                 dataPointFactory,
-                new MemoryQueueProcessor(Executors.newSingleThreadExecutor(), periodicMetrics, 1000, 10000, 10, 500),
+                new MemoryQueueProcessor(
+                        Executors.newSingleThreadExecutor(),
+                        metricsFactory,
+                        periodicMetrics,
+                        1000,
+                        10000,
+                        10,
+                        500),
                 new IngestExecutorService(periodicMetrics, 1),
                 new CassandraModule.BatchHandlerFactory() {
                     @Override
