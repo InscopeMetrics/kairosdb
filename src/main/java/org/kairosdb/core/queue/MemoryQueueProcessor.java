@@ -1,18 +1,24 @@
 package org.kairosdb.core.queue;
 
+import com.arpnetworking.metrics.Metrics;
+import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.inject.Inject;
+import org.kairosdb.core.reporting.NoTagsTagger;
+import org.kairosdb.core.reporting.Tagger;
 import org.kairosdb.events.DataPointEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import javax.inject.Inject;
 import javax.inject.Named;
 
 /**
@@ -20,29 +26,36 @@ import javax.inject.Named;
  */
 public class MemoryQueueProcessor extends QueueProcessor {
     public static final Logger logger = LoggerFactory.getLogger(MemoryQueueProcessor.class);
+    private static final String QUEUE_PERSISTED_SAMPLES_TAGGER = "queue.persisted";
+    private static final String QUEUE_DROPPED_SAMPLES_TAGGER ="queue.dropped";
+
+    @Inject(optional = true)
+    @Named(QUEUE_PERSISTED_SAMPLES_TAGGER)
+    private Tagger m_persistedSamplesTagger = new NoTagsTagger.Builder().build();
+    @Inject(optional = true)
+    @Named(QUEUE_DROPPED_SAMPLES_TAGGER)
+    private Tagger m_droppedSamplesTagger = new NoTagsTagger.Builder().build();
 
     private final BlockingQueue<DataPointEvent> m_queue;
+    private final MetricsFactory m_metricsFactory;
     private final AtomicInteger m_readFromQueueCount = new AtomicInteger();
-    private final AtomicLong m_droppedSamplesCount = new AtomicLong();
-    private final AtomicLong m_persistedSamplesCount = new AtomicLong();
 
     @Inject
     public MemoryQueueProcessor(
             @Named(QUEUE_PROCESSOR) final ExecutorService executor,
+            final MetricsFactory metricsFactory,
             final PeriodicMetrics periodicMetrics,
             @Named(BATCH_SIZE) final int batchSize,
             @Named(MEMORY_QUEUE_SIZE) final int memoryQueueSize,
             @Named(MINIMUM_BATCH_SIZE) final int minimumBatchSize,
             @Named(MINIMUM_BATCH_WAIT) final int minBatchWait) {
         super(executor, periodicMetrics, batchSize, minimumBatchSize, minBatchWait);
-
         m_queue = new ArrayBlockingQueue<>(memoryQueueSize, true);
+        m_metricsFactory = metricsFactory;
     }
 
     @Override
     public void addReportedMetrics(final PeriodicMetrics periodicMetrics) {
-        periodicMetrics.recordGauge("queue/persisted_samples", m_persistedSamplesCount.getAndSet(0L));
-        periodicMetrics.recordGauge("queue/dropped_samples", m_droppedSamplesCount.getAndSet(0L));
         periodicMetrics.recordGauge("queue/process_count", m_readFromQueueCount.getAndSet(0));
         periodicMetrics.recordGauge("queue/memory_queue_size", m_queue.size());
     }
@@ -50,7 +63,13 @@ public class MemoryQueueProcessor extends QueueProcessor {
     @Override
     public void put(final DataPointEvent dataPointEvent) {
         if (!m_queue.offer(dataPointEvent)) {
-            m_droppedSamplesCount.addAndGet(dataPointEvent.getDataPoint().getSampleCount());
+            try (Metrics metrics = m_metricsFactory.create()) {
+                m_droppedSamplesTagger.applyTagsToMetrics(
+                        metrics,
+                        dataPointEvent::getMetricName,
+                        () -> dataPointEvent.getTags().asMultimap());
+                metrics.incrementCounter("queue/dropped_samples", dataPointEvent.getDataPoint().getSampleCount());
+            }
             logger.error("Error putting data; memory queue full");
         }
     }
@@ -76,9 +95,27 @@ public class MemoryQueueProcessor extends QueueProcessor {
 
     @Override
     protected EventCompletionCallBack getCompletionCallBack(final List<DataPointEvent> batch) {
-        return () -> m_persistedSamplesCount.addAndGet(
-                batch.stream()
-                        .map(b -> b.getDataPoint().getSampleCount())
-                        .reduce(0L, Long::sum));
+        return () -> {
+            // TODO: Optimize periodic recording with tags.
+            // Step 1: PeriodicMetrics supports tagging we can cache these at the class level
+            // Step 2: PeriodicMetrics supports sub-scopes we just need a single instance
+            final Map<Multimap<String, String>, Metrics> metricsByTag = Maps.newHashMap();
+            for (final DataPointEvent dpe :batch) {
+                final Multimap<String, String> tags = m_persistedSamplesTagger.createTags(
+                        dpe::getMetricName,
+                        () -> dpe.getTags().asMultimap());
+
+                Metrics metrics = metricsByTag.get(tags);
+                if (metrics == null) {
+                    final Metrics newMetrics = m_metricsFactory.create();
+                    tags.entries().forEach(e -> newMetrics.addAnnotation(e.getKey(), e.getValue()));
+                    metricsByTag.put(tags, newMetrics);
+                    metrics = newMetrics;
+                }
+
+                metrics.incrementCounter("queue/persisted_samples", dpe.getDataPoint().getSampleCount());
+            }
+            metricsByTag.values().forEach(Metrics::close);
+        };
     }
 }
