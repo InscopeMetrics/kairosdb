@@ -148,6 +148,7 @@ public class BatchHandler extends RetryCallable {
     public void retryCall() throws Exception {
         int divisor = 1;
         boolean retry = false;
+        boolean success = false;
         int limit = Integer.MAX_VALUE;
 
         do {
@@ -169,17 +170,13 @@ public class BatchHandler extends RetryCallable {
                     batch.getMetricNames().forEach(m_metricNameCache::put);
                     batch.getRowKeys().forEach(m_rowKeyCache::put);
                 }
-
+                success = true;
             }
             //If More exceptions are added to retry they need to be added to AdaptiveExecutorService
-            catch (final NoHostAvailableException nae) {
+            catch (final UnavailableException | NoHostAvailableException e) {
                 //Throw this out so the back off retry can happen
-                logger.error(nae.getMessage());
-                throw nae;
-            } catch (final UnavailableException ue) {
-                //Throw this out so the back off retry can happen
-                logger.error(ue.getMessage());
-                throw ue;
+                logger.error(e.getMessage());
+                throw e;
             } catch (final Exception e) {
                 if ("Batch too large".equals(e.getMessage()))
                     logger.warn("Batch size is too large");
@@ -224,7 +221,8 @@ public class BatchHandler extends RetryCallable {
         if (limit < m_events.size()) {
             m_batchReductionPublisher.post(new BatchReductionEvent(limit));
         }
-
-        m_callBack.complete();
+        if (success) {
+            m_callBack.complete();
+        }
     }
 }
