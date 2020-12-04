@@ -62,13 +62,13 @@ public final class MetricReportingModuleTest {
     public void testParseTaggerBuildersMultiple() {
         final Properties properties = new Properties();
         properties.put("kairosdb.reporter.tagger.foo.bar.class", "org.kairosdb.core.reporting.NoTagsTagger");
-        properties.put("kairosdb.reporter.tagger.abc.class", "org.kairosdb.core.reporting.MetricNameTagger");
+        properties.put("kairosdb.reporter.tagger.abc.class", "org.kairosdb.core.reporting.MetricNameSegmentTagger");
         final Map<String, Class<?>> taggerBuilders = MetricReportingModule.parseTaggerBuilders(properties);
         assertEquals(2, taggerBuilders.size());
         assertTrue(taggerBuilders.containsKey("foo.bar"));
         assertTrue(taggerBuilders.containsKey("abc"));
         assertEquals(NoTagsTagger.Builder.class, taggerBuilders.get("foo.bar"));
-        assertEquals(MetricNameTagger.Builder.class, taggerBuilders.get("abc"));
+        assertEquals(MetricNameSegmentTagger.Builder.class, taggerBuilders.get("abc"));
     }
 
     @Test
@@ -99,6 +99,24 @@ public final class MetricReportingModuleTest {
         assertEquals("tagA", tagTagger.getTagMapping().get("tagA"));
         assertEquals("tagB", tagTagger.getTagMapping().get("tagB"));
         assertEquals("bar", tagTagger.getTagMapping().get("foo"));
+    }
+
+    @Test
+    public void testLoadTaggersNested() {
+        final Properties properties = new Properties();
+        properties.put("kairosdb.reporter.tagger.foo.bar.class", "org.kairosdb.core.reporting.MultiTagger");
+        properties.put("kairosdb.reporter.tagger.foo.bar.taggers.0.class", "org.kairosdb.core.reporting.MetricNameSegmentTagger");
+        properties.put("kairosdb.reporter.tagger.foo.bar.taggers.0.segments", "2");
+        properties.put("kairosdb.reporter.tagger.foo.bar.taggers.1.class", "org.kairosdb.core.reporting.NoTagsTagger");
+        final Map<String, Class<?>> taggerBuilders = Collections.singletonMap("foo.bar", MultiTagger.Builder.class);
+        final Map<String, Tagger> taggers = MetricReportingModule.loadTaggers(taggerBuilders, properties);
+        assertEquals(1, taggerBuilders.size());
+        assertTrue(taggers.get("foo.bar") instanceof MultiTagger);
+
+        final MultiTagger multiTagger = (MultiTagger) taggers.get("foo.bar");
+        assertEquals(2, multiTagger.getTaggers().size());
+        assertTrue(multiTagger.getTaggers().get(0) instanceof MetricNameSegmentTagger);
+        assertTrue(multiTagger.getTaggers().get(1) instanceof NoTagsTagger);
     }
 
     @Test
