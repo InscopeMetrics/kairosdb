@@ -15,6 +15,7 @@
  */
 package org.kairosdb.core.reporting;
 
+import com.arpnetworking.commons.jackson.databind.module.BuilderModule;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.Sink;
 import com.arpnetworking.metrics.impl.TsdMetricsFactory;
@@ -62,6 +63,7 @@ public class MetricReportingModule extends ServletModule {
         // Shamelessly copied from ArpNetworking commons:
         // src/main/java/com/arpnetworking/commons/jackson/databind/ObjectMapperFactory.java
         // TODO(Ville): Replace Gson with Jackson throughout KDB and use injected ObjectMapper
+        PROPERTIES_MAPPER.registerModule(new BuilderModule());
         PROPERTIES_MAPPER.registerModule(new Jdk8Module());
         PROPERTIES_MAPPER.registerModule(new JavaTimeModule());
         PROPERTIES_MAPPER.registerModule(new GuavaModule());
