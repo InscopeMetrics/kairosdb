@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 /**
@@ -37,25 +38,11 @@ public final class NoTagsTagger implements Tagger {
     private NoTagsTagger() { }
 
     @Override
-    public void applyTagsToThreadReporter(
+    public void applyTags(
+            final BiConsumer<String, String> consumer,
             final Supplier<String> metricName,
             final Supplier<SetMultimap<String, String>> tags) {
         // Intentionally empty
-    }
-
-    @Override
-    public void applyTagsToMetrics(
-            final Metrics metrics,
-            final Supplier<String> metricName,
-            final Supplier<SetMultimap<String, String>> tags) {
-        // Intentionally empty
-    }
-
-    @Override
-    public Multimap<String, String> createTags(
-            Supplier<String> metricName,
-            Supplier<SetMultimap<String, String>> tags) {
-        return ImmutableMultimap.of();
     }
 
     /**
