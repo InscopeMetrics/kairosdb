@@ -15,16 +15,26 @@
  */
 package org.kairosdb.core.reporting;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link MultiTagger}.
@@ -45,7 +55,10 @@ public final class MultiTaggerTest {
     private Tagger taggerB;
 
     public MultiTaggerTest() {
+        final SetMultimap<String, String> tags = HashMultimap.create();
+        tags.put("foo", "bar");
         MockitoAnnotations.initMocks(this);
+        when(tagsSupplier.get()).thenReturn(tags);
     }
 
     @Test
@@ -56,5 +69,30 @@ public final class MultiTaggerTest {
         tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verify(taggerA).applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verify(taggerB).applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
+    }
+
+    @Test
+    public void testAppliedInOrder() {
+        final Tagger tagger1 = new TagTagger.Builder()
+                .setMappedTags(ImmutableMap.of("foo", "bar1"))
+                .build();
+        final Tagger tagger2 = new TagTagger.Builder()
+                .setMappedTags(ImmutableMap.of("foo", "bar2"))
+                .build();
+        final Tagger tagger3 = new TagTagger.Builder()
+                .setMappedTags(ImmutableMap.of("foo", "bar3"))
+                .build();
+
+        final Tagger tagger = new MultiTagger.Builder()
+                .setTaggers(ImmutableList.of(tagger1, tagger2, tagger3))
+                .build();
+
+        final List<String> actual = Lists.newArrayList();
+        tagger.applyTags((k, v) -> actual.add(k), metricNameSupplier, tagsSupplier);
+
+        final List<String> expected = Lists.newArrayList("bar1", "bar2", "bar3");
+
+        assertEquals(3, actual.size());
+        assertEquals(expected, actual);
     }
 }
