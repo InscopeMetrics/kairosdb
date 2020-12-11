@@ -16,12 +16,32 @@
 package org.kairosdb.core.reporting;
 
 import com.arpnetworking.metrics.Metrics;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.CLASS,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "class")
 public interface Tagger {
+
+    /**
+     * Applies the tags from the available information to the
+     * {@link BiConsumer}.
+     *
+     * @param consumer accepts each tag key-value pair
+     * @param metricName supplies the metric name if available
+     * @param tags supplies the tags if available
+     */
+    void applyTags(
+            BiConsumer<String, String> consumer,
+            Supplier<String> metricName,
+            Supplier<SetMultimap<String, String>> tags);
 
     /**
      * Applies the tags from the available information to the
@@ -30,9 +50,11 @@ public interface Tagger {
      * @param metricName supplies the metric name if available
      * @param tags supplies the tags if available
      */
-    void applyTagsToThreadReporter(
+    default void applyTagsToThreadReporter(
             Supplier<String> metricName,
-            Supplier<SetMultimap<String, String>> tags);
+            Supplier<SetMultimap<String, String>> tags) {
+        applyTags(ThreadReporter::addTag, metricName, tags);
+    }
 
     /**
      * Applies the tags from the available information to the
@@ -42,10 +64,12 @@ public interface Tagger {
      * @param metricName supplies the metric name if available
      * @param tags supplies the tags if available
      */
-    void applyTagsToMetrics(
+    default void applyTagsToMetrics(
             Metrics metrics,
             Supplier<String> metricName,
-            Supplier<SetMultimap<String, String>> tags);
+            Supplier<SetMultimap<String, String>> tags) {
+        applyTags(metrics::addAnnotation, metricName, tags);
+    }
 
     /**
      * Returns the tags from the available information.
@@ -54,7 +78,11 @@ public interface Tagger {
      * @param tags supplies the tags if available
      * @return the extracted tags
      */
-    Multimap<String, String> createTags(
+    default Multimap<String, String> createTags(
             Supplier<String> metricName,
-            Supplier<SetMultimap<String, String>> tags);
+            Supplier<SetMultimap<String, String>> tags) {
+        final Multimap<String, String> result = HashMultimap.create();
+        applyTags(result::put, metricName, tags);
+        return result;
+    }
 }

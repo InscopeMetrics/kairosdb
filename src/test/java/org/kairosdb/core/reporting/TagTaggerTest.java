@@ -97,7 +97,7 @@ public final class TagTaggerTest {
         final TagTagger tagger = new TagTagger.Builder()
                 .setTags(ImmutableSet.of("123"))
                 .build();
-        tagger.applyTags(tagsSupplier, tagConsumer);
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verify(tagsSupplier).get();
         verify(tagConsumer).accept("123", "abc");
     }
@@ -107,7 +107,7 @@ public final class TagTaggerTest {
         final TagTagger tagger = new TagTagger.Builder()
                 .setMappedTags(ImmutableMap.of("123", "456"))
                 .build();
-        tagger.applyTags(tagsSupplier, tagConsumer);
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verify(tagsSupplier).get();
         verify(tagConsumer).accept("456", "abc");
     }
@@ -118,7 +118,7 @@ public final class TagTaggerTest {
                 .setMappedTags(ImmutableMap.of("123", "456"))
                 .setTags(ImmutableSet.of("foo"))
                 .build();
-        tagger.applyTags(tagsSupplier, tagConsumer);
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verify(tagsSupplier).get();
         verify(tagConsumer).accept("456", "abc");
         verify(tagConsumer).accept("foo", "bar");

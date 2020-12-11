@@ -30,11 +30,11 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests for {@link MetricNameTagger}.
+ * Tests for {@link MetricNameSegmentTagger}.
  *
  * @author Ville Koskela (ville dot koskela at inscopemetrics dot io)
  */
-public final class MetricNameTaggerTest {
+public final class MetricNameSegmentTaggerTest {
 
     @Mock
     private MetricsFactory metricsFactory;
@@ -47,7 +47,7 @@ public final class MetricNameTaggerTest {
     @Mock
     private BiConsumer<String, String> tagConsumer;
 
-    public MetricNameTaggerTest() {
+    public MetricNameSegmentTaggerTest() {
         MockitoAnnotations.initMocks(this);
         when(metricsFactory.create()).thenReturn(metrics);
         when(metricNameSupplier.get()).thenReturn("hows/my/metric/name");
@@ -56,7 +56,7 @@ public final class MetricNameTaggerTest {
     @Test
     public void testThreadReporter() {
         ThreadReporter.initialize(metricsFactory);
-        final MetricNameTagger tagger = new MetricNameTagger.Builder().build();
+        final MetricNameSegmentTagger tagger = new MetricNameSegmentTagger.Builder().build();
         tagger.applyTagsToThreadReporter(metricNameSupplier, tagsSupplier);
         ThreadReporter.close();
 
@@ -67,8 +67,8 @@ public final class MetricNameTaggerTest {
 
     @Test
     public void testApplyMetricNameFull() {
-        final MetricNameTagger tagger = new MetricNameTagger.Builder().build();
-        tagger.applyMetricName(metricNameSupplier, tagConsumer);
+        final MetricNameSegmentTagger tagger = new MetricNameSegmentTagger.Builder().build();
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verifyZeroInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows/my/metric/name");
@@ -76,10 +76,10 @@ public final class MetricNameTaggerTest {
 
     @Test
     public void testApplyMetricOneSegment() {
-        final MetricNameTagger tagger = new MetricNameTagger.Builder()
+        final MetricNameSegmentTagger tagger = new MetricNameSegmentTagger.Builder()
                 .setSegments(1)
                 .build();
-        tagger.applyMetricName(metricNameSupplier, tagConsumer);
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verifyZeroInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows");
@@ -87,10 +87,10 @@ public final class MetricNameTaggerTest {
 
     @Test
     public void testApplyMetricTwoSegments() {
-        final MetricNameTagger tagger = new MetricNameTagger.Builder()
+        final MetricNameSegmentTagger tagger = new MetricNameSegmentTagger.Builder()
                 .setSegments(2)
                 .build();
-        tagger.applyMetricName(metricNameSupplier, tagConsumer);
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verifyZeroInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows/my");
@@ -98,11 +98,11 @@ public final class MetricNameTaggerTest {
 
     @Test
     public void testApplyMetricAlternateSplitter() {
-        final MetricNameTagger tagger = new MetricNameTagger.Builder()
+        final MetricNameSegmentTagger tagger = new MetricNameSegmentTagger.Builder()
                 .setSplitter("m")
                 .setSegments(3)
                 .build();
-        tagger.applyMetricName(metricNameSupplier, tagConsumer);
+        tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
         verifyZeroInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows/my/metric/na");

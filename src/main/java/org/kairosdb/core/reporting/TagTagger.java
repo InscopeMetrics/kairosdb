@@ -51,38 +51,10 @@ public class TagTagger implements Tagger {
     }
 
     @Override
-    public void applyTagsToThreadReporter(
-            final Supplier<String> metricName,
-            final Supplier<SetMultimap<String, String>> tags) {
-        applyTags(tags, ThreadReporter::addTag);
-    }
-
-    @Override
-    public void applyTagsToMetrics(
-            final Metrics metrics,
-            final Supplier<String> metricName,
-            final Supplier<SetMultimap<String, String>> tags) {
-        applyTags(
-                tags,
-                metrics::addAnnotation);
-    }
-
-    @Override
-    public Multimap<String, String> createTags(
-            Supplier<String> metricName,
-            Supplier<SetMultimap<String, String>> tags) {
-        final Multimap<String, String> result = HashMultimap.create();
-        applyTags(tags, result::put);
-        return result;
-    }
-
-    ImmutableMap<String, String> getTagMapping() {
-        return tagMapping;
-    }
-
-    void applyTags(
-            final Supplier<SetMultimap<String, String>> tagsSupplier,
-            final BiConsumer<String, String> tagConsumer) {
+    public void applyTags(
+            final BiConsumer<String, String> tagConsumer,
+            final Supplier<String> metricNameSupplier,
+            final Supplier<SetMultimap<String, String>> tagsSupplier) {
         @Nullable final SetMultimap<String, String> tags = tagsSupplier.get();
         if (tags != null) {
             for (final String tagName : tags.keySet()) {
@@ -94,6 +66,10 @@ public class TagTagger implements Tagger {
                 }
             }
         }
+    }
+
+    ImmutableMap<String, String> getTagMapping() {
+        return tagMapping;
     }
 
     /**

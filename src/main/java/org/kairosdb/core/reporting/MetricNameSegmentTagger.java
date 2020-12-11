@@ -15,12 +15,8 @@
  */
 package org.kairosdb.core.reporting;
 
-import com.arpnetworking.metrics.Metrics;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 import java.util.Arrays;
@@ -29,53 +25,31 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 /**
- * Applies the metric name as a tag. By default uses the entire metric name;
- * however, can be configured with a split string and segment count to promote
- * a prefix (e.g. "my/foo/bar/metric", split="/", segments=2 => "my/foo").
+ * Applies specified number of segment prefix from the metric name as a tag. By
+ * default uses the entire metric name; however, can be configured with a split
+ * string and segment count to promote a prefix.
+ *
+ * e.g. "my/foo/bar/metric", split="/", segments=2 => "my/foo"
  *
  * This tagger only uses the information from the provided metric name supplier.
  *
  * @author Ville Koskela (ville dot koskela at inscopemetrics dot io)
  */
-public class MetricNameTagger implements Tagger {
+public class MetricNameSegmentTagger implements Tagger {
 
     private final String splitter;
     private final int segments;
 
-    private MetricNameTagger(final Builder builder) {
+    private MetricNameSegmentTagger(final Builder builder) {
         splitter = builder.splitter;
         segments = builder.segments;
     }
 
     @Override
-    public void applyTagsToThreadReporter(
-            final Supplier<String> metricName,
-            final Supplier<SetMultimap<String, String>> tags) {
-        applyMetricName(metricName, ThreadReporter::addTag);
-    }
-
-    @Override
-    public void applyTagsToMetrics(
-            final Metrics metrics,
-            final Supplier<String> metricName,
-            final Supplier<SetMultimap<String, String>> tags) {
-        applyMetricName(
-                metricName,
-                metrics::addAnnotation);
-    }
-
-    @Override
-    public Multimap<String, String> createTags(
-            Supplier<String> metricName,
-            Supplier<SetMultimap<String, String>> tags) {
-        final Multimap<String, String> result = HashMultimap.create();
-        applyMetricName(metricName, result::put);
-        return result;
-    }
-
-    void applyMetricName(
+    public void applyTags(
+            final BiConsumer<String, String> tagConsumer,
             final Supplier<String> metricNameSupplier,
-            final BiConsumer<String, String> tagConsumer) {
+            final Supplier<SetMultimap<String, String>> tags) {
         @Nullable final String metricName = metricNameSupplier.get();
         if (!Strings.isNullOrEmpty(metricName)) {
             final String metricNameTagValue;
@@ -93,16 +67,16 @@ public class MetricNameTagger implements Tagger {
     }
 
     /**
-     * {@link com.arpnetworking.commons.builder.Builder} implementation for {@link MetricNameTagger}.
+     * {@link com.arpnetworking.commons.builder.Builder} implementation for {@link MetricNameSegmentTagger}.
      */
-    public static final class Builder implements com.arpnetworking.commons.builder.Builder<MetricNameTagger> {
+    public static final class Builder implements com.arpnetworking.commons.builder.Builder<MetricNameSegmentTagger> {
 
         private String splitter = "/";
         private Integer segments = 0;
 
         @Override
-        public MetricNameTagger build() {
-            return new MetricNameTagger(this);
+        public MetricNameSegmentTagger build() {
+            return new MetricNameSegmentTagger(this);
         }
 
         /**
