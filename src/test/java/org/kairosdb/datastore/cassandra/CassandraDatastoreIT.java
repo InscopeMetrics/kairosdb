@@ -267,8 +267,8 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         ((CassandraClientImpl) client).init();
         m_schema = new Schema(client, true);
         final Session session = m_schema.getSession();
-        final DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>(1024);
-        final DataCache<String> metricNameCache = new DataCache<>(1024);
+        final DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>("row_key", 1024, periodicMetrics);
+        final DataCache<String> metricNameCache = new DataCache<>("metric_name", 1024, periodicMetrics);
 
         final CassandraModule.CQLBatchFactory cqlBatchFactory = new CassandraModule.CQLBatchFactory() {
             @Override
@@ -281,6 +281,8 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         s_datastore = new CassandraDatastore(
                 client,
                 configuration,
+                rowKeyCache,
+                metricNameCache,
                 m_schema,
                 session,
                 dataPointFactory,

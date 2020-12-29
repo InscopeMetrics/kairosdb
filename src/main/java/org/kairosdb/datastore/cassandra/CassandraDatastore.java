@@ -113,10 +113,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     private final CassandraModule.BatchHandlerFactory m_batchHandlerFactory;
     private final CassandraModule.DeleteBatchHandlerFactory m_deleteBatchHandlerFactory;
     private final Session m_session;
-    @Inject
-    private DataCache<DataPointsRowKey> m_rowKeyCache = new DataCache<>(1024);
-    @Inject
-    private DataCache<String> m_metricNameCache = new DataCache<>(1024);
+    private DataCache<DataPointsRowKey> m_rowKeyCache;
+    private DataCache<String> m_metricNameCache;
     private final CassandraConfiguration m_cassandraConfiguration;
     @Inject
     @Named("kairosdb.queue_processor.batch_size")
@@ -126,6 +124,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     public CassandraDatastore(
             final CassandraClient cassandraClient,
             final CassandraConfiguration cassandraConfiguration,
+            final DataCache<DataPointsRowKey> rowKeyCache,
+            final DataCache<String> metricNameCache,
             final Schema schema,
             final Session session,
             final KairosDataPointFactory kairosDataPointFactory,
@@ -134,7 +134,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             final CassandraModule.BatchHandlerFactory batchHandlerFactory,
             final CassandraModule.DeleteBatchHandlerFactory deleteBatchHandlerFactory) throws DatastoreException {
         m_cassandraClient = cassandraClient;
-        //m_astyanaxClient = astyanaxClient;
+        m_rowKeyCache = rowKeyCache;
+        m_metricNameCache = metricNameCache;
         m_kairosDataPointFactory = kairosDataPointFactory;
         m_queueProcessor = queueProcessor;
         m_congestionExecutor = congestionExecutor;
