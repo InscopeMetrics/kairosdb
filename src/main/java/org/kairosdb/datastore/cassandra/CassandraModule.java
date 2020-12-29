@@ -16,6 +16,7 @@
 
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.google.common.collect.ImmutableList;
@@ -205,14 +206,18 @@ public class CassandraModule extends AbstractModule {
 
     @Provides
     @Singleton
-    DataCache<DataPointsRowKey> getRowKeyCache(final CassandraConfiguration configuration) {
-        return new DataCache<>(configuration.getRowKeyCacheSize());
+    DataCache<DataPointsRowKey> getRowKeyCache(
+            final CassandraConfiguration configuration,
+            final PeriodicMetrics periodicMetrics) {
+        return new DataCache<>("row_key", configuration.getRowKeyCacheSize(), periodicMetrics);
     }
 
     @Provides
     @Singleton
-    DataCache<String> getMetricNameCache(final CassandraConfiguration configuration) {
-        return new DataCache<>(configuration.getStringCacheSize());
+    DataCache<String> getMetricNameCache(
+            final CassandraConfiguration configuration,
+            final PeriodicMetrics periodicMetrics) {
+        return new DataCache<>("metric_name", configuration.getStringCacheSize(), periodicMetrics);
     }
 
     public interface BatchHandlerFactory {

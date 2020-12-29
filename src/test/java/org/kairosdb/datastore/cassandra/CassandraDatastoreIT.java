@@ -278,8 +278,8 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         final CassandraClientImpl client = new CassandraClientImpl(configuration.getWriteCluster(), periodicMetrics);
         client.init();
         m_clusterConnection = new ClusterConnection(client, EnumSet.of(ClusterConnection.Type.WRITE, ClusterConnection.Type.META));
-        DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>(1024);
-        DataCache<String> metricNameCache = new DataCache<>(1024);
+        DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>("row_key", 1024, periodicMetrics);
+        DataCache<String> metricNameCache = new DataCache<>("metric_name", 1024, periodicMetrics);
 
         final CassandraModule.CQLBatchFactory cqlBatchFactory = new CassandraModule.CQLBatchFactory() {
             @Override
@@ -292,6 +292,8 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         s_datastore = new CassandraDatastore(
 
                 configuration,
+                rowKeyCache,
+                metricNameCache,
                 m_clusterConnection,
                 m_clusterConnection,
                 Collections.emptyList(),

@@ -16,6 +16,8 @@
 
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,39 +34,87 @@ import java.util.concurrent.ConcurrentHashMap;
  * The data type must implement hashcode and equal methods.
  */
 public class DataCache<T> {
-    private final LinkItem<T> m_front = new LinkItem<T>(null);
-    private final LinkItem<T> m_back = new LinkItem<T>(null);
+    private final String name;
 
-    private final int m_maxSize;
-    //Using a ConcurrentHashMap so we can use the putIfAbsent method.
-    private final ConcurrentHashMap<T, LinkItem<T>> m_hashMap;
+    private long hitCount = 0;
+    private long missCount = 0;
+    private long evictedCount = 0;
+    private long expiredCount = 0;
 
-    public DataCache(final int cacheSize) {
-        //m_cache = new InternalCache(cacheSize);
-        m_hashMap = new ConcurrentHashMap<>();
-        m_maxSize = cacheSize;
+    private final LinkItem<T> front = new LinkItem<T>(null);
+    private final LinkItem<T> back = new LinkItem<T>(null);
 
-        m_front.m_next = m_back;
-        m_back.m_prev = m_front;
+    private final int maxSize;
+    private final ConcurrentHashMap<T, LinkItem<T>> hashMap;
+
+    public DataCache(final String name, final int cacheSize, final PeriodicMetrics periodicMetrics) {
+        this.name = name;
+        periodicMetrics.registerPolledMetric(this::recordMetrics);
+
+        hashMap = new ConcurrentHashMap<>();
+        maxSize = cacheSize;
+
+        front.next = back;
+        back.prev = front;
     }
 
-    /**
-     * returns null if item is not in cache.  If the return is not null the item
-     * from the cache is returned.
-     *
-     * @param cacheData
-     * @return
-     */
     public synchronized T get(final T cacheData) {
         final LinkItem<T> mappedItem = getMappedItemAndUpdateLRU(cacheData);
 
-        pruneCache();
+        if (mappedItem != null && mappedItem.data != null) {
+            ++hitCount;
+            return mappedItem.data;
+        }
+        ++missCount;
+        return null;
+    }
 
-        return (mappedItem == null ? null : mappedItem.m_data);
+    public synchronized void put(final T cacheData) {
+        final LinkItem<T> existing = hashMap.get(cacheData);
+        if (existing != null) {
+            return;
+        }
+
+        final LinkItem<T> li = new LinkItem<>(cacheData);
+        addLRUItem(li);
+        hashMap.put(cacheData, li);
+        pruneCache();
+    }
+
+    public synchronized Set<T> getCachedKeys() {
+        return (hashMap.keySet());
+    }
+
+    public synchronized void removeKey(final T key) {
+        final LinkItem<T> li = hashMap.remove(key);
+        if (li != null) {
+            ++expiredCount;
+            removeLRUItem(li);
+        }
+    }
+
+    public synchronized void clear() {
+        front.next = back;
+        back.prev = front;
+
+        hashMap.clear();
+    }
+
+    private synchronized void recordMetrics(final PeriodicMetrics periodicMetrics) {
+        periodicMetrics.recordGauge("data_cache/" + name + "/size", hashMap.size());
+        periodicMetrics.recordGauge("data_cache/" + name + "/hits", hitCount);
+        periodicMetrics.recordGauge("data_cache/" + name + "/misses", missCount);
+        periodicMetrics.recordGauge("data_cache/" + name + "/expired", expiredCount);
+        periodicMetrics.recordGauge("data_cache/" + name + "/evicted", evictedCount);
+
+        hitCount = 0;
+        missCount = 0;
+        expiredCount = 0;
+        evictedCount = 0;
     }
 
     private synchronized LinkItem<T> getMappedItemAndUpdateLRU(final T cacheData) {
-        final LinkItem<T> mappedItem = m_hashMap.get(cacheData);
+        final LinkItem<T> mappedItem = hashMap.get(cacheData);
 
         if (mappedItem != null) {
             //moves item to top of list
@@ -75,64 +125,37 @@ public class DataCache<T> {
         return mappedItem;
     }
 
-    public synchronized void put(final T cacheData) {
-        final LinkItem<T> existing = m_hashMap.get(cacheData);
-        if (existing != null) {
-            return;
-        }
-
-        final LinkItem<T> li = new LinkItem<>(cacheData);
-        addLRUItem(li);
-        m_hashMap.put(cacheData, li);
-        pruneCache();
-    }
 
     private synchronized void pruneCache() {
-        while (m_hashMap.size() > m_maxSize) {
-            final LinkItem<T> last = m_back.m_prev;
+        while (hashMap.size() > maxSize) {
+            final LinkItem<T> last = back.prev;
             removeLRUItem(last);
 
-            m_hashMap.remove(last.m_data);
+            hashMap.remove(last.data);
+            ++evictedCount;
         }
     }
 
     private synchronized void removeLRUItem(final LinkItem<T> li) {
-        li.m_prev.m_next = li.m_next;
-        li.m_next.m_prev = li.m_prev;
+        li.prev.next = li.next;
+        li.next.prev = li.prev;
     }
 
     private synchronized void addLRUItem(final LinkItem<T> li) {
-        li.m_prev = m_front;
-        li.m_next = m_front.m_next;
+        li.prev = front;
+        li.next = front.next;
 
-        m_front.m_next = li;
-        li.m_next.m_prev = li;
-    }
-
-    public synchronized Set<T> getCachedKeys() {
-        return (m_hashMap.keySet());
-    }
-
-    public synchronized void removeKey(final T key) {
-        final LinkItem<T> li = m_hashMap.remove(key);
-        if (li != null)
-            removeLRUItem(li);
-    }
-
-    public synchronized void clear() {
-        m_front.m_next = m_back;
-        m_back.m_prev = m_front;
-
-        m_hashMap.clear();
+        front.next = li;
+        li.next.prev = li;
     }
 
     private class LinkItem<T> {
-        private final T m_data;
-        private LinkItem<T> m_prev;
-        private LinkItem<T> m_next;
+        private final T data;
+        private LinkItem<T> prev;
+        private LinkItem<T> next;
 
         public LinkItem(final T data) {
-            m_data = data;
+            this.data = data;
         }
     }
 }
