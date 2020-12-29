@@ -16,6 +16,7 @@
 
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
@@ -50,8 +51,8 @@ public class CassandraModule extends AbstractModule {
     public static final String AUTH_PREFIX = "kairosdb.datastore.cassandra.auth.";
     public static final String HECTOR_PREFIX = "kairosdb.datastore.cassandra.hector.";
 
-    private final Map<String, String> m_authMap = new HashMap<String, String>();
-    private final Map<String, Object> m_hectorMap = new HashMap<String, Object>();
+    private final Map<String, String> m_authMap = new HashMap<>();
+    private final Map<String, Object> m_hectorMap = new HashMap<>();
 
     public CassandraModule(final Properties props) {
         for (final Object key : props.keySet()) {
@@ -146,14 +147,18 @@ public class CassandraModule extends AbstractModule {
 
     @Provides
     @Singleton
-    DataCache<DataPointsRowKey> getRowKeyCache(final CassandraConfiguration configuration) {
-        return new DataCache<>(configuration.getRowKeyCacheSize());
+    DataCache<DataPointsRowKey> getRowKeyCache(
+            final CassandraConfiguration configuration,
+            final PeriodicMetrics periodicMetrics) {
+        return new DataCache<>("row_key", configuration.getRowKeyCacheSize(), periodicMetrics);
     }
 
     @Provides
     @Singleton
-    DataCache<String> getMetricNameCache(final CassandraConfiguration configuration) {
-        return new DataCache<>(configuration.getStringCacheSize());
+    DataCache<String> getMetricNameCache(
+            final CassandraConfiguration configuration,
+            final PeriodicMetrics periodicMetrics) {
+        return new DataCache<>("metric_name", configuration.getStringCacheSize(), periodicMetrics);
     }
 
     public interface BatchHandlerFactory {
