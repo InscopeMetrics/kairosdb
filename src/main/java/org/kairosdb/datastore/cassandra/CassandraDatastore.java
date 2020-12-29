@@ -108,10 +108,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     private final List<ClusterConnection> m_readClusters;
     private final Map<String, ClusterConnection> m_clusterMap;
 
-    @Inject
-    private DataCache<DataPointsRowKey> m_rowKeyCache = new DataCache<DataPointsRowKey>(1024);
-    @Inject
-    private DataCache<String> m_metricNameCache = new DataCache<String>(1024);
+    private final DataCache<DataPointsRowKey> m_rowKeyCache;
+    private final DataCache<String> m_metricNameCache;
 
     private final KairosDataPointFactory m_kairosDataPointFactory;
     private final QueueProcessor m_queueProcessor;
@@ -119,8 +117,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     private final CassandraModule.BatchHandlerFactory m_batchHandlerFactory;
     private final CassandraModule.DeleteBatchHandlerFactory m_deleteBatchHandlerFactory;
     private final CassandraModule.CQLFilteredRowKeyIteratorFactory m_rowKeyFilterFactory;
-
-    private CassandraConfiguration m_cassandraConfiguration;
+    private final CassandraConfiguration m_cassandraConfiguration;
 
     @Inject
     @Named("kairosdb.queue_processor.batch_size")
@@ -130,6 +127,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     @Inject
     public CassandraDatastore(
             final CassandraConfiguration cassandraConfiguration,
+            final DataCache<DataPointsRowKey> rowKeyCache,
+            final DataCache<String> metricNameCache,
             final @Named("write_cluster") ClusterConnection writeCluster,
             final @Named("meta_cluster") ClusterConnection metaCluster,
             final List<ClusterConnection> readClusters,
@@ -139,7 +138,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             final CassandraModule.BatchHandlerFactory batchHandlerFactory,
             final CassandraModule.DeleteBatchHandlerFactory deleteBatchHandlerFactory,
             final CassandraModule.CQLFilteredRowKeyIteratorFactory rowKeyFilterFactory) throws DatastoreException {
-        //m_astyanaxClient = astyanaxClient;
+        m_rowKeyCache = rowKeyCache;
+        m_metricNameCache = metricNameCache;
         m_kairosDataPointFactory = kairosDataPointFactory;
         m_queueProcessor = queueProcessor;
         m_congestionExecutor = congestionExecutor;
