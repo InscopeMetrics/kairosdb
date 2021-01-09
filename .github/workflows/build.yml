@@ -36,13 +36,13 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-      - name: Upload Release Asset: RPM
+      - name: Upload Release Asset RPM
         uses: csexton/release-asset-action@v2
         with:
           pattern: "./target/rpm/kairosdb/RPMS/noarch/kairosdb*.rpm"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-url: ${{ steps.create_github_release.outputs.upload_url }}
-      - name: Upload Release Asset: Tar.gz
+      - name: Upload Release Asset Tar.gz
         uses: csexton/release-asset-action@v2
         with:
           pattern: "./target/kairosdb*-bin.tgz"
