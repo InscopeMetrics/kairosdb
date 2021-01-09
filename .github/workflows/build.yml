@@ -38,12 +38,14 @@ jobs:
           prerelease: false
       - name: Upload Release Asset RPM
         uses: csexton/release-asset-action@v2
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           pattern: "./target/rpm/kairosdb/RPMS/noarch/kairosdb*.rpm"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-url: ${{ steps.create_github_release.outputs.upload_url }}
       - name: Upload Release Asset Tar.gz
         uses: csexton/release-asset-action@v2
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           pattern: "./target/kairosdb*-bin.tgz"
           github-token: ${{ secrets.GITHUB_TOKEN }}
