@@ -7,7 +7,7 @@
     </server>
     <server>
       <id>ism</id>
-      <passphrase>${env.GPG_PASS}</passphrase>
+      <passphrase>${env.GPG_PASS_VILLE}</passphrase>
     </server>
     <server>
       <id>docker.io</id>
