@@ -10,6 +10,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    # See Maven profile displayPluginUpdates in parent pom
+    env:
+      TRAVIS: true
     steps:
       - name: Checkout
         uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
