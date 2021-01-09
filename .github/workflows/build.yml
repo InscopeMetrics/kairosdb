@@ -24,13 +24,18 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('pom.xml') }}
           restore-keys: ${{ runner.os }}-m2-
-      - name: Setup for Build
-        run: echo "TARGET=verify" >> $GITHUB_ENV
-      - name: Setup for Release
+      - name: Build Only
+        if: !startsWith(github.ref, 'refs/tags/kairosdb-')
+        run: ./jdk-wrapper.sh ./mvnw clean verify -P rpm -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      - name: Build and Release
         if: startsWith(github.ref, 'refs/tags/kairosdb-')
-        run: echo "TARGET=deploy -P release --settings settings.xml" >> $GITHUB_ENV
-      - name: Run
-        run: ./jdk-wrapper.sh ./mvnw clean ${TARGET} -P RPM -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          GPG_PASS_VILLE: ${{ secrets.GPG_PASS_VILLE }}
+          OSSRH_PASS: ${{ secrets.OSSRH_PASS }}
+          OSSRH_USER: ${{ secrets.OSSRH_USER }}
+        run: ./jdk-wrapper.sh ./mvnw clean deploy -P release --settings settings.xml -P rpm -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
       - name: Create Release
         id: create_github_release
         uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
