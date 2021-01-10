@@ -28,7 +28,7 @@
   <packaging>jar</packaging>
   <name>kairosdb</name>
   <description>KairosDB is a fast distributed scalable time series abstraction on top of Cassandra.</description>
-  <version>1.2.19</version>
+  <version>1.2.20-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -96,7 +96,7 @@
     <connection>scm:git:git@github.com:InscopeMetrics/kairosdb.git</connection>
     <developerConnection>scm:git:git@github.com:InscopeMetrics/kairosdb.git</developerConnection>
     <url>https://github.com/InscopeMetrics/kairosdb</url>
-    <tag>kairosdb-1.2.19</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <properties>
