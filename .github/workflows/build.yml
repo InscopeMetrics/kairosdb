@@ -39,7 +39,7 @@ jobs:
           OSSRH_PASS: ${{ secrets.OSSRH_PASS }}
           OSSRH_USER: ${{ secrets.OSSRH_USER }}
         run: |
-          gpg --pinentry-mode=loopback --import ism.key 
+          gpg --batch --import ism.key 
           ./jdk-wrapper.sh ./mvnw clean deploy -P release --settings settings.xml -P rpm -U -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
       - name: Create Release
         id: create_github_release
