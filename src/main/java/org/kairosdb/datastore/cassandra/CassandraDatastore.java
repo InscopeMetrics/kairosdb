@@ -88,13 +88,13 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
     public static final DataPointsRowKeySerializer DATA_POINTS_ROW_KEY_SERIALIZER = new DataPointsRowKeySerializer();
 
-
     public static final long ROW_WIDTH = 1814400000L; //3 Weeks wide
 
     public static final String KEY_QUERY_TIME = "datastore/cassandra/key_query_time";
     public static final String ROW_KEY_COUNT = "datastore/cassandra/row_key_count";
     public static final String RAW_ROW_KEY_COUNT = "datastore/cassandra/raw_row_key_count";
-
+    public static final String QUERY_WINDOW_SIZE = "datastore/cassandra/query/window_size";
+    public static final String QUERY_WINDOW_START = "datastore/cassandra/query/window_start";
 
     public static final String ROW_KEY_METRIC_NAMES = "metric_names";
     public static final String ROW_KEY_TAG_NAMES = "tag_names";
@@ -450,6 +450,9 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
     @Override
     public void queryDatabase(final DatastoreMetricQuery query, final QueryCallback queryCallback) throws DatastoreException {
+        final long now = System.currentTimeMillis();
+        ThreadReporter.addDataPoint(QUERY_WINDOW_SIZE, (query.getEndTime() - query.getStartTime()) / 1000L);
+        ThreadReporter.addDataPoint(QUERY_WINDOW_START, (now - query.getStartTime()) / 1000L);
         cqlQueryWithRowKeys(query, queryCallback, getKeysForQueryIterator(query));
     }
 
