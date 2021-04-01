@@ -88,13 +88,13 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
     public static final DataPointsRowKeySerializer DATA_POINTS_ROW_KEY_SERIALIZER = new DataPointsRowKeySerializer();
 
-
     public static final long ROW_WIDTH = 1814400000L; //3 Weeks wide
 
     public static final String KEY_QUERY_TIME = "datastore/cassandra/key_query_time";
     public static final String ROW_KEY_COUNT = "datastore/cassandra/row_key_count";
     public static final String RAW_ROW_KEY_COUNT = "datastore/cassandra/raw_row_key_count";
-
+    public static final String QUERY_WINDOW_SIZE = "datastore/cassandra/query/window_size";
+    public static final String QUERY_WINDOW_START = "datastore/cassandra/query/window_start";
 
     public static final String ROW_KEY_METRIC_NAMES = "metric_names";
     public static final String ROW_KEY_TAG_NAMES = "tag_names";
@@ -113,10 +113,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     private final CassandraModule.BatchHandlerFactory m_batchHandlerFactory;
     private final CassandraModule.DeleteBatchHandlerFactory m_deleteBatchHandlerFactory;
     private final Session m_session;
-    @Inject
-    private DataCache<DataPointsRowKey> m_rowKeyCache = new DataCache<>(1024);
-    @Inject
-    private DataCache<String> m_metricNameCache = new DataCache<>(1024);
+    private DataCache<DataPointsRowKey> m_rowKeyCache;
+    private DataCache<String> m_metricNameCache;
     private final CassandraConfiguration m_cassandraConfiguration;
     @Inject
     @Named("kairosdb.queue_processor.batch_size")
@@ -126,6 +124,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     public CassandraDatastore(
             final CassandraClient cassandraClient,
             final CassandraConfiguration cassandraConfiguration,
+            final DataCache<DataPointsRowKey> rowKeyCache,
+            final DataCache<String> metricNameCache,
             final Schema schema,
             final Session session,
             final KairosDataPointFactory kairosDataPointFactory,
@@ -134,7 +134,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             final CassandraModule.BatchHandlerFactory batchHandlerFactory,
             final CassandraModule.DeleteBatchHandlerFactory deleteBatchHandlerFactory) throws DatastoreException {
         m_cassandraClient = cassandraClient;
-        //m_astyanaxClient = astyanaxClient;
+        m_rowKeyCache = rowKeyCache;
+        m_metricNameCache = metricNameCache;
         m_kairosDataPointFactory = kairosDataPointFactory;
         m_queueProcessor = queueProcessor;
         m_congestionExecutor = congestionExecutor;
@@ -449,6 +450,9 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
     @Override
     public void queryDatabase(final DatastoreMetricQuery query, final QueryCallback queryCallback) throws DatastoreException {
+        final long now = System.currentTimeMillis();
+        ThreadReporter.addDataPoint(QUERY_WINDOW_SIZE, (query.getEndTime() - query.getStartTime()) / 1000L);
+        ThreadReporter.addDataPoint(QUERY_WINDOW_START, (now - query.getStartTime()) / 1000L);
         cqlQueryWithRowKeys(query, queryCallback, getKeysForQueryIterator(query));
     }
 

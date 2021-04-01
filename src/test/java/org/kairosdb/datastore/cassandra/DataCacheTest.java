@@ -16,16 +16,20 @@
 
 package org.kairosdb.datastore.cassandra;
 
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class DataCacheTest {
+
     @Test
     public void test_isCached() {
-        final DataCache<String> cache = new DataCache<String>(3);
+        final PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
+        final DataCache<String> cache = new DataCache<>("test_isCached", 3, periodicMetrics);
 
         cache.put("one");
         cache.put("two");
@@ -46,7 +50,8 @@ public class DataCacheTest {
         final TestObject td2 = new TestObject("td2");
         final TestObject td3 = new TestObject("td3");
 
-        final DataCache<TestObject> cache = new DataCache<TestObject>(10);
+        final PeriodicMetrics periodicMetrics = Mockito.mock(PeriodicMetrics.class);
+        final DataCache<TestObject> cache = new DataCache<TestObject>("test_uniqueCache", 10, periodicMetrics);
 
         cache.put(td1);
         cache.put(td2);
