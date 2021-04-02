@@ -19,19 +19,29 @@ package org.kairosdb.core.http;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.google.inject.servlet.GuiceFilter;
+import com.sun.jersey.spi.container.servlet.ServletContainer;
+import org.apache.http.HttpVersion;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.SecurityHandler;
+import org.eclipse.jetty.security.UserStore;
 import org.eclipse.jetty.security.authentication.BasicAuthenticator;
+import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.security.Credential;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -41,11 +51,11 @@ import org.kairosdb.core.exception.KairosDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.kairosdb.util.Preconditions.checkNotNullOrEmpty;
@@ -102,9 +112,10 @@ public class WebServer implements KairosDBService {
 
     private static SecurityHandler basicAuth(final String username, final String password, final String realm) {
 
-        final HashLoginService l = new HashLoginService();
-        l.putUser(username, Credential.getCredential(password), new String[]{"user"});
-        l.setName(realm);
+        final HashLoginService l = new HashLoginService(realm);
+        final UserStore u = new UserStore();
+        u.addUser(username, Credential.getCredential(password), new String[]{"user"});
+        l.setUserStore(u);
 
         final Constraint constraint = new Constraint();
         constraint.setName(Constraint.__BASIC_AUTH);
@@ -163,26 +174,39 @@ public class WebServer implements KairosDBService {
     public void setThreadPool(@Named(JETTY_THREADS_QUEUE_SIZE_PROPERTY) final int maxQueueSize,
                               @Named(JETTY_THREADS_MIN_PROPERTY) final int minThreads,
                               @Named(JETTY_THREADS_MAX_PROPERTY) final int maxThreads,
-                              @Named(JETTY_THREADS_KEEP_ALIVE_MS_PROPERTY) final long keepAliveMs) {
-        final LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>(maxQueueSize);
-        m_pool = new ExecutorThreadPool(minThreads, maxThreads, keepAliveMs, TimeUnit.MILLISECONDS, queue);
+                              @Named(JETTY_THREADS_KEEP_ALIVE_MS_PROPERTY) final int keepAliveMs) {
+        final LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(maxQueueSize);
+        m_pool = new ExecutorThreadPool(maxThreads, minThreads, queue);
+        m_pool.setIdleTimeout(keepAliveMs);
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void start() throws KairosDBException {
         try {
-            if (m_port > 0)
-                m_server = new Server(new InetSocketAddress(m_address, m_port));
-            else
+            if (m_pool != null) {
+                m_server = new Server(m_pool);
+            } else {
                 m_server = new Server();
+            }
 
-            if (m_pool != null)
-                m_server.setThreadPool(m_pool);
+            final int acceptors = Math.max(4, Runtime.getRuntime().availableProcessors() - 1);
+            if (m_port > 0) {
+                ServerConnector connector = new ServerConnector(m_server, acceptors, -1);
+                connector.setHost(m_address.getHostName());
+                connector.setPort(m_port);
+                m_server.setConnectors(new Connector[]{connector});
+            }
 
             //Set up SSL
             if (m_keyStorePath != null && !m_keyStorePath.isEmpty()) {
                 logger.info("Using SSL");
-                final SslContextFactory sslContextFactory = new SslContextFactory(m_keyStorePath);
+                final HttpConfiguration http_config = new HttpConfiguration();
+                http_config.setSecureScheme("https");
+                http_config.setSecurePort(m_sslPort);
+
+                final SslContextFactory sslContextFactory = new SslContextFactory();
+                sslContextFactory.setKeyStorePath(m_keyStorePath);
 
                 if (m_cipherSuites != null && m_cipherSuites.length > 0)
                     sslContextFactory.setIncludeCipherSuites(m_cipherSuites);
@@ -191,32 +215,33 @@ public class WebServer implements KairosDBService {
                     sslContextFactory.setIncludeProtocols(m_protocols);
 
                 sslContextFactory.setKeyStorePassword(m_keyStorePassword);
-                final SslSelectChannelConnector selectChannelConnector = new SslSelectChannelConnector(sslContextFactory);
-                selectChannelConnector.setPort(m_sslPort);
-                m_server.addConnector(selectChannelConnector);
+
+                final ServerConnector httpsConnector = new ServerConnector(
+                        m_server,
+                        new SslConnectionFactory(
+                                sslContextFactory,
+                                HttpVersion.HTTP_1_1.toString()),
+                        new HttpConnectionFactory(http_config));
+                httpsConnector.setPort(m_sslPort);
+                m_server.addConnector(httpsConnector);
             }
 
-            final ServletContextHandler servletContextHandler =
-                    new ServletContextHandler();
-
-            //Turn on basic auth if the user was specified
+            final ServletContextHandler context = new ServletContextHandler();
+            context.setContextPath("/");
+            context.setBaseResource(Resource.newResource(new File(m_webRoot).toPath().toRealPath()));
+            context.setWelcomeFiles(new String[]{"index.html"});
             if (m_authUser != null) {
-                servletContextHandler.setSecurityHandler(basicAuth(m_authUser, m_authPassword, "kairos"));
-                servletContextHandler.setContextPath("/");
+                context.setSecurityHandler(basicAuth(m_authUser, m_authPassword, "kairos"));
             }
+            context.addFilter(GuiceFilter.class, "/api/*", null);
+            m_server.setHandler(context);
 
-            servletContextHandler.addFilter(GuiceFilter.class, "/api/*", null);
-            servletContextHandler.addServlet(DefaultServlet.class, "/api/*");
+            ServletHolder apiHolder = new ServletHolder("api", DefaultServlet.class);
+            context.addServlet(apiHolder,"/api/*");
 
-            final ResourceHandler resourceHandler = new ResourceHandler();
-            resourceHandler.setDirectoriesListed(true);
-            resourceHandler.setWelcomeFiles(new String[]{"index.html"});
-            resourceHandler.setResourceBase(m_webRoot);
-            resourceHandler.setAliases(true);
-
-            final HandlerList handlers = new HandlerList();
-            handlers.setHandlers(new Handler[]{servletContextHandler, resourceHandler, new DefaultHandler()});
-            m_server.setHandler(handlers);
+            ServletHolder defaultHolder = new ServletHolder("default", DefaultServlet.class);
+            defaultHolder.setInitParameter("dirAllowed","true");
+            context.addServlet(defaultHolder,"/");
 
             m_server.start();
         } catch (final Exception e) {
