@@ -9,30 +9,31 @@
 <!--                                                                -->
 <configuration>
 	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
-		<encoder>
-			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%file:%line] - %msg%n</pattern>
+		<encoder class="com.arpnetworking.logback.KeyValueEncoder">
+			<layout class="ch.qos.logback.classic.PatternLayout">
+				<pattern>%date %t [%level] %logger : %message %ex%n</pattern>
+			</layout>
 		</encoder>
 	</appender>
 	<appender name="logfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>logs/kairosdb.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<!-- daily rollover -->
-			<fileNamePattern>logs/kairosdb.%d.%i.log.gz</fileNamePattern>
-
-			<!-- keep 30 days' worth of history -->
-			<maxHistory>30</maxHistory>
-
-			<!-- or whenever the file size reaches 100MB -->
-			<timeBasedFileNamingAndTriggeringPolicy
-				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+			<timeBasedFileNamingAndTriggeringPolicy class="com.arpnetworking.logback.SizeAndRandomizedTimeBasedFNATP">
+				<maxOffsetInMillis>900000</maxOffsetInMillis>
 				<maxFileSize>100MB</maxFileSize>
 			</timeBasedFileNamingAndTriggeringPolicy>
-
-			<!-- Whenever startup, will run the rollover -->
-			<!--<cleanHistoryOnStart>true</cleanHistoryOnStart>-->
+			<fileNamePattern>/opt/cluster-aggregator/logs/cluster-aggregator.%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+			<maxHistory>4</maxHistory>
+			<cleanHistoryOnStart>true</cleanHistoryOnStart>
 		</rollingPolicy>
-		<encoder>
-			<pattern>%d{MM-dd|HH:mm:ss.SSS} [%thread] %-5level [%file:%line] - %msg%n</pattern>
+		<encoder class="com.arpnetworking.logback.StenoEncoder">
+			<injectContextLogger>true</injectContextLogger>
+			<compressLoggerName>true</compressLoggerName>
+			<jacksonModule class="com.fasterxml.jackson.datatype.guava.GuavaModule" />
+			<jacksonModule class="com.fasterxml.jackson.datatype.jdk8.Jdk8Module" />
+			<jacksonModule class="com.fasterxml.jackson.datatype.jsr310.JavaTimeModule" />
+			<jacksonModule class="com.arpnetworking.configuration.jackson.akka.AkkaLoggingModule" />
+			<injectBeanIdentifier>true</injectBeanIdentifier>
 		</encoder>
 	</appender>
 
