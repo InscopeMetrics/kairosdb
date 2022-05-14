@@ -5,6 +5,7 @@ spec:
       value: "/certs"
     image: "docker:20.10-dind"
     imagePullPolicy: "Always"
+    command: ["--registry-mirror", "https://mirror.gcr.io"]
     name: "dind"
     securityContext:
       privileged: true
