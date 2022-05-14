@@ -3,6 +3,8 @@ spec:
   - env:
     - name: "DOCKER_TLS_CERTDIR"
       value: "/certs"
+    - name: "DOCKER_REGISTRY_MIRROR"
+      value: "http://citus.arpnetworking.com:5001"
     image: "docker:20.10-dind"
     imagePullPolicy: "Always"
     name: "dind"
@@ -17,8 +19,6 @@ spec:
       #      name: "docker-cache"
       #      readOnly: false
   - env:
-    - name: "DOCKER_REGISTRY_MIRROR"
-      value: "http://citus.arpnetworking.com:5001"
     - name: "DOCKER_TLS_VERIFY"
       value: "1"
     - name: "DOCKER_HOST"
