@@ -1,6 +1,7 @@
 pipeline {
   agent {
     kubernetes {
+      inheritFrom 'jenkins-worker'
       defaultContainer 'ubuntu'
     }
   }
