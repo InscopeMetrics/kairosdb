@@ -112,14 +112,13 @@ public class JsonResponseTest {
         assertJson(writer.toString(), json);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void test_infinite_double_invalid() throws IOException, FormatterException {
+    @Test
+    public void test_infinite_double_null() throws IOException, FormatterException {
+        final String json = Resources.toString(Resources.getResource("query-response-with-nan.json"), Charsets.UTF_8);
         final ValueGroupBy groupBy = new ValueGroupBy(10);
         final List<DataPointGroup> groups = new ArrayList<DataPointGroup>();
 
         final ListDataPointGroup group1 = new ListDataPointGroup("metric1");
-        group1.addTag("tag1", "value1");
-        group1.addTag("tag2", "value2");
         group1.addGroupByResult(groupBy.getGroupByResult(0));
         group1.addDataPoint(new LongDataPoint(12345, 1));
         group1.addDataPoint(new LongDataPoint(56789, 2));
@@ -130,6 +129,7 @@ public class JsonResponseTest {
         response.begin();
         response.formatQuery(groups, false, 10);
         response.end();
+        assertJson(writer.toString(), json);
     }
 
     private void assertJson(final String actual, final String expected) {
