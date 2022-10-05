@@ -106,7 +106,7 @@
     <apache.commons.io.version>2.5</apache.commons.io.version>
     <apache.commons.lang.version>3.4</apache.commons.lang.version>
     <apache.commons.math.version>3.2</apache.commons.math.version>
-    <apache.httpclient.version>4.3.6</apache.httpclient.version>
+    <apache.httpclient.version>4.5.13</apache.httpclient.version>
     <apache.httpcore.version>4.3.3</apache.httpcore.version>
     <arpnetworking.commons.version>1.18.3</arpnetworking.commons.version>
     <bigqueue.version>1.6.0.0</bigqueue.version>
