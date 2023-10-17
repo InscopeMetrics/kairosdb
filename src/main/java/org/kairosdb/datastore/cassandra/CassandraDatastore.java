@@ -820,7 +820,11 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
         private DataPointsRowKey m_nextKey;
         private ResultSet m_currentResultSet;
         private int m_rawRowKeyCount = 0;
+        private boolean m_partitioned = false;
+        private int m_partitionNumber = 0;
+        private int m_partitionCount = 0;
         private final Set<DataPointsRowKey> m_returnedKeys;  //keep from returning duplicates, querying old and new indexes
+        private static final String PARTITION_KEY = "!partitioned";
 
 
         public CQLFilteredRowKeyIterator(final String metricName, final long startTime, final long endTime,
@@ -829,6 +833,31 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             m_metricName = metricName;
             final List<ResultSetFuture> futures = new ArrayList<>();
             m_returnedKeys = new HashSet<>();
+            if (m_filterTags.containsKey(PARTITION_KEY)) {
+                final Set<String> partitionValueSet = m_filterTags.get(PARTITION_KEY);
+                if (partitionValueSet.size() != 1) {
+                    throw new IllegalArgumentException("Invalid partition format: expected one partition spec, got " + partitionValueSet.size());
+                }
+
+                final String partitionValue = partitionValueSet.stream().findFirst().get();
+                final String[] parsed = partitionValue.split(":");
+                if (parsed.length != 2) {
+                    throw new IllegalArgumentException("Invalid partition format: expected partition_number:partition_count, got " + partitionValue);
+                }
+
+                try {
+                    m_partitionNumber = Integer.parseInt(parsed[0]);
+                    m_partitionCount = Integer.parseInt(parsed[1]);
+                } catch (final NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid partition format: expected partition_number:partition_count, got " + partitionValue);
+                }
+
+                if (m_partitionNumber < 0 || m_partitionNumber >= m_partitionCount) {
+                    throw new IllegalArgumentException("Invalid partition number: " + m_partitionNumber);
+                }
+
+                m_partitioned = true;
+            }
             final long timerStart = System.currentTimeMillis();
 
             //Legacy key index - index is all in one row
@@ -916,6 +945,15 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                     final String value = keyTags.get(tag);
                     if (value == null || !m_filterTags.get(tag).contains(value))
                         continue outer; //Don't want this key
+                }
+
+                /* If we're partitioning, make sure we're in the correct partition */
+                if (m_partitioned) {
+                    final int hash = rowKey.getTags().hashCode();
+                    final int partition = Math.abs(hash % m_partitionCount);
+                    if (partition != m_partitionNumber) {
+                        continue;
+                    }
                 }
 
                 /* We can get duplicate keys from querying old and new indexes */
