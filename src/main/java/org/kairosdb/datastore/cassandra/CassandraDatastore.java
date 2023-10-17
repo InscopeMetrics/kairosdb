@@ -824,6 +824,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
         private int m_partitionNumber = 0;
         private int m_partitionCount = 0;
         private final Set<DataPointsRowKey> m_returnedKeys;  //keep from returning duplicates, querying old and new indexes
+        private static final String PARTITION_KEY = "!partitioned";
 
 
         public CQLFilteredRowKeyIterator(final String metricName, final long startTime, final long endTime,
@@ -832,8 +833,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             m_metricName = metricName;
             final List<ResultSetFuture> futures = new ArrayList<>();
             m_returnedKeys = new HashSet<>();
-            if (m_filterTags.containsKey("!paritioned")) {
-                final Set<String> partitionValueSet = m_filterTags.get("!partitioned");
+            if (m_filterTags.containsKey(PARTITION_KEY)) {
+                final Set<String> partitionValueSet = m_filterTags.get(PARTITION_KEY);
                 if (partitionValueSet.size() != 1) {
                     throw new IllegalArgumentException("Invalid partition format: expected one partition spec, got " + partitionValueSet.size());
                 }
