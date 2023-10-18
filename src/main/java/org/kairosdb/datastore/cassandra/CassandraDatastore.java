@@ -949,7 +949,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
                 /* If we're partitioning, make sure we're in the correct partition */
                 if (m_partitioned) {
-                    final int hash = rowKey.getTags().hashCode();
+                    final int hash = rowKey.getTags().entrySet().stream().mapToInt(Map.Entry::hashCode).reduce((a, b) -> a ^ b).orElse(0);
                     final int partition = Math.abs(hash % m_partitionCount);
                     if (partition != m_partitionNumber) {
                         continue;
