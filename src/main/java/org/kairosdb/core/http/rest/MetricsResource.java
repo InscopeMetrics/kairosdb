@@ -404,7 +404,7 @@ public class MetricsResource {
                 final List<DataPointGroup> result = datastore.queryTags(query);
 
                 try {
-                    jsonResponse.formatQuery(result, false, -1);
+                    jsonResponse.formatQuery(result, false, -1, -1);
                 } finally {
                     for (final DataPointGroup dataPointGroup : result) {
                         dataPointGroup.close();
@@ -551,7 +551,7 @@ public class MetricsResource {
 
                 try {
                     final List<DataPointGroup> results = dq.execute();
-                    jsonResponse.formatQuery(results, query.isExcludeTags(), dq.getSampleSize());
+                    jsonResponse.formatQuery(results, query.isExcludeTags(), dq.getSampleSize(), dq.getKeysScanned());
 
                     ThreadReporter.addDataPoint(QUERY_TIME, System.currentTimeMillis() - startQuery);
                 } finally {
