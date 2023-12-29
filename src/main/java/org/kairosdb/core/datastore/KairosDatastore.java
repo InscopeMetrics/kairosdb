@@ -395,6 +395,10 @@ public class KairosDatastore {
             return m_dataPointCount;
         }
 
+        public int getKeysScanned() {
+            return m_rowCount;
+        }
+
         public int getRowCount() {
             return m_rowCount;
         }
