@@ -50,14 +50,17 @@ public class JsonResponse {
      * @param queryResults results of the query
      * @param excludeTags  if true do not include tag information
      * @param sampleSize   Passing a sample size of -1 will cause the attribute to not show up
+     * @param keysScanned  Passing a cardinality of -1 will cause the attribute to not show up
      * @throws FormatterException
      */
-    public void formatQuery(final List<DataPointGroup> queryResults, final boolean excludeTags, final int sampleSize) throws FormatterException {
+    public void formatQuery(final List<DataPointGroup> queryResults, final boolean excludeTags, final int sampleSize, final int keysScanned) throws FormatterException {
         try {
             m_jsonWriter.object();
 
             if (sampleSize != -1)
                 m_jsonWriter.key("sample_size").value(sampleSize);
+            if (keysScanned != -1)
+                m_jsonWriter.key("keys_scanned").value(keysScanned);
 
             m_jsonWriter.key("results").array();
 

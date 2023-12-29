@@ -32,5 +32,7 @@ public interface DatastoreQuery extends AutoCloseable {
      */
     int getSampleSize();
 
+    int getKeysScanned();
+
     void close();
 }
