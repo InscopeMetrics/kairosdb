@@ -413,6 +413,7 @@
               <alias>cassandra</alias>
               <run>
                 <skip>${docker.skip.cassandra}</skip>
+                <capAdd>CAP_SYS_NICE</capAdd>
                 <network>
                   <mode>custom</mode>
                   <name>kdb-net</name>
