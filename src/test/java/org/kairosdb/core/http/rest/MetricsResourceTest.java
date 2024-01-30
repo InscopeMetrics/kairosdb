@@ -126,7 +126,7 @@ public class MetricsResourceTest extends ResourceBase {
 
         assertResponse(response, 200,
                 "{\"queries\":" +
-                        "[{\"sample_size\":10,\"results\":" +
+                        "[{\"sample_size\":10,\"keys_scanned\":2,\"results\":" +
                         "[{\"name\":\"abc.123\",\"group_by\":[{\"name\":\"type\",\"type\":\"number\"}],\"tags\":{\"server\":[\"server1\",\"server2\"]},\"values\":[[1,60.2],[2,30.200000000000003],[3,20.1]]}]}]}");
     }
 
