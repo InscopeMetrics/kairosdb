@@ -16,6 +16,7 @@
 package org.kairosdb.core.datastore;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
+import org.junit.After;
 import org.junit.Test;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.KairosDataPointFactory;
@@ -48,17 +49,24 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.junit.Assert.assertThat;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class KairosDatastoreTest {
     private final FeatureProcessingFactory<Aggregator> aggFactory;
+    private final AutoCloseable mocks;
 
     @Mock
     private PeriodicMetrics periodicMetrics;
 
+    @SuppressWarnings("this-escape") //TODO: Fix this
     public KairosDatastoreTest() throws KairosDBException {
-        initMocks(this);
+        mocks = openMocks(this);
         aggFactory = new TestAggregatorFactory();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     @Test(expected = NullPointerException.class)

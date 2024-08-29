@@ -16,13 +16,14 @@
 package org.kairosdb.core.reporting;
 
 import com.google.common.collect.SetMultimap;
+import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.function.Supplier;
 
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Tests for {@link NoTagsTagger}.
@@ -31,20 +32,26 @@ import static org.mockito.Mockito.verifyZeroInteractions;
  */
 public final class NoTagsTaggerTest {
 
+    private final AutoCloseable mocks;
     @Mock
     private Supplier<String> metricNameSupplier;
     @Mock
     private Supplier<SetMultimap<String, String>> tagsSupplier;
 
     public NoTagsTaggerTest() {
-        MockitoAnnotations.initMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     @Test
     public void test() {
         final Tagger tagger = new NoTagsTagger.Builder().build();
         tagger.applyTagsToThreadReporter(metricNameSupplier, tagsSupplier);
-        verifyZeroInteractions(metricNameSupplier);
-        verifyZeroInteractions(tagsSupplier);
+        verifyNoInteractions(metricNameSupplier);
+        verifyNoInteractions(tagsSupplier);
     }
 }

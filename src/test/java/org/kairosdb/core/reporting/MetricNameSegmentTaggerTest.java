@@ -18,6 +18,7 @@ package org.kairosdb.core.reporting;
 import com.arpnetworking.metrics.Metrics;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.google.common.collect.SetMultimap;
+import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -26,7 +27,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.when;
  */
 public final class MetricNameSegmentTaggerTest {
 
+    private final AutoCloseable mocks;
     @Mock
     private MetricsFactory metricsFactory;
     @Mock
@@ -48,9 +50,14 @@ public final class MetricNameSegmentTaggerTest {
     private BiConsumer<String, String> tagConsumer;
 
     public MetricNameSegmentTaggerTest() {
-        MockitoAnnotations.initMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
         when(metricsFactory.create()).thenReturn(metrics);
         when(metricNameSupplier.get()).thenReturn("hows/my/metric/name");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     @Test
@@ -60,7 +67,7 @@ public final class MetricNameSegmentTaggerTest {
         tagger.applyTagsToThreadReporter(metricNameSupplier, tagsSupplier);
         ThreadReporter.close();
 
-        verifyZeroInteractions(tagsSupplier);
+        verifyNoInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(metrics).addAnnotation("metricName", "hows/my/metric/name");
     }
@@ -69,7 +76,7 @@ public final class MetricNameSegmentTaggerTest {
     public void testApplyMetricNameFull() {
         final MetricNameSegmentTagger tagger = new MetricNameSegmentTagger.Builder().build();
         tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
-        verifyZeroInteractions(tagsSupplier);
+        verifyNoInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows/my/metric/name");
     }
@@ -80,7 +87,7 @@ public final class MetricNameSegmentTaggerTest {
                 .setSegments(1)
                 .build();
         tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
-        verifyZeroInteractions(tagsSupplier);
+        verifyNoInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows");
     }
@@ -91,7 +98,7 @@ public final class MetricNameSegmentTaggerTest {
                 .setSegments(2)
                 .build();
         tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
-        verifyZeroInteractions(tagsSupplier);
+        verifyNoInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows/my");
     }
@@ -103,7 +110,7 @@ public final class MetricNameSegmentTaggerTest {
                 .setSegments(3)
                 .build();
         tagger.applyTags(tagConsumer, metricNameSupplier, tagsSupplier);
-        verifyZeroInteractions(tagsSupplier);
+        verifyNoInteractions(tagsSupplier);
         verify(metricNameSupplier).get();
         verify(tagConsumer).accept("metricName", "hows/my/metric/na");
     }

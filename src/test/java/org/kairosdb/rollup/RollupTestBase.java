@@ -1,6 +1,7 @@
 package org.kairosdb.rollup;
 
 import com.google.common.collect.ImmutableList;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -19,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public abstract class RollupTestBase {
     static final String LOCAL_HOST = "hostname0";
@@ -37,6 +38,7 @@ public abstract class RollupTestBase {
     RollUpAssignmentStore assignmentStore = new RollUpAssignmentStoreImpl(fakeServiceKeyStore);
     RollUpTasksStore taskStore;
     QueryParser queryParser;
+    private AutoCloseable mocks;
 
     private static RollupTask createTask(final String id, final String name) {
         final Duration duration = new Duration(1, TimeUnit.HOURS);
@@ -48,10 +50,15 @@ public abstract class RollupTestBase {
     @Before
     public void setupBase()
             throws KairosDBException {
-        initMocks(this);
+        mocks = openMocks(this);
         queryParser = new QueryParser(new TestKairosDBProcessor(ImmutableList.of(new TestAggregatorFactory())), new TestQueryPluginFactory());
         taskStore = new RollUpTasksStoreImpl(fakeServiceKeyStore,
                 queryParser);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     void addTasks(final RollupTask... tasks)

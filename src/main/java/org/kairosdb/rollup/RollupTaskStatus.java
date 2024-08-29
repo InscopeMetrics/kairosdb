@@ -15,6 +15,7 @@ public class RollupTaskStatus {
     private final String executingHost;
     private String nextScheduled;
 
+    @SuppressWarnings("this-escape") // TODO: Fix this
     public RollupTaskStatus(final Date nextExecutionTime, final String executingHost) {
         setNextScheduled(nextExecutionTime);
         this.executingHost = checkNotNullOrEmpty(executingHost);
