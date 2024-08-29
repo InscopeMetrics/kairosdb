@@ -35,6 +35,7 @@ public class RollUpTasksStoreImpl implements RollUpTasksStore {
     private final QueryParser parser;
     private final ServiceKeyStore keyStore;
 
+    @SuppressWarnings("this-escape") // TODO: Fix this
     @Inject
     public RollUpTasksStoreImpl(final ServiceKeyStore keyStore, final QueryParser parser)
             throws RollUpException {

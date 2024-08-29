@@ -1,5 +1,6 @@
 package org.kairosdb.core;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.kairosdb.core.datastore.ServiceKeyValue;
@@ -14,7 +15,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class HostManagerTest {
     private static final String SERVICE = "_Hosts";
@@ -25,11 +26,17 @@ public class HostManagerTest {
 
     @Mock
     private ScheduledExecutorService mockExecutorService;
+    private AutoCloseable mocks;
 
     @Before
     public void Setup() {
-        initMocks(this);
+        mocks = openMocks(this);
         manager = new HostManager(keyStore, mockExecutorService, 10, "myHost", 5, "myGuid");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     @Test
