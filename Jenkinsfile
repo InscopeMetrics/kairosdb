@@ -2,6 +2,7 @@ pipeline {
   agent {
     kubernetes {
       defaultContainer 'ubuntu'
+      activeDeadlineSeconds 3600
     }
   }
   stages {
