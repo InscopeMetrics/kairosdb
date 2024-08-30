@@ -281,20 +281,19 @@ public class Schema {
     }
 
     private void setupSchema(final CassandraClient cassandraClient) {
-        try (final Session session = cassandraClient.getSession()) {
+        try (final CqlSession session = cassandraClient.getSession()) {
             session.execute(
                     SimpleStatement.newInstance(
-                            String.format(CREATE_KEYSPACE, cassandraClient.getKeyspace(), cassandraClient.getReplication())),
-                    GenericType.of(Void.class));
+                            String.format(CREATE_KEYSPACE, cassandraClient.getKeyspace(), cassandraClient.getReplication())));
         }
 
-        try (final Session session = cassandraClient.getKeyspaceSession()) {
-            session.execute(new SimpleStatementBuilder(DATA_POINTS_TABLE).build(), GenericType.of(Void.class));
-            session.execute(new SimpleStatementBuilder(ROW_KEY_INDEX_TABLE).build(), GenericType.of(Void.class));
-            session.execute(new SimpleStatementBuilder(STRING_INDEX_TABLE).build(), GenericType.of(Void.class));
-            session.execute(new SimpleStatementBuilder(ROW_KEYS).build(), GenericType.of(Void.class));
-            session.execute(new SimpleStatementBuilder(ROW_KEY_TIME_INDEX).build(), GenericType.of(Void.class));
-            session.execute(new SimpleStatementBuilder(SERVICE_INDEX).build(), GenericType.of(Void.class));
+        try (final CqlSession session = cassandraClient.getKeyspaceSession()) {
+            session.execute(new SimpleStatementBuilder(DATA_POINTS_TABLE).build());
+            session.execute(new SimpleStatementBuilder(ROW_KEY_INDEX_TABLE).build());
+            session.execute(new SimpleStatementBuilder(STRING_INDEX_TABLE).build());
+            session.execute(new SimpleStatementBuilder(ROW_KEYS).build());
+            session.execute(new SimpleStatementBuilder(ROW_KEY_TIME_INDEX).build());
+            session.execute(new SimpleStatementBuilder(SERVICE_INDEX).build());
         }
     }
 }
