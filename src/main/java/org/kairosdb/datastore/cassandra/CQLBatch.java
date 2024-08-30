@@ -2,10 +2,10 @@ package org.kairosdb.datastore.cassandra;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.*;
 import com.datastax.oss.driver.api.core.loadbalancing.LoadBalancingPolicy;
 import com.datastax.oss.driver.api.core.metadata.Node;
-import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.util.KDataOutput;
@@ -16,9 +16,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.inject.Inject;
-import javax.inject.Named;
 
-import static org.kairosdb.datastore.cassandra.CassandraConfiguration.KEYSPACE_PROPERTY;
 import static org.kairosdb.datastore.cassandra.CassandraDatastore.DATA_POINTS_ROW_KEY_SERIALIZER;
 import static org.kairosdb.datastore.cassandra.CassandraDatastore.ROW_KEY_METRIC_NAMES;
 
@@ -28,7 +26,7 @@ import static org.kairosdb.datastore.cassandra.CassandraDatastore.ROW_KEY_METRIC
 public class CQLBatch {
     private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
-    private final Session m_session;
+    private final CqlSession m_session;
     private final Schema m_schema;
     private final PeriodicMetrics m_periodicMetrics;
     private final ConsistencyLevel m_consistencyLevel;
@@ -44,7 +42,7 @@ public class CQLBatch {
     @Inject
     public CQLBatch(
             final ConsistencyLevel consistencyLevel,
-            final Session session,
+            final CqlSession session,
             final PeriodicMetrics periodicMetrics,
             final Schema schema,
             final LoadBalancingPolicy loadBalancingPolicy) {

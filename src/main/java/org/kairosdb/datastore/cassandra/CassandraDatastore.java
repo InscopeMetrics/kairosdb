@@ -21,8 +21,6 @@ import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.kairosdb.core.DataPoint;
@@ -70,7 +68,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Named;
 
