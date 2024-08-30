@@ -830,7 +830,6 @@
       <groupId>net.jpountz.lz4</groupId>
       <artifactId>lz4</artifactId>
       <version>${lz4.version}</version>
-      <!-- TODO(ville): Confirm this package is actually used -->
       <scope>runtime</scope>
     </dependency>
     <dependency>
