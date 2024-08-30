@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -977,8 +978,8 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
             final BoundStatementBuilder statement = m_schema.psRowKeyTimeQuery.boundStatementBuilder()
                     .setString(0, metricName)
-                    .setLong(1, calculateRowTime(startTime))
-                    .setLong(2, endTime)
+                    .setInstant(1, Instant.ofEpochMilli(calculateRowTime(startTime)))
+                    .setInstant(2, Instant.ofEpochMilli(endTime))
                     .setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
             //printHosts(m_loadBalancingPolicy.newQueryPlan(m_keyspace, statement));

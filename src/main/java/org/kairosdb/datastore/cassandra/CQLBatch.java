@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 import javax.inject.Inject;
 
@@ -62,7 +63,7 @@ public class CQLBatch {
 
         BoundStatement bs = m_schema.psRowKeyTimeInsert.bind()
                 .setString(0, metricName)
-                .setLong(1, rowKey.getTimestamp())
+                .setInstant(1, Instant.ofEpochMilli(rowKey.getTimestamp()))
                 .setInt(2, rowKeyTtl)
                 .setIdempotent(true)
                 .setConsistencyLevel(m_consistencyLevel);
@@ -71,7 +72,7 @@ public class CQLBatch {
 
         bs = m_schema.psRowKeyInsert.bind()
                 .setString(0, metricName)
-                .setLong(1, rowKey.getTimestamp())
+                .setInstant(1, Instant.ofEpochMilli(rowKey.getTimestamp()))
                 .setString(2, rowKey.getDataType())
                 .setMap(3, rowKey.getTags(), String.class, String.class)
                 .setInt(4, rowKeyTtl)
