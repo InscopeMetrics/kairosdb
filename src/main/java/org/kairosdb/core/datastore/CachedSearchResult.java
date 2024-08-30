@@ -16,6 +16,7 @@
 
 package org.kairosdb.core.datastore;
 
+import com.google.common.collect.Maps;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.core.KairosDataPointFactory;
 import org.kairosdb.util.BufferedDataInputStream;
@@ -317,7 +318,7 @@ public class CachedSearchResult implements SearchResult {
 
         private long m_startPosition;
         private long m_endPosition;
-        private final Map<String, String> m_tags;
+        private final HashMap<String, String> m_tags;
         private String m_dataType;
         private int m_dataPointCount;
 
@@ -325,7 +326,7 @@ public class CachedSearchResult implements SearchResult {
         public FilePositionMarker() {
             m_startPosition = 0L;
             m_endPosition = 0L;
-            m_tags = new HashMap<String, String>();
+            m_tags = new HashMap<>();
             m_dataType = null;
             m_dataPointCount = 0;
         }
@@ -333,7 +334,7 @@ public class CachedSearchResult implements SearchResult {
         public FilePositionMarker(final long startPosition, final Map<String, String> tags,
                                   final String dataType) {
             m_startPosition = startPosition;
-            m_tags = tags;
+            m_tags = Maps.newHashMap(tags);
             m_dataType = dataType;
         }
 

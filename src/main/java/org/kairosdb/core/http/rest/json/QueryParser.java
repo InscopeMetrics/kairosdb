@@ -37,8 +37,12 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.google.inject.Inject;
-import org.apache.bval.constraints.NotEmpty;
-import org.apache.bval.jsr303.ApacheValidationProvider;
+import jakarta.validation.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.metadata.ConstraintDescriptor;
+import org.apache.bval.jsr.ApacheValidationProvider;
+import org.apache.bval.util.Exceptions;
 import org.joda.time.DateTimeZone;
 import org.kairosdb.core.aggregator.FilterAggregator;
 import org.kairosdb.core.aggregator.GroupByAware;
@@ -79,12 +83,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import javax.validation.ConstraintViolation;
-import javax.validation.Path;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.constraints.NotNull;
-import javax.validation.metadata.ConstraintDescriptor;
 
 
 public class QueryParser {
@@ -499,7 +497,7 @@ public class QueryParser {
     //===========================================================================
     private static class Metric {
         @NotNull
-        @NotEmpty()
+        @NotEmpty
         @SerializedName("name")
         private final String name;
 
@@ -781,6 +779,16 @@ public class QueryParser {
         }
 
         @Override
+        public Object[] getExecutableParameters() {
+            return null;
+        }
+
+        @Override
+        public Object getExecutableReturnValue() {
+            return null;
+        }
+
+        @Override
         public Path getPropertyPath() {
             return new SimplePath(context);
         }
@@ -793,6 +801,14 @@ public class QueryParser {
         @Override
         public ConstraintDescriptor<?> getConstraintDescriptor() {
             return null;
+        }
+
+        @Override
+        public <U> U unwrap(Class<U> type) {
+            if (!type.isInstance(this)) {
+                Exceptions.raise(ValidationException::new, "Type %s is not supported", type);
+            }
+            return type.cast(this);
         }
     }
 

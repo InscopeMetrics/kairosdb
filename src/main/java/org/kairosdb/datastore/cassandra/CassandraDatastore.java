@@ -121,6 +121,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     private int m_batchSize;  //Used for batching delete requests
 
     @Inject
+    @SuppressWarnings("this-escape") // TODO: Fix this
     public CassandraDatastore(
             final CassandraClient cassandraClient,
             final CassandraConfiguration cassandraConfiguration,

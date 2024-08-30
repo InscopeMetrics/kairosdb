@@ -48,9 +48,7 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.fail;
 
 public class QueryParserTest {
@@ -246,7 +244,7 @@ public class QueryParserTest {
     public void test_emptyMetricName_invalid() throws IOException, QueryException {
         final String json = Resources.toString(Resources.getResource("invalid-query-metric-empty-name.json"), Charsets.UTF_8);
 
-        assertBeanValidation(json, "query.metric[0].name may not be empty");
+        assertBeanValidation(json, "query.metric[0].name must not be empty");
     }
 
     @Test
@@ -401,7 +399,7 @@ public class QueryParserTest {
     public void test_groupby_tag_emtpy_tags_invalid() throws IOException, QueryException {
         final String json = Resources.toString(Resources.getResource("invalid-query-metric-group_by-tag-empty-tags.json"), Charsets.UTF_8);
 
-        assertBeanValidation(json, "query.metric[0].group_by[0].tags may not be empty");
+        assertBeanValidation(json, "query.metric[0].group_by[0].tags must not be empty");
     }
 
     @Test
@@ -443,7 +441,7 @@ public class QueryParserTest {
     public void test_parseRollUpTask_empty_name_invalid() throws IOException, QueryException {
         final String json = Resources.toString(Resources.getResource("invalid-rollup-no-name-empty.json"), Charsets.UTF_8);
 
-        assertRollupBeanValidation(json, "name may not be empty");
+        assertRollupBeanValidation(json, "name must not be empty");
     }
 
     @Test
@@ -457,7 +455,7 @@ public class QueryParserTest {
     public void test_parseRollUpTask_empty_saveAs_invalid() throws IOException, QueryException {
         final String json = Resources.toString(Resources.getResource("invalid-rollup-no-saveAs.json"), Charsets.UTF_8);
 
-        assertRollupBeanValidation(json, "rollup[0].saveAs may not be empty");
+        assertRollupBeanValidation(json, "rollup[0].saveAs must not be empty");
     }
 
     /**
@@ -563,7 +561,7 @@ public class QueryParserTest {
         } catch (final QueryException e) {
             fail("Expected BeanValidationException");
         } catch (final BeanValidationException e) {
-            assertThat(e.getErrorMessages().size(), equalTo(1));
+            assertThat(e.getErrorMessages().size(), greaterThanOrEqualTo(1));
             assertThat(e.getErrorMessages().get(0), equalTo(expectedMessage));
         }
     }

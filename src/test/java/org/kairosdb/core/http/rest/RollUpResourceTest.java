@@ -2,6 +2,7 @@ package org.kairosdb.core.http.rest;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import com.google.gson.GsonBuilder;
@@ -284,9 +285,10 @@ public class RollUpResourceTest {
         // Replace task 1 with task 2
         final Response response = resource.update(tasks.get(0).getId(), tasks.get(1).getJson());
 
-        @SuppressWarnings("unchecked") final Class<ArrayList<RollupTask>> listClass = (Class<ArrayList<RollupTask>>) (Class) ArrayList.class;
-        final ArgumentCaptor<ArrayList<RollupTask>> captor = ArgumentCaptor.forClass(listClass);
+        @SuppressWarnings("unchecked") final Class<ImmutableList<RollupTask>> listClass = (Class<ImmutableList<RollupTask>>) (Class) ImmutableList.class;
+        final ArgumentCaptor<ImmutableList<RollupTask>> captor = ArgumentCaptor.forClass(listClass);
 
+//        verify(mockStore, times(1)).read(tasks.get(0).getId());
         verify(mockStore, times(1)).write(captor.capture());
         final List<RollupTask> modifiedTasks = captor.getValue();
         assertThat(response.getStatus(), equalTo(OK.getStatusCode()));

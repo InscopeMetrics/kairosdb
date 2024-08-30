@@ -38,6 +38,7 @@ public class SortingDataPointGroup extends AbstractDataPointGroup {
         this(listDataPointGroup, null, order);
     }
 
+    @SuppressWarnings("this-escape") // TODO: Fix this
     public SortingDataPointGroup(final List<DataPointGroup> listDataPointGroup, final GroupByResult groupByResult,
                                  final Order order) {
         this(listDataPointGroup.size() == 0 ? "" : listDataPointGroup.get(0).getName(), order);
