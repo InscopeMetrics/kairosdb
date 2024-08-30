@@ -3,6 +3,7 @@ package org.kairosdb.datastore.cassandra;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import com.datastax.oss.driver.api.core.cql.*;
 import com.datastax.oss.driver.api.core.loadbalancing.LoadBalancingPolicy;
 import com.datastax.oss.driver.api.core.metadata.Node;
@@ -44,14 +45,13 @@ public class CQLBatch {
             final ConsistencyLevel consistencyLevel,
             final CqlSession session,
             final PeriodicMetrics periodicMetrics,
-            final Schema schema,
-            final LoadBalancingPolicy loadBalancingPolicy) {
+            final Schema schema) {
         m_consistencyLevel = consistencyLevel;
         m_session = session;
         m_periodicMetrics = periodicMetrics;
         m_schema = schema;
         m_now = System.currentTimeMillis();
-        m_loadBalancingPolicy = loadBalancingPolicy;
+        m_loadBalancingPolicy = m_session.getContext().getLoadBalancingPolicy(DriverExecutionProfile.DEFAULT_NAME);
     }
 
     public void addRowKey(final String metricName, final DataPointsRowKey rowKey, final int rowKeyTtl) {

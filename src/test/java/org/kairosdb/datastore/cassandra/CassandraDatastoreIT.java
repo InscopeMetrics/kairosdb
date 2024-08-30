@@ -273,8 +273,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         final CassandraModule.CQLBatchFactory cqlBatchFactory = new CassandraModule.CQLBatchFactory() {
             @Override
             public CQLBatch create() {
-                return new CQLBatch(ConsistencyLevel.QUORUM, session, periodicMetrics, m_schema,
-                        client.getWriteLoadBalancingPolicy());
+                return new CQLBatch(ConsistencyLevel.QUORUM, session, periodicMetrics, m_schema);
             }
         };
 

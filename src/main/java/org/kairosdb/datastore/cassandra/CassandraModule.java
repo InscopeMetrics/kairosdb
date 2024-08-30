@@ -124,12 +124,6 @@ public class CassandraModule extends AbstractModule {
 
     @Provides
     @Singleton
-    LoadBalancingPolicy getLoadBalancingPolicy(final CassandraClient cassandraClient) {
-        return cassandraClient.getWriteLoadBalancingPolicy();
-    }
-
-    @Provides
-    @Singleton
     ConsistencyLevel getWriteConsistencyLevel(final CassandraConfiguration configuration) {
         return configuration.getDataWriteLevel();
     }

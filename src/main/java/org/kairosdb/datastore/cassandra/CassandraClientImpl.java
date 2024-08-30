@@ -31,7 +31,6 @@ public class CassandraClientImpl implements CassandraClient {
     private final String m_keyspace;
     private final String m_replication;
     private final CassandraConfiguration m_configuration;
-    private LoadBalancingPolicy m_writeLoadBalancingPolicy;
     private CqlSession m_session;
     private CqlSession m_keyspaceSession;
 
@@ -100,10 +99,6 @@ public class CassandraClientImpl implements CassandraClient {
             builder.withSslContext(sslContext);
         }
         return builder;
-    }
-
-    public LoadBalancingPolicy getWriteLoadBalancingPolicy() {
-        return m_writeLoadBalancingPolicy;
     }
 
     @Override

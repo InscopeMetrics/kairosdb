@@ -15,7 +15,5 @@ public interface CassandraClient {
 
     String getReplication();
 
-    LoadBalancingPolicy getWriteLoadBalancingPolicy();
-
     void close();
 }
