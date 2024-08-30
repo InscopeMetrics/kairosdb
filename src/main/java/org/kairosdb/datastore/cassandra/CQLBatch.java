@@ -40,9 +40,6 @@ public class CQLBatch {
     private final BatchStatement metricNamesBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
     private final BatchStatement dataPointBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
     private final BatchStatement rowKeyBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
-    @Inject
-    @Named(KEYSPACE_PROPERTY)
-    private String m_keyspace = "kairosdb";
 
     @Inject
     public CQLBatch(
@@ -112,7 +109,7 @@ public class CQLBatch {
         }
     }
 
-    public void deleteDataPoint(final DataPointsRowKey rowKey, final int columnTime) throws IOException {
+    public void deleteDataPoint(final DataPointsRowKey rowKey, final int columnTime) {
         final ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(columnTime);
         b.rewind();

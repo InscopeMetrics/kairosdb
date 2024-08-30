@@ -2,6 +2,7 @@ package org.kairosdb.datastore.cassandra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder;
 import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
@@ -282,9 +283,8 @@ public class Schema {
     private void setupSchema(final CassandraClient cassandraClient) {
         try (final Session session = cassandraClient.getSession()) {
             session.execute(
-                    new SimpleStatementBuilder(
-                            String.format(CREATE_KEYSPACE, cassandraClient.getKeyspace(), cassandraClient.getReplication()))
-                             .build(),
+                    SimpleStatement.newInstance(
+                            String.format(CREATE_KEYSPACE, cassandraClient.getKeyspace(), cassandraClient.getReplication())),
                     GenericType.of(Void.class));
         }
 
