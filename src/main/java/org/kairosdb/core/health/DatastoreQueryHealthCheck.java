@@ -15,7 +15,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 import javax.inject.Named;
-import javax.validation.constraints.Null;
+import jakarta.validation.constraints.Null;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

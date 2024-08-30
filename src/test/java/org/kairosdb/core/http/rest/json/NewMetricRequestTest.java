@@ -21,7 +21,7 @@ import org.kairosdb.testing.BeanValidationHelper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import javax.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolation;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -34,8 +34,9 @@ public class NewMetricRequestTest {
         final Set<ConstraintViolation<NewMetricRequest>> violations = BeanValidationHelper.VALIDATOR.validate(request);
         final List<String> violationMessages = BeanValidationHelper.messagesFor(violations);
 
-        assertThat(violationMessages.size(), equalTo(1));
+        assertThat(violationMessages.size(), equalTo(2));
         assertThat(violationMessages.get(0), equalTo("name may not be null"));
+        assertThat(violationMessages.get(1), equalTo("name must not be empty"));
 
     }
 
@@ -47,7 +48,7 @@ public class NewMetricRequestTest {
         final List<String> violationMessages = BeanValidationHelper.messagesFor(violations);
 
         assertThat(violationMessages.size(), equalTo(1));
-        assertThat(violationMessages.get(0), equalTo("name may not be empty"));
+        assertThat(violationMessages.get(0), equalTo("name must not be empty"));
 
     }
 
@@ -59,8 +60,9 @@ public class NewMetricRequestTest {
         final Set<ConstraintViolation<NewMetricRequest>> violations = BeanValidationHelper.VALIDATOR.validate(request);
         final List<String> violationMessages = BeanValidationHelper.messagesFor(violations);
 
-        assertThat(violationMessages.size(), equalTo(1));
+        assertThat(violationMessages.size(), equalTo(2));
         assertThat(violationMessages.get(0), equalTo("datapoints[0].value may not be null"));
+        assertThat(violationMessages.get(1), equalTo("datapoints[0].value must not be empty"));
 
     }
 
@@ -73,7 +75,7 @@ public class NewMetricRequestTest {
         final List<String> violationMessages = BeanValidationHelper.messagesFor(violations);
 
         assertThat(violationMessages.size(), equalTo(1));
-        assertThat(violationMessages.get(0), equalTo("datapoints[0].value may not be empty"));
+        assertThat(violationMessages.get(0), equalTo("datapoints[0].value must not be empty"));
 
     }
 

@@ -109,19 +109,19 @@
     <apache.httpcore.version>4.3.3</apache.httpcore.version>
     <arpnetworking.commons.version>1.18.3</arpnetworking.commons.version>
     <bigqueue.version>1.6.0.0</bigqueue.version>
-    <bval.jsr303.version>0.5</bval.jsr303.version>
+    <bval.jsr.version>3.0.1</bval.jsr.version>
     <cassandra.driver.core.version>3.3.2</cassandra.driver.core.version>
     <codahale.version>3.0.2</codahale.version>
     <dropwizard.metrics.version>3.2.2</dropwizard.metrics.version>
     <genormous.version>1.6.4.jdbc41</genormous.version>
     <gson.version>2.2.4</gson.version>
-    <guava.version>19.0</guava.version>
-    <guice.version>4.1.0</guice.version>
+    <guava.version>33.3.0-jre</guava.version>
+    <guice.version>6.0.0</guice.version>
     <guava.retrying.version>2.0.0</guava.retrying.version>
     <jackson.version>2.10.5</jackson.version>
+    <jakarta.validation.version>3.1.0</jakarta.validation.version>
     <javax.inject.version>1</javax.inject.version>
     <javax.servlet.version>3.0.0.v201112011016</javax.servlet.version>
-    <javax.validation.api.version>1.0.0.GA</javax.validation.api.version>
     <jaxen.version>1.1.6</jaxen.version>
     <jcommander.version>1.35</jcommander.version>
     <jersey.version>1.18.3</jersey.version>
@@ -596,13 +596,6 @@
     </dependency>
     <dependency>
       <groupId>com.google.inject.extensions</groupId>
-      <artifactId>guice-multibindings</artifactId>
-      <version>${guice.version}</version>
-      <!-- TODO(ville): Confirm this package is actually used -->
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.inject.extensions</groupId>
       <artifactId>guice-assistedinject</artifactId>
       <version>${guice.version}</version>
     </dependency>
@@ -812,14 +805,14 @@
       <version>${jsr305.version}</version>
     </dependency>
     <dependency>
-      <groupId>javax.validation</groupId>
-      <artifactId>validation-api</artifactId>
-      <version>${javax.validation.api.version}</version>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <version>${jakarta.validation.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.bval</groupId>
-      <artifactId>bval-jsr303</artifactId>
-      <version>${bval.jsr303.version}</version>
+      <artifactId>bval-jsr</artifactId>
+      <version>${bval.jsr.version}</version>
     </dependency>
     <dependency>
       <groupId>net.jpountz.lz4</groupId>
