@@ -1,7 +1,7 @@
 package org.kairosdb.datastore.cassandra;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
-import com.codahale.metrics.Snapshot;
+import com.codahale.metrics.*;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.auth.AuthProvider;
@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Map;
 
@@ -27,8 +29,9 @@ public class CassandraClientImpl implements CassandraClient {
     private final String m_keyspace;
     private final String m_replication;
     private final CassandraConfiguration m_configuration;
-    private CqlSession m_cluster;
     private LoadBalancingPolicy m_writeLoadBalancingPolicy;
+    private CqlSession m_session;
+    private CqlSession m_keyspaceSession;
 
     private final RetryPolicy m_retryPolicy;
 
@@ -45,14 +48,11 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     public void init() {
-        //Passing shuffleReplicas = false so we can properly batch data to
-        //instances.
-        // When connecting to Cassandra notes in different datacenters, the local datacenter should be provided.
-        // Not doing this will select the datacenter from the first connected Cassandra node, which is not guaranteed to be the correct one.
-        DefaultLoadBalancingPolicy
-        m_writeLoadBalancingPolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), TokenAwarePolicy.ReplicaOrdering.TOPOLOGICAL);
-        final TokenAwarePolicy readLoadBalancePolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), TokenAwarePolicy.ReplicaOrdering.RANDOM);
-        DefaultDriverOption.LOAD
+        m_session = createSqlSessionBuilder().build();
+        m_keyspaceSession = createSqlSessionBuilder().withKeyspace(m_keyspace).build();
+    }
+
+    private CqlSessionBuilder createSqlSessionBuilder() {
         final DriverConfigLoader loader =
                 DriverConfigLoader.programmaticBuilder()
                         .withDuration(DefaultDriverOption.CONNECTION_CONNECT_TIMEOUT, Duration.ofMillis(m_configuration.getConnectionTimeout()))
@@ -62,24 +62,18 @@ public class CassandraClientImpl implements CassandraClient {
                         .withInt(DefaultDriverOption.CONNECTION_MAX_REQUESTS, m_configuration.getLocalMaxReqPerConn())
                         .withInt(DefaultDriverOption.REQUEST_THROTTLER_MAX_QUEUE_SIZE, m_configuration.getMaxQueueSize())
                         .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, "lz4")
+                        .withDuration(DefaultDriverOption.RECONNECTION_BASE_DELAY, Duration.ofMillis(100))
+                        .withDuration(DefaultDriverOption.RECONNECTION_MAX_DELAY, Duration.ofSeconds(5))
+                        .withString(DefaultDriverOption.REQUEST_CONSISTENCY, m_configuration.getDataReadLevel().name())
+                        .withBoolean(DefaultDriverOption.TIMESTAMP_GENERATOR_FORCE_JAVA_CLOCK, true)
                         .build();
 
 
 
         final CqlSessionBuilder builder = CqlSession.builder()
-                .withLocalDatacenter(m_configuration.getLocalDatacenter())
-                .withReconnectionPolicy(new ExponentialReconnectionPolicy(100, 5 * 1000))
-                .withLoadBalancingPolicy(new SelectiveLoadBalancingPolicy(readLoadBalancePolicy, m_writeLoadBalancingPolicy))
-                .withoutJMXReporting()
-                .withQueryOptions(new QueryOptions().setConsistencyLevel(m_configuration.getDataReadLevel()))
-                .withTimestampGenerator(new TimestampGenerator() //todo need to remove this and put it only on the datapoints call
-                {
-                    @Override
-                    public long next() {
-                        return System.currentTimeMillis();
-                    }
-                })
-                .withRetryPolicy(m_retryPolicy);
+                .withConfigLoader(loader)
+                .withLocalDatacenter(m_configuration.getLocalDatacenter());
+//                .withRetryPolicy(m_retryPolicy);  TODO: Implement the retry policy
 
         if (m_authProvider != null) {
             builder.withAuthProvider(m_authProvider);
@@ -91,17 +85,19 @@ public class CassandraClientImpl implements CassandraClient {
 
         for (final Map.Entry<String, Integer> hostPort : m_configuration.getHostList().entrySet()) {
             logger.info("Connecting to " + hostPort.getKey() + ":" + hostPort.getValue());
-            builder.addContactPoint(hostPort.getKey())
-                    .withPort(hostPort.getValue());
+            builder.addContactPoint(InetSocketAddress.createUnresolved(hostPort.getKey(), hostPort.getValue()));
         }
 
         if (m_configuration.isUseSsl()) {
-            final SSLContext sslContext = SSLContext.getDefault();
+            final SSLContext sslContext;
+            try {
+                sslContext = SSLContext.getDefault();
+            } catch (final NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
             builder.withSslContext(sslContext);
         }
-
-        m_cluster = builder.build();
-
+        return builder;
     }
 
     public LoadBalancingPolicy getWriteLoadBalancingPolicy() {
@@ -110,12 +106,12 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public CqlSession getKeyspaceSession() {
-        return m_cluster.connect(m_keyspace);
+        return m_keyspaceSession;
     }
 
     @Override
     public CqlSession getSession() {
-        return m_cluster.connect();
+        return m_session;
     }
 
     @Override
@@ -130,48 +126,33 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public void close() {
-        m_cluster.close();
+        m_session.close();
+        m_keyspaceSession.close();
     }
 
     private void recordMetrics(final PeriodicMetrics periodicMetrics) {
-        String prefix = "datastore/cassandra/client";
-        final Metrics metrics = m_cluster.getMetrics();
+        String prefix = "datastore/cassandra/client/";
+        if (m_keyspaceSession.getMetrics().isPresent()) {
+            final Metrics metrics = m_keyspaceSession.getMetrics().get();
 
-        periodicMetrics.recordGauge(prefix + "/connection_errors",
-                metrics.getErrorMetrics().getConnectionErrors().getCount());
+            final MetricRegistry registry = metrics.getRegistry();
+            for (Map.Entry<String, Counter> entry : registry.getCounters().entrySet()) {
+                final long value = entry.getValue().getCount();
+                periodicMetrics.recordGauge(prefix + entry.getKey(), value);
+            }
+            for (Map.Entry<String, Gauge> entry : registry.getGauges().entrySet()) {
+                final long value = (Long) entry.getValue().getValue();
+                periodicMetrics.recordGauge(prefix + entry.getKey(), value);
+            }
+            for (Map.Entry<String, Timer> entry : registry.getTimers().entrySet()) {
+                final Snapshot snapshot = entry.getValue().getSnapshot();
+                final String timerPrefix = prefix + entry.getKey() + "/";
 
-        periodicMetrics.recordGauge(prefix + "/blocking_executor_queue_depth",
-                metrics.getBlockingExecutorQueueDepth().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/connected_to_hosts",
-                metrics.getConnectedToHosts().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/executor_queue_depth",
-                metrics.getExecutorQueueDepth().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/known_hosts",
-                metrics.getKnownHosts().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/open_connections",
-                metrics.getOpenConnections().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/reconnection_scheduler_queue_size",
-                metrics.getReconnectionSchedulerQueueSize().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/task_scheduler_queue_size",
-                metrics.getTaskSchedulerQueueSize().getValue());
-
-        periodicMetrics.recordGauge(prefix + "/trashed_connections",
-                metrics.getTrashedConnections().getValue());
-
-        final Snapshot snapshot = metrics.getRequestsTimer().getSnapshot();
-        prefix = prefix + "/requests_timer";
-        periodicMetrics.recordGauge(prefix + "/max", snapshot.getMax());
-
-        periodicMetrics.recordGauge(prefix + "/min", snapshot.getMin());
-
-        periodicMetrics.recordGauge(prefix + "/avg", snapshot.getMean());
-
-        periodicMetrics.recordGauge(prefix + "/count", snapshot.size());
+                periodicMetrics.recordGauge(timerPrefix + "max", snapshot.getMax());
+                periodicMetrics.recordGauge(timerPrefix + "min", snapshot.getMin());
+                periodicMetrics.recordGauge(timerPrefix + "avg", snapshot.getMean());
+                periodicMetrics.recordGauge(timerPrefix + "count", snapshot.size());
+            }
+        }
     }
 }

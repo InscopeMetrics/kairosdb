@@ -4,7 +4,9 @@ import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.*;
 import com.datastax.oss.driver.api.core.loadbalancing.LoadBalancingPolicy;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.session.Session;
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.util.KDataOutput;
 
@@ -12,14 +14,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -41,7 +36,7 @@ public class CQLBatch {
     private final LoadBalancingPolicy m_loadBalancingPolicy;
     private final List<String> m_metricNames = new ArrayList<>();
     private final List<DataPointsRowKey> m_rowKeys = new ArrayList<>();
-    private final Map<Host, BatchStatement> m_batchMap = new HashMap<>();
+    private final Map<Node, BatchStatement> m_batchMap = new HashMap<>();
     private final BatchStatement metricNamesBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
     private final BatchStatement dataPointBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
     private final BatchStatement rowKeyBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
@@ -70,25 +65,23 @@ public class CQLBatch {
         final ByteBuffer bb = ByteBuffer.allocate(8);
         bb.putLong(0, rowKey.getTimestamp());
 
-        Statement bs = m_schema.psRowKeyTimeInsert.bind()
+        BoundStatement bs = m_schema.psRowKeyTimeInsert.bind()
                 .setString(0, metricName)
-                .setTimestamp(1, new Date(rowKey.getTimestamp()))
+                .setLong(1, rowKey.getTimestamp())
                 .setInt(2, rowKeyTtl)
-                .setIdempotent(true);
-
-        bs.setConsistencyLevel(m_consistencyLevel);
+                .setIdempotent(true)
+                .setConsistencyLevel(m_consistencyLevel);
 
         rowKeyBatch.add(bs);
 
         bs = m_schema.psRowKeyInsert.bind()
                 .setString(0, metricName)
-                .setTimestamp(1, new Date(rowKey.getTimestamp()))
+                .setLong(1, rowKey.getTimestamp())
                 .setString(2, rowKey.getDataType())
-                .setMap(3, rowKey.getTags())
+                .setMap(3, rowKey.getTags(), String.class, String.class)
                 .setInt(4, rowKeyTtl)
-                .setIdempotent(true);
-
-        bs.setConsistencyLevel(m_consistencyLevel);
+                .setIdempotent(true)
+                .setConsistencyLevel(m_consistencyLevel);
 
         rowKeyBatch.add(bs);
     }
@@ -96,21 +89,21 @@ public class CQLBatch {
     public void addMetricName(final String metricName) {
         m_metricNames.add(metricName);
 
-        final BoundStatement bs = new BoundStatement(m_schema.psStringIndexInsert);
-        bs.setBytesUnsafe(0, ByteBuffer.wrap(ROW_KEY_METRIC_NAMES.getBytes(UTF_8)));
-        bs.setString(1, metricName);
-        bs.setConsistencyLevel(m_consistencyLevel);
+        final BoundStatement bs = m_schema.psStringIndexInsert.bind()
+                .setBytesUnsafe(0, ByteBuffer.wrap(ROW_KEY_METRIC_NAMES.getBytes(UTF_8)))
+                .setString(1, metricName)
+                .setConsistencyLevel(m_consistencyLevel);
         metricNamesBatch.add(bs);
     }
 
     private void addBoundStatement(final BoundStatement boundStatement) {
-        final Iterator<Host> hosts = m_loadBalancingPolicy.newQueryPlan(m_keyspace, boundStatement);
-        if (hosts.hasNext()) {
-            final Host hostKey = hosts.next();
+        final Queue<Node> hosts = m_loadBalancingPolicy.newQueryPlan(boundStatement, m_session);
+        if (!hosts.isEmpty()) {
+            final Node hostKey = hosts.poll();
 
             BatchStatement batchStatement = m_batchMap.get(hostKey);
             if (batchStatement == null) {
-                batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+                batchStatement = BatchStatement.newInstance(BatchType.UNLOGGED);
                 m_batchMap.put(hostKey, batchStatement);
             }
             batchStatement.add(boundStatement);
@@ -120,15 +113,15 @@ public class CQLBatch {
     }
 
     public void deleteDataPoint(final DataPointsRowKey rowKey, final int columnTime) throws IOException {
-        final BoundStatement boundStatement = new BoundStatementBuilder(m_schema.psDataPointsDelete);
-        boundStatement.setBytesUnsafe(0, DATA_POINTS_ROW_KEY_SERIALIZER.toByteBuffer(rowKey));
         final ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(columnTime);
         b.rewind();
-        boundStatement.setBytesUnsafe(1, b);
 
-        boundStatement.setConsistencyLevel(m_consistencyLevel);
-        boundStatement.setIdempotent(true);
+        final BoundStatement boundStatement = m_schema.psDataPointsDelete.bind()
+                .setBytesUnsafe(0, DATA_POINTS_ROW_KEY_SERIALIZER.toByteBuffer(rowKey))
+                .setBytesUnsafe(1, b)
+                .setConsistencyLevel(m_consistencyLevel)
+                .setIdempotent(true);
 
         addBoundStatement(boundStatement);
     }
@@ -137,31 +130,31 @@ public class CQLBatch {
         final KDataOutput kDataOutput = new KDataOutput();
         dataPoint.writeValueToBuffer(kDataOutput);
 
-        final BoundStatement boundStatement = new BoundStatement(m_schema.psDataPointsInsert);
-        boundStatement.setBytesUnsafe(0, DATA_POINTS_ROW_KEY_SERIALIZER.toByteBuffer(rowKey));
         final ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(columnTime);
         b.rewind();
-        boundStatement.setBytesUnsafe(1, b);
-        boundStatement.setBytesUnsafe(2, ByteBuffer.wrap(kDataOutput.getBytes()));
-        boundStatement.setInt(3, ttl);
-        boundStatement.setLong(4, m_now);
-        boundStatement.setConsistencyLevel(m_consistencyLevel);
-        boundStatement.setIdempotent(true);
+        final BoundStatement boundStatement = m_schema.psDataPointsInsert.bind()
+                .setBytesUnsafe(0, DATA_POINTS_ROW_KEY_SERIALIZER.toByteBuffer(rowKey))
+                .setBytesUnsafe(1, b)
+                .setBytesUnsafe(2, ByteBuffer.wrap(kDataOutput.getBytes()))
+                .setInt(3, ttl)
+                .setLong(4, m_now)
+                .setConsistencyLevel(m_consistencyLevel)
+                .setIdempotent(true);
 
         addBoundStatement(boundStatement);
     }
 
     public void submitBatch() {
         if (metricNamesBatch.size() != 0) {
-            m_session.execute(metricNamesBatch);
+            m_session.execute(metricNamesBatch, GenericType.of(ResultSet.class));
             m_periodicMetrics.recordGauge(
                     "datastore/cassandra/string_index/write_batch_size",
                     metricNamesBatch.size());
         }
 
         if (rowKeyBatch.size() != 0) {
-            m_session.execute(rowKeyBatch);
+            m_session.execute(rowKeyBatch, GenericType.of(ResultSet.class));
             m_periodicMetrics.recordGauge(
                     "datastore/cassandra/row_keys/write_batch_size",
                     rowKeyBatch.size());
@@ -169,7 +162,7 @@ public class CQLBatch {
 
         for (final BatchStatement batchStatement : m_batchMap.values()) {
             if (batchStatement.size() != 0) {
-                m_session.execute(batchStatement);
+                m_session.execute(batchStatement, GenericType.of(ResultSet.class));
                 m_periodicMetrics.recordGauge(
                         "datastore/cassandra/data_points/write_batch_size",
                         batchStatement.size());
@@ -178,7 +171,7 @@ public class CQLBatch {
 
         //Catch all in case of a load balancing problem
         if (dataPointBatch.size() != 0) {
-            m_session.execute(dataPointBatch);
+            m_session.execute(dataPointBatch, GenericType.of(ResultSet.class));
             m_periodicMetrics.recordGauge(
                     "datastore/cassandra/data_points/write_batch_size",
                     dataPointBatch.size());

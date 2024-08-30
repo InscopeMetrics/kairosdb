@@ -2,6 +2,7 @@ package org.kairosdb.datastore.cassandra;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.retry.RetryDecision;
 import com.datastax.oss.driver.api.core.retry.RetryPolicy;
 import com.datastax.oss.driver.api.core.servererrors.CoordinatorException;

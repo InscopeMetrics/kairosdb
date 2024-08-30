@@ -7,7 +7,6 @@ import com.datastax.oss.driver.api.core.session.Request;
 import com.datastax.oss.driver.api.core.session.Session;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
