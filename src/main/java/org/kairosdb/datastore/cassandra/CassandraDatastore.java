@@ -907,9 +907,10 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
 //            final ListenableFuture<List<ResultSet>> listListenableFuture = Futures.allAsList(futures);
 
+            @SuppressWarnings("rawtypes")
             final CompletableFuture<List<AsyncResultSet>> listListenableFuture =
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .thenApply(() -> futures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
+                    .thenApply((ignored) -> futures.stream().map(CompletableFuture::join).toList());
 
             try {
                 m_resultSets = listListenableFuture.get().iterator();
@@ -1011,7 +1012,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
         @Override
         public boolean hasNext() {
             m_nextKey = null;
-            while (m_currentResultSet != null && (!m_currentResultSet.isExhausted() || m_resultSets.hasNext())) {
+            while (m_currentResultSet != null && (m_currentResultSet.currentPage().iterator().hasNext() || m_resultSets.hasNext())) {
                 m_nextKey = nextKeyFromIterator(m_currentResultSet);
 
                 if (m_nextKey != null)

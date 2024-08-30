@@ -425,7 +425,7 @@
                 </ports>
                 <wait>
                   <log>Starting listening for CQL clients on</log>
-                  <time>30000</time>
+                  <time>90000</time>
                 </wait>
               </run>
             </image>

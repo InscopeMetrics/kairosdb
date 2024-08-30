@@ -78,7 +78,7 @@ public class CassandraClientImpl implements CassandraClient {
         if (m_authProvider != null) {
             builder.withAuthProvider(m_authProvider);
         } else if (m_configuration.getAuthUserName() != null && m_configuration.getAuthPassword() != null) {
-            builder.withCredentials(m_configuration.getAuthUserName(),
+            builder.withAuthCredentials(m_configuration.getAuthUserName(),
                     m_configuration.getAuthPassword());
         }
 
@@ -130,6 +130,7 @@ public class CassandraClientImpl implements CassandraClient {
         m_keyspaceSession.close();
     }
 
+    @SuppressWarnings("rawtypes")
     private void recordMetrics(final PeriodicMetrics periodicMetrics) {
         String prefix = "datastore/cassandra/client/";
         if (m_keyspaceSession.getMetrics().isPresent()) {

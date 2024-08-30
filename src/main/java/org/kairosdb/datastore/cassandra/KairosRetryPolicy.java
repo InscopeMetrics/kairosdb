@@ -2,7 +2,6 @@ package org.kairosdb.datastore.cassandra;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
-import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.retry.RetryDecision;
 import com.datastax.oss.driver.api.core.retry.RetryPolicy;
 import com.datastax.oss.driver.api.core.servererrors.CoordinatorException;
@@ -34,6 +33,7 @@ public class KairosRetryPolicy implements RetryPolicy {
     }
 
     @Override
+    @Deprecated
     public RetryDecision onReadTimeout(@NonNull final Request request, @NonNull final ConsistencyLevel cl,
                                        final int requiredResponses, final int receivedResponses, final boolean dataRetrieved, final int nbRetry) {
         if (nbRetry == m_retryCount)
@@ -45,6 +45,7 @@ public class KairosRetryPolicy implements RetryPolicy {
     }
 
     @Override
+    @Deprecated
     public RetryDecision onWriteTimeout(@NonNull final Request request, @NonNull final ConsistencyLevel cl,
                                         @NonNull final WriteType writeType, final int requiredAcks, final int receivedAcks, final int nbRetry) {
         if (nbRetry == m_retryCount)
@@ -56,6 +57,7 @@ public class KairosRetryPolicy implements RetryPolicy {
     }
 
     @Override
+    @Deprecated
     public RetryDecision onUnavailable(@NonNull final Request request, @NonNull final ConsistencyLevel cl,
                                        final int requiredReplica, final int aliveReplica, final int nbRetry) {
         if (nbRetry == m_retryCount)
@@ -67,7 +69,8 @@ public class KairosRetryPolicy implements RetryPolicy {
     }
 
     @Override
-    public RetryDecision onErrorResponse(@NonNull final Request request, final CoordinatorException e, final int nbRetry) {
+    @Deprecated
+    public RetryDecision onErrorResponse(@NonNull final Request request, @NonNull final CoordinatorException e, final int nbRetry) {
         if (nbRetry == m_retryCount)
             return RetryDecision.RETHROW;
         else {
@@ -77,6 +80,7 @@ public class KairosRetryPolicy implements RetryPolicy {
     }
 
     @Override
+    @Deprecated
     public RetryDecision onRequestAborted(@NonNull Request request, @NonNull Throwable error, int nbRetry) {
         if (nbRetry == m_retryCount)
             return RetryDecision.RETHROW;
@@ -103,6 +107,6 @@ public class KairosRetryPolicy implements RetryPolicy {
         periodicMetrics.recordGauge("datastore/cassandra/retry_count/write_timeout", writeTimeouts);
         periodicMetrics.recordGauge("datastore/cassandra/retry_count/unavailable", unavailable);
         periodicMetrics.recordGauge("datastore/cassandra/retry_count/request_error", requestError);
-        periodicMetrics.recordGauge("datastore/cassandra/retry_count/request_aborted", requestError);
+        periodicMetrics.recordGauge("datastore/cassandra/retry_count/request_aborted", aborts);
     }
 }
