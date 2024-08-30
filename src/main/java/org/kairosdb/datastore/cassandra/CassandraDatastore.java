@@ -70,6 +70,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Named;
 
@@ -816,10 +817,10 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
     private class CQLFilteredRowKeyIterator implements Iterator<DataPointsRowKey> {
         private final SetMultimap<String, String> m_filterTags;
-        private final Iterator<ResultSet> m_resultSets;
+        private final Iterator<AsyncResultSet> m_resultSets;
         private final String m_metricName;
         private DataPointsRowKey m_nextKey;
-        private ResultSet m_currentResultSet;
+        private AsyncResultSet m_currentResultSet;
         private int m_rawRowKeyCount = 0;
         private boolean m_partitioned = false;
         private int m_partitionNumber = 0;
@@ -832,7 +833,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                                          final SetMultimap<String, String> filterTags) throws DatastoreException {
             m_filterTags = filterTags;
             m_metricName = metricName;
-            final List<CompletionStage<AsyncResultSet>> futures = new ArrayList<>();
+            final List<CompletableFuture<AsyncResultSet>> futures = new ArrayList<>();
             m_returnedKeys = new HashSet<>();
             if (m_filterTags.containsKey(PARTITION_KEY)) {
                 final Set<String> partitionValueSet = m_filterTags.get(PARTITION_KEY);
@@ -869,7 +870,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                 negStatement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
                 CompletionStage<AsyncResultSet> future = m_session.executeAsync(negStatement.build());
-                futures.add(future);
+                futures.add(future.toCompletableFuture());
 
 
                 final BoundStatementBuilder posStatement = m_schema.psRowKeyIndexQuery.boundStatementBuilder()
@@ -878,7 +879,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                 posStatement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
                 future = m_session.executeAsync(posStatement.build());
-                futures.add(future);
+                futures.add(future.toCompletableFuture());
             } else {
                 final BoundStatementBuilder statement = m_schema.psRowKeyIndexQuery.boundStatementBuilder()
                         .setBytesUnsafe(0, serializeString(metricName));
@@ -886,25 +887,29 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                 statement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
                 final CompletionStage<AsyncResultSet> future = m_session.executeAsync(statement.build());
-                futures.add(future);
+                futures.add(future.toCompletableFuture());
             }
 
             //System.out.println();
             //New index query index is broken up by time tier
             final List<Long> queryKeyList = createQueryKeyList(metricName, startTime, endTime);
             for (final Long keyTime : queryKeyList) {
-                final BoundStatement statement = new BoundStatement(m_schema.psRowKeyQuery);
-                statement.setString(0, metricName);
-                statement.setTimestamp(1, new Date(keyTime));
-                statement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
+                final BoundStatementBuilder statement = m_schema.psRowKeyQuery.boundStatementBuilder()
+                        .setString(0, metricName)
+                        .setLong(1, keyTime)
+                        .setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
                 //printHosts(m_loadBalancingPolicy.newQueryPlan(m_keyspace, statement));
 
-                final ResultSetFuture future = m_session.executeAsync(statement);
-                futures.add(future);
+                final CompletionStage<AsyncResultSet> future = m_session.executeAsync(statement.build());
+                futures.add(future.toCompletableFuture());
             }
 
-            final ListenableFuture<List<ResultSet>> listListenableFuture = Futures.allAsList(futures);
+//            final ListenableFuture<List<ResultSet>> listListenableFuture = Futures.allAsList(futures);
+
+            final CompletableFuture<List<AsyncResultSet>> listListenableFuture =
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenApply(() -> futures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
 
             try {
                 m_resultSets = listListenableFuture.get().iterator();
@@ -919,25 +924,24 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
             }
         }
 
-        private DataPointsRowKey nextKeyFromIterator(final ResultSet iterator) {
+        private DataPointsRowKey nextKeyFromIterator(final AsyncResultSet iterator) {
             DataPointsRowKey next = null;
             boolean newIndex = false;
             if (iterator.getColumnDefinitions().contains("row_time"))
                 newIndex = true;
 
             outer:
-            while (!iterator.isExhausted()) {
+            for (final Row record : iterator.currentPage()) {
                 final DataPointsRowKey rowKey;
-                final Row record = iterator.one();
 
                 if (newIndex) {
                     if (record.getString(1) == null)
                         continue; //empty row
 
-                    rowKey = new DataPointsRowKey(m_metricName, record.getTimestamp(0).getTime(),
-                            record.getString(1), new TreeMap<String, String>(record.getMap(2, String.class, String.class)));
+                    rowKey = new DataPointsRowKey(m_metricName, record.getLong(0),
+                            record.getString(1), new TreeMap<>(record.getMap(2, String.class, String.class)));
                 } else
-                    rowKey = DATA_POINTS_ROW_KEY_SERIALIZER.fromByteBuffer(record.getBytes(0));
+                    rowKey = DATA_POINTS_ROW_KEY_SERIALIZER.fromByteBuffer(record.getByteBuffer(0));
 
                 m_rawRowKeyCount++;
 
@@ -973,18 +977,18 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                                               final long startTime, final long endTime) {
             final List<Long> ret = new ArrayList<>();
 
-            final BoundStatement statement = new BoundStatement(m_schema.psRowKeyTimeQuery);
-            statement.setString(0, metricName);
-            statement.setTimestamp(1, new Date(calculateRowTime(startTime)));
-            statement.setTimestamp(2, new Date(endTime));
-            statement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
+            final BoundStatementBuilder statement = m_schema.psRowKeyTimeQuery.boundStatementBuilder()
+                    .setString(0, metricName)
+                    .setLong(1, calculateRowTime(startTime))
+                    .setLong(2, endTime)
+                    .setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
             //printHosts(m_loadBalancingPolicy.newQueryPlan(m_keyspace, statement));
 
-            final ResultSet rows = m_session.execute(statement);
+            final ResultSet rows = m_session.execute(statement.build());
 
-            while (!rows.isExhausted()) {
-                ret.add(rows.one().getTimestamp(0).getTime());
+            for (final Row row : rows) {
+                ret.add(row.getLong(0));
             }
 
             return ret;
