@@ -110,7 +110,7 @@
     <arpnetworking.commons.version>1.18.3</arpnetworking.commons.version>
     <bigqueue.version>1.6.0.0</bigqueue.version>
     <bval.jsr.version>3.0.1</bval.jsr.version>
-    <cassandra.driver.core.version>3.11.5</cassandra.driver.core.version>
+    <cassandra.driver.core.version>4.17.0</cassandra.driver.core.version>
     <codahale.version>3.0.2</codahale.version>
     <dropwizard.metrics.version>3.2.2</dropwizard.metrics.version>
     <genormous.version>1.6.4.jdbc41</genormous.version>
@@ -166,7 +166,7 @@
     <!-- Docker Overrides -->
     <skipDockerBuild>false</skipDockerBuild>
     <docker.skip.cassandra>false</docker.skip.cassandra>
-    <docker.cassandra.version>3.11</docker.cassandra.version>
+    <docker.cassandra.version>4.1</docker.cassandra.version>
 
     <!-- Assembly Overrides -->
     <tgz.finalName>${project.build.finalName}</tgz.finalName>
@@ -652,8 +652,8 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>com.datastax.cassandra</groupId>
-      <artifactId>cassandra-driver-core</artifactId>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
       <version>${cassandra.driver.core.version}</version>
     </dependency>
 
