@@ -50,8 +50,6 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     public void init() {
-        m_session = createSqlSessionBuilder().build();
-        m_keyspaceSession = createSqlSessionBuilder().withKeyspace(m_keyspace).build();
     }
 
     private CqlSessionBuilder createSqlSessionBuilder() {
@@ -109,12 +107,14 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public CqlSession getKeyspaceSession() {
+    public synchronized CqlSession getKeyspaceSession() {
+        m_keyspaceSession = createSqlSessionBuilder().withKeyspace(m_keyspace).build();
         return m_keyspaceSession;
     }
 
     @Override
-    public CqlSession getSession() {
+    public synchronized CqlSession getSession() {
+        m_session = createSqlSessionBuilder().build();
         return m_session;
     }
 
