@@ -1,7 +1,10 @@
 package org.kairosdb.datastore.cassandra;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder;
+import com.datastax.oss.driver.api.core.session.Session;
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,7 +213,7 @@ public class Schema {
     public final PreparedStatement psRowKeyTimeDelete;
     public final PreparedStatement psRowKeyDelete;
     public final PreparedStatement psDataPointsDelete;
-    private final Session m_session;
+    private final CqlSession m_session;
     public PreparedStatement psDataPointsDeleteRange;
     public PreparedStatement psServiceIndexListServiceKeys;
 
@@ -272,23 +275,26 @@ public class Schema {
         psServiceIndexInsertModifiedTime = m_session.prepare(SERVICE_INDEX_INSERT_MODIFIED_TIME);
     }
 
-    public Session getSession() {
+    public CqlSession getSession() {
         return m_session;
     }
 
     private void setupSchema(final CassandraClient cassandraClient) {
         try (final Session session = cassandraClient.getSession()) {
-            session.execute(String.format(CREATE_KEYSPACE, cassandraClient.getKeyspace(),
-                    cassandraClient.getReplication()));
+            session.execute(
+                    new SimpleStatementBuilder(
+                            String.format(CREATE_KEYSPACE, cassandraClient.getKeyspace(), cassandraClient.getReplication()))
+                             .build(),
+                    GenericType.of(Void.class));
         }
 
         try (final Session session = cassandraClient.getKeyspaceSession()) {
-            session.execute(DATA_POINTS_TABLE);
-            session.execute(ROW_KEY_INDEX_TABLE);
-            session.execute(STRING_INDEX_TABLE);
-            session.execute(ROW_KEYS);
-            session.execute(ROW_KEY_TIME_INDEX);
-            session.execute(SERVICE_INDEX);
+            session.execute(new SimpleStatementBuilder(DATA_POINTS_TABLE).build(), GenericType.of(Void.class));
+            session.execute(new SimpleStatementBuilder(ROW_KEY_INDEX_TABLE).build(), GenericType.of(Void.class));
+            session.execute(new SimpleStatementBuilder(STRING_INDEX_TABLE).build(), GenericType.of(Void.class));
+            session.execute(new SimpleStatementBuilder(ROW_KEYS).build(), GenericType.of(Void.class));
+            session.execute(new SimpleStatementBuilder(ROW_KEY_TIME_INDEX).build(), GenericType.of(Void.class));
+            session.execute(new SimpleStatementBuilder(SERVICE_INDEX).build(), GenericType.of(Void.class));
         }
     }
 }

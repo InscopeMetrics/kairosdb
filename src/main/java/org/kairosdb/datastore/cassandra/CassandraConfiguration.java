@@ -1,6 +1,6 @@
 package org.kairosdb.datastore.cassandra;
 
-import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.google.common.base.Splitter;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;

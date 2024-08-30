@@ -2,26 +2,21 @@ package org.kairosdb.datastore.cassandra;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.codahale.metrics.Snapshot;
-import com.datastax.driver.core.AuthProvider;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.Metrics;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SocketOptions;
-import com.datastax.driver.core.TimestampGenerator;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.ExponentialReconnectionPolicy;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.policies.RetryPolicy;
-import com.datastax.driver.core.policies.RoundRobinPolicy;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.api.core.auth.AuthProvider;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.loadbalancing.LoadBalancingPolicy;
+import com.datastax.oss.driver.api.core.metrics.Metrics;
+import com.datastax.oss.driver.api.core.retry.RetryPolicy;
+import com.datastax.oss.driver.internal.core.loadbalancing.DefaultLoadBalancingPolicy;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -32,7 +27,7 @@ public class CassandraClientImpl implements CassandraClient {
     private final String m_keyspace;
     private final String m_replication;
     private final CassandraConfiguration m_configuration;
-    private Cluster m_cluster;
+    private CqlSession m_cluster;
     private LoadBalancingPolicy m_writeLoadBalancingPolicy;
 
     private final RetryPolicy m_retryPolicy;
@@ -54,21 +49,27 @@ public class CassandraClientImpl implements CassandraClient {
         //instances.
         // When connecting to Cassandra notes in different datacenters, the local datacenter should be provided.
         // Not doing this will select the datacenter from the first connected Cassandra node, which is not guaranteed to be the correct one.
+        DefaultLoadBalancingPolicy
         m_writeLoadBalancingPolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), TokenAwarePolicy.ReplicaOrdering.TOPOLOGICAL);
         final TokenAwarePolicy readLoadBalancePolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), TokenAwarePolicy.ReplicaOrdering.RANDOM);
-        final Cluster.Builder builder = new Cluster.Builder()
-                .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(m_configuration.getConnectionTimeout())
-                        .setReadTimeoutMillis(m_configuration.getReadTimeout()))
-                .withPoolingOptions(new PoolingOptions().setConnectionsPerHost(HostDistance.LOCAL,
-                        m_configuration.getLocalCoreConnections(), m_configuration.getLocalMaxConnections())
-                        .setConnectionsPerHost(HostDistance.REMOTE,
-                                m_configuration.getRemoteCoreConnections(), m_configuration.getRemoteMaxConnections())
-                        .setMaxRequestsPerConnection(HostDistance.LOCAL, m_configuration.getLocalMaxReqPerConn())
-                        .setMaxRequestsPerConnection(HostDistance.REMOTE, m_configuration.getRemoteMaxReqPerConn())
-                        .setMaxQueueSize(m_configuration.getMaxQueueSize()))
+        DefaultDriverOption.LOAD
+        final DriverConfigLoader loader =
+                DriverConfigLoader.programmaticBuilder()
+                        .withDuration(DefaultDriverOption.CONNECTION_CONNECT_TIMEOUT, Duration.ofMillis(m_configuration.getConnectionTimeout()))
+                        .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMillis(m_configuration.getReadTimeout()))
+                        .withInt(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, m_configuration.getLocalMaxConnections())
+                        .withInt(DefaultDriverOption.CONNECTION_POOL_REMOTE_SIZE, m_configuration.getRemoteMaxConnections())
+                        .withInt(DefaultDriverOption.CONNECTION_MAX_REQUESTS, m_configuration.getLocalMaxReqPerConn())
+                        .withInt(DefaultDriverOption.REQUEST_THROTTLER_MAX_QUEUE_SIZE, m_configuration.getMaxQueueSize())
+                        .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, "lz4")
+                        .build();
+
+
+
+        final CqlSessionBuilder builder = CqlSession.builder()
+                .withLocalDatacenter(m_configuration.getLocalDatacenter())
                 .withReconnectionPolicy(new ExponentialReconnectionPolicy(100, 5 * 1000))
                 .withLoadBalancingPolicy(new SelectiveLoadBalancingPolicy(readLoadBalancePolicy, m_writeLoadBalancingPolicy))
-                .withCompression(ProtocolOptions.Compression.LZ4)
                 .withoutJMXReporting()
                 .withQueryOptions(new QueryOptions().setConsistencyLevel(m_configuration.getDataReadLevel()))
                 .withTimestampGenerator(new TimestampGenerator() //todo need to remove this and put it only on the datapoints call
@@ -94,8 +95,10 @@ public class CassandraClientImpl implements CassandraClient {
                     .withPort(hostPort.getValue());
         }
 
-        if (m_configuration.isUseSsl())
-            builder.withSSL();
+        if (m_configuration.isUseSsl()) {
+            final SSLContext sslContext = SSLContext.getDefault();
+            builder.withSslContext(sslContext);
+        }
 
         m_cluster = builder.build();
 
@@ -106,12 +109,12 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public Session getKeyspaceSession() {
+    public CqlSession getKeyspaceSession() {
         return m_cluster.connect(m_keyspace);
     }
 
     @Override
-    public Session getSession() {
+    public CqlSession getSession() {
         return m_cluster.connect();
     }
 

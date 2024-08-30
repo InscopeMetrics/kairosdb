@@ -1,13 +1,10 @@
 package org.kairosdb.datastore.cassandra;
 
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Host;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.*;
+import com.datastax.oss.driver.api.core.loadbalancing.LoadBalancingPolicy;
+import com.datastax.oss.driver.api.core.session.Session;
 import org.kairosdb.core.DataPoint;
 import org.kairosdb.util.KDataOutput;
 
@@ -45,9 +42,9 @@ public class CQLBatch {
     private final List<String> m_metricNames = new ArrayList<>();
     private final List<DataPointsRowKey> m_rowKeys = new ArrayList<>();
     private final Map<Host, BatchStatement> m_batchMap = new HashMap<>();
-    private final BatchStatement metricNamesBatch = new BatchStatement(BatchStatement.Type.UNLOGGED);
-    private final BatchStatement dataPointBatch = new BatchStatement(BatchStatement.Type.UNLOGGED);
-    private final BatchStatement rowKeyBatch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+    private final BatchStatement metricNamesBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
+    private final BatchStatement dataPointBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
+    private final BatchStatement rowKeyBatch = BatchStatement.newInstance(BatchType.UNLOGGED);
     @Inject
     @Named(KEYSPACE_PROPERTY)
     private String m_keyspace = "kairosdb";
@@ -123,7 +120,7 @@ public class CQLBatch {
     }
 
     public void deleteDataPoint(final DataPointsRowKey rowKey, final int columnTime) throws IOException {
-        final BoundStatement boundStatement = new BoundStatement(m_schema.psDataPointsDelete);
+        final BoundStatement boundStatement = new BoundStatementBuilder(m_schema.psDataPointsDelete);
         boundStatement.setBytesUnsafe(0, DATA_POINTS_ROW_KEY_SERIALIZER.toByteBuffer(rowKey));
         final ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(columnTime);

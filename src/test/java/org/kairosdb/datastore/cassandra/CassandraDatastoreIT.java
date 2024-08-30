@@ -18,8 +18,8 @@ package org.kairosdb.datastore.cassandra;
 import com.arpnetworking.metrics.Metrics;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.hamcrest.CoreMatchers;
@@ -266,7 +266,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         final CassandraClient client = new CassandraClientImpl(configuration, periodicMetrics);
         ((CassandraClientImpl) client).init();
         m_schema = new Schema(client, true);
-        final Session session = m_schema.getSession();
+        final CqlSession session = m_schema.getSession();
         final DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>("row_key", 1024, periodicMetrics);
         final DataCache<String> metricNameCache = new DataCache<>("metric_name", 1024, periodicMetrics);
 
