@@ -16,8 +16,8 @@
 package org.kairosdb.core.http.rest.validation;
 
 import java.util.Map;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
 public class ValidMapValidator implements ConstraintValidator<ValidMapRequired, Map<String, String>> {
     @Override
