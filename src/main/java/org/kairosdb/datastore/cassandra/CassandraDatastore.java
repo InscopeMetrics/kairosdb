@@ -17,7 +17,7 @@ package org.kairosdb.datastore.cassandra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.*;
-import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.FutureCallback;
@@ -655,17 +655,17 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
         // If index is gone, delete metric name from Strings column family
         if (deleteAll) {
             //System.out.println("Delete All");
-            BoundStatement statement = new BoundStatement(m_schema.psRowKeyIndexDeleteRow);
-            statement.setBytesUnsafe(0, serializeString(deleteQuery.getName()));
-            statement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
-            m_session.executeAsync(statement);
+            BoundStatementBuilder statement = m_schema.psRowKeyIndexDeleteRow.boundStatementBuilder()
+                    .setBytesUnsafe(0, serializeString(deleteQuery.getName()))
+                    .setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
+            m_session.executeAsync(statement.build());
 
             //Delete from string index
-            statement = new BoundStatement(m_schema.psStringIndexDelete);
-            statement.setBytesUnsafe(0, serializeString(ROW_KEY_METRIC_NAMES));
-            statement.setBytesUnsafe(1, serializeString(deleteQuery.getName()));
-            statement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
-            m_session.executeAsync(statement);
+            statement = m_schema.psStringIndexDelete.boundStatementBuilder()
+                    .setBytesUnsafe(0, serializeString(ROW_KEY_METRIC_NAMES))
+                    .setBytesUnsafe(1, serializeString(deleteQuery.getName()))
+                    .setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
+            m_session.executeAsync(statement.build());
 
             clearCache = true;
             m_metricNameCache.clear();
@@ -719,7 +719,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
         return (ret);
     }
 
-    private void printHosts(final Iterator<Host> hostIterator) {
+    private void printHosts(final Iterator<Node> hostIterator) {
         final StringBuilder sb = new StringBuilder();
 
         while (hostIterator.hasNext()) {
@@ -832,7 +832,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
                                          final SetMultimap<String, String> filterTags) throws DatastoreException {
             m_filterTags = filterTags;
             m_metricName = metricName;
-            final List<ResultSetFuture> futures = new ArrayList<>();
+            final List<CompletionStage<AsyncResultSet>> futures = new ArrayList<>();
             m_returnedKeys = new HashSet<>();
             if (m_filterTags.containsKey(PARTITION_KEY)) {
                 final Set<String> partitionValueSet = m_filterTags.get(PARTITION_KEY);
@@ -863,29 +863,29 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
 
             //Legacy key index - index is all in one row
             if ((startTime < 0) && (endTime >= 0)) {
-                final BoundStatement negStatement = new BoundStatement(m_schema.psRowKeyIndexQuery);
-                negStatement.setBytesUnsafe(0, serializeString(metricName));
+                BoundStatementBuilder negStatement = m_schema.psRowKeyIndexQuery.boundStatementBuilder()
+                        .setBytesUnsafe(0, serializeString(metricName));
                 setStartEndKeys(negStatement, metricName, startTime, -1L);
                 negStatement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
-                ResultSetFuture future = m_session.executeAsync(negStatement);
+                CompletionStage<AsyncResultSet> future = m_session.executeAsync(negStatement.build());
                 futures.add(future);
 
 
-                final BoundStatement posStatement = new BoundStatement(m_schema.psRowKeyIndexQuery);
-                posStatement.setBytesUnsafe(0, serializeString(metricName));
+                final BoundStatementBuilder posStatement = m_schema.psRowKeyIndexQuery.boundStatementBuilder()
+                        .setBytesUnsafe(0, serializeString(metricName));
                 setStartEndKeys(posStatement, metricName, 0L, endTime);
                 posStatement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
-                future = m_session.executeAsync(posStatement);
+                future = m_session.executeAsync(posStatement.build());
                 futures.add(future);
             } else {
-                final BoundStatement statement = new BoundStatement(m_schema.psRowKeyIndexQuery);
-                statement.setBytesUnsafe(0, serializeString(metricName));
+                final BoundStatementBuilder statement = m_schema.psRowKeyIndexQuery.boundStatementBuilder()
+                        .setBytesUnsafe(0, serializeString(metricName));
                 setStartEndKeys(statement, metricName, startTime, endTime);
                 statement.setConsistencyLevel(m_cassandraConfiguration.getDataReadLevel());
 
-                final ResultSetFuture future = m_session.executeAsync(statement);
+                final CompletionStage<AsyncResultSet> future = m_session.executeAsync(statement.build());
                 futures.add(future);
             }
 
@@ -991,7 +991,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
         }
 
         private void setStartEndKeys(
-                final BoundStatement boundStatement,
+                BoundStatementBuilder boundStatement,
                 final String metricName, final long startTime, final long endTime) {
             final DataPointsRowKey startKey = new DataPointsRowKey(metricName,
                     calculateRowTime(startTime), "");
