@@ -19,12 +19,6 @@ import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import org.kairosdb.core.DataPointSet;
-import org.kairosdb.core.datapoints.DoubleDataPointFactory;
-import org.kairosdb.core.datapoints.DoubleDataPointFactoryImpl;
-import org.kairosdb.core.datapoints.LongDataPointFactory;
-import org.kairosdb.core.datapoints.LongDataPointFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +54,8 @@ public class CassandraClientImpl implements CassandraClient {
         //instances.
         // When connecting to Cassandra notes in different datacenters, the local datacenter should be provided.
         // Not doing this will select the datacenter from the first connected Cassandra node, which is not guaranteed to be the correct one.
-        m_writeLoadBalancingPolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), false);
-        final TokenAwarePolicy readLoadBalancePolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), true);
+        m_writeLoadBalancingPolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), TokenAwarePolicy.ReplicaOrdering.TOPOLOGICAL);
+        final TokenAwarePolicy readLoadBalancePolicy = new TokenAwarePolicy((m_configuration.getLocalDatacenter() == null) ? new RoundRobinPolicy() : DCAwareRoundRobinPolicy.builder().withLocalDc(m_configuration.getLocalDatacenter()).build(), TokenAwarePolicy.ReplicaOrdering.RANDOM);
         final Cluster.Builder builder = new Cluster.Builder()
                 .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(m_configuration.getConnectionTimeout())
                         .setReadTimeoutMillis(m_configuration.getReadTimeout()))
