@@ -7,10 +7,12 @@ import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.auth.AuthProvider;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.loadbalancing.LoadBalancingPolicy;
 import com.datastax.oss.driver.api.core.metrics.Metrics;
 import com.datastax.oss.driver.api.core.retry.RetryPolicy;
 import com.datastax.oss.driver.internal.core.loadbalancing.DefaultLoadBalancingPolicy;
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +55,7 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     private CqlSessionBuilder createSqlSessionBuilder() {
-        final DriverConfigLoader loader =
+        final ProgrammaticDriverConfigLoaderBuilder loader =
                 DriverConfigLoader.programmaticBuilder()
                         .withDuration(DefaultDriverOption.CONNECTION_CONNECT_TIMEOUT, Duration.ofMillis(m_configuration.getConnectionTimeout()))
                         .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMillis(m_configuration.getReadTimeout()))
@@ -65,14 +67,16 @@ public class CassandraClientImpl implements CassandraClient {
                         .withDuration(DefaultDriverOption.RECONNECTION_BASE_DELAY, Duration.ofMillis(100))
                         .withDuration(DefaultDriverOption.RECONNECTION_MAX_DELAY, Duration.ofSeconds(5))
                         .withString(DefaultDriverOption.REQUEST_CONSISTENCY, m_configuration.getDataReadLevel().name())
-                        .withBoolean(DefaultDriverOption.TIMESTAMP_GENERATOR_FORCE_JAVA_CLOCK, true)
-                        .build();
+                        .withBoolean(DefaultDriverOption.TIMESTAMP_GENERATOR_FORCE_JAVA_CLOCK, true);
+
+        if (Strings.isNullOrEmpty(m_configuration.getLocalDatacenter())) {
+            loader.withString(DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS, "DcInferringLoadBalancingPolicy");
+        }
 
 
 
         final CqlSessionBuilder builder = CqlSession.builder()
-                .withConfigLoader(loader)
-                .withLocalDatacenter(m_configuration.getLocalDatacenter());
+                .withConfigLoader(loader.build());
 //                .withRetryPolicy(m_retryPolicy);  TODO: Implement the retry policy
 
         if (m_authProvider != null) {

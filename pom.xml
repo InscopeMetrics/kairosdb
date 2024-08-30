@@ -413,6 +413,7 @@
               <alias>cassandra</alias>
               <run>
                 <skip>${docker.skip.cassandra}</skip>
+                <cmd>-Dcassandra.skip_wait_for_gossip_to_settle=0</cmd>
                 <capAdd>CAP_SYS_NICE</capAdd>
                 <network>
                   <mode>custom</mode>
