@@ -80,6 +80,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+@SuppressWarnings("this-escape") // TODO: Fix this
 public class Main {
     public static final Logger logger = (Logger) LoggerFactory.getLogger(Main.class);
 
@@ -172,7 +173,7 @@ public class Main {
                         if (constructor != null)
                             mod = (Module) constructor.newInstance(props);
                         else
-                            mod = (Module) aClass.newInstance();
+                            mod = (Module) aClass.getDeclaredConstructor().newInstance();
 
                         if (mod instanceof CoreModule) {
                             mod = Modules.override(moduleList.get(0)).with(mod);

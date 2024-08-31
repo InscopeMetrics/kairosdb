@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM openjdk:8u242-jdk-slim-buster
+FROM eclipse-temurin:21.0.4_7-jre
 
 MAINTAINER inscopemetrics
 
@@ -21,8 +21,8 @@ WORKDIR /opt/kairosdb
 
 # Configuration
 ENV KDB_USER="kairosdb"
-ENV KDB_UID=1000
-ENV KDB_GID=1000
+ENV KDB_UID=1001
+ENV KDB_GID=1001
 ENV JVM_XMS="64m"
 ENV JVM_XMX="1024m"
 ENV LOGBACK_CONFIG="-Dlogback.configurationFile=/opt/kairosdb/config/logback.xml"
@@ -60,12 +60,7 @@ CMD [ \
     "${LOGBACK_CONFIG}", \
     "-XX:+HeapDumpOnOutOfMemoryError", \
     "-XX:HeapDumpPath=/opt/kairosdb/logs/kairosdb.oom.hprof", \
-    "-XX:+PrintGCDetails", \
-    "-XX:+PrintGCDateStamps", \
-    "-Xloggc:/opt/kairosdb/logs/kairosdb.gc.log", \
-    "-XX:NumberOfGCLogFiles=2", \
-    "-XX:GCLogFileSize=50M", \
-    "-XX:+UseGCLogFileRotation", \
+    "-Xlog:gc*:file=/opt/kairosdb/logs/kairosdb.gc.log:time,level,tags:filecount=2,filesize=50M", \
     "-Xms${JVM_XMS}", \
     "-Xmx${JVM_XMX}", \
     "-XX:+UseStringDeduplication", \

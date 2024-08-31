@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.Collections;
 import java.util.List;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 public class MetricRequestList {
     @Valid

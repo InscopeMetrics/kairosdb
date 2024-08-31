@@ -26,7 +26,7 @@ import org.kairosdb.plugin.GroupBy;
 
 import java.io.StringWriter;
 import java.util.Map;
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

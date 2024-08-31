@@ -43,6 +43,7 @@ import static org.mockito.Mockito.when;
  */
 public final class MultiTaggerTest {
 
+    private final AutoCloseable mocks;
     @Mock
     private Supplier<String> metricNameSupplier;
     @Mock
@@ -57,8 +58,12 @@ public final class MultiTaggerTest {
     public MultiTaggerTest() {
         final SetMultimap<String, String> tags = HashMultimap.create();
         tags.put("foo", "bar");
-        MockitoAnnotations.initMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
         when(tagsSupplier.get()).thenReturn(tags);
+    }
+
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     @Test

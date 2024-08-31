@@ -1,17 +1,17 @@
 package org.kairosdb.rollup;
 
 import com.google.gson.annotations.SerializedName;
-import org.apache.bval.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 import org.kairosdb.core.datastore.QueryMetric;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public class Rollup {
     private final transient List<QueryMetric> queryMetrics = new ArrayList<QueryMetric>();
     @NotNull
-    @NotEmpty()
+    @NotEmpty
     @SerializedName("save_as")
     private String saveAs;
     // todo add tags

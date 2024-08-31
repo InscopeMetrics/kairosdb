@@ -18,8 +18,8 @@ package org.kairosdb.datastore.cassandra;
 import com.arpnetworking.metrics.Metrics;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.hamcrest.CoreMatchers;
@@ -266,15 +266,14 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         final CassandraClient client = new CassandraClientImpl(configuration, periodicMetrics);
         ((CassandraClientImpl) client).init();
         m_schema = new Schema(client, true);
-        final Session session = m_schema.getSession();
+        final CqlSession session = m_schema.getSession();
         final DataCache<DataPointsRowKey> rowKeyCache = new DataCache<>("row_key", 1024, periodicMetrics);
         final DataCache<String> metricNameCache = new DataCache<>("metric_name", 1024, periodicMetrics);
 
         final CassandraModule.CQLBatchFactory cqlBatchFactory = new CassandraModule.CQLBatchFactory() {
             @Override
             public CQLBatch create() {
-                return new CQLBatch(ConsistencyLevel.QUORUM, session, periodicMetrics, m_schema,
-                        client.getWriteLoadBalancingPolicy());
+                return new CQLBatch(ConsistencyLevel.QUORUM, session, periodicMetrics, m_schema);
             }
         };
 
@@ -391,7 +390,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
 
         final DataPointGroup dataPointGroup = results.get(0);
         int counter = 0;
-        int total = 0;
+        long total = 0;
         while (dataPointGroup.hasNext()) {
             final DataPoint dp = dataPointGroup.next();
             total += dp.getLongValue();

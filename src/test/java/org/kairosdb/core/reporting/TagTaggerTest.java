@@ -21,6 +21,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -29,7 +30,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.when;
  */
 public final class TagTaggerTest {
 
+    private final AutoCloseable mocks;
     @Mock
     private MetricsFactory metricsFactory;
     @Mock
@@ -54,10 +56,15 @@ public final class TagTaggerTest {
         final SetMultimap<String, String> tags = HashMultimap.create();
         tags.put("foo", "bar");
         tags.put("123", "abc");
-        MockitoAnnotations.initMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
         when(metricsFactory.create()).thenReturn(metrics);
         when(metricNameSupplier.get()).thenReturn("hows/my/metric/name");
         when(tagsSupplier.get()).thenReturn(tags);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mocks.close();
     }
 
     @Test(expected = RuntimeException.class)
@@ -87,7 +94,7 @@ public final class TagTaggerTest {
         ThreadReporter.close();
 
         verify(tagsSupplier).get();
-        verifyZeroInteractions(metricNameSupplier);
+        verifyNoInteractions(metricNameSupplier);
         verify(metrics).addAnnotation("foo", "bar");
         verify(metrics).addAnnotation("123", "abc");
     }

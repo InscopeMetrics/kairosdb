@@ -31,8 +31,8 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.TimeZone;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

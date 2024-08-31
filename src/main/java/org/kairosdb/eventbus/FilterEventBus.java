@@ -15,6 +15,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * EventBus enhanced to include filters that modify or filter out events.
  * Events are passed through the filters first using a sequential dispatcher.
  */
+@SuppressWarnings("this-escape") // TODO: fix this
 public class FilterEventBus {
     public static final org.slf4j.Logger logger = LoggerFactory.getLogger(FilterEventBus.class);
 

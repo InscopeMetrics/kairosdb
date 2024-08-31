@@ -1,6 +1,7 @@
 package org.kairosdb.datastore.cassandra;
 
-import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.google.common.base.Splitter;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -61,10 +62,10 @@ public class CassandraConfiguration {
             .trimResults().omitEmptyStrings();
     @Inject
     @Named(WRITE_CONSISTENCY_LEVEL)
-    private ConsistencyLevel m_dataWriteLevel = ConsistencyLevel.QUORUM;
+    private DefaultConsistencyLevel m_dataWriteLevel = DefaultConsistencyLevel.QUORUM;
     @Inject
     @Named(READ_CONSISTENCY_LEVEL)
-    private ConsistencyLevel m_dataReadLevel = ConsistencyLevel.ONE;
+    private DefaultConsistencyLevel m_dataReadLevel = DefaultConsistencyLevel.ONE;
     @Inject(optional = true)
     @Named(DATAPOINT_TTL)
     private int m_datapointTtl = DEFAULT_DATAPOINT_TTL;
