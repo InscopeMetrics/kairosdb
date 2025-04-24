@@ -2,6 +2,7 @@
 	"queries": [
 		{
             "sample_size": 10,
+			"keys_scanned": 14,
 			"results": [
 				{
 					"name": "metric1",

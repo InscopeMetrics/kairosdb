@@ -73,7 +73,7 @@ public class JsonResponseTest {
         groups.add(group2);
 
         response.begin();
-        response.formatQuery(groups, false, 10);
+        response.formatQuery(groups, false, 10, 12);
         response.end();
 
         assertJson(writer.toString(), json);
@@ -106,7 +106,7 @@ public class JsonResponseTest {
         groups.add(group2);
 
         response.begin();
-        response.formatQuery(groups, true, 10);
+        response.formatQuery(groups, true, 10, 13);
         response.end();
 
         assertJson(writer.toString(), json);
@@ -127,7 +127,7 @@ public class JsonResponseTest {
         groups.add(group1);
 
         response.begin();
-        response.formatQuery(groups, false, 10);
+        response.formatQuery(groups, false, 10, 14);
         response.end();
         assertJson(writer.toString(), json);
     }
