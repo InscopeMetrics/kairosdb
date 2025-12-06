@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM openjdk:8u242-jdk-slim-buster
+FROM eclipse-temurin:8u472-b08-jre-noble
 
 MAINTAINER inscopemetrics
 
@@ -20,7 +20,7 @@ EXPOSE 8080 4242
 WORKDIR /opt/kairosdb
 
 # Configuration
-ENV KDB_USER="kairosdb"
+ENV KDB_USER="ubuntu"
 ENV KDB_UID=1000
 ENV KDB_GID=1000
 ENV JVM_XMS="64m"
