@@ -51,7 +51,7 @@ public final class MetricNameRegexTaggerTest {
         final SetMultimap<String, String> tags = HashMultimap.create();
         tags.put("foo", "bar");
         tags.put("123", "abc");
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(metricsFactory.create()).thenReturn(metrics);
         when(metricNameSupplier.get()).thenReturn("hows/my/metric/name");
         when(tagsSupplier.get()).thenReturn(tags);

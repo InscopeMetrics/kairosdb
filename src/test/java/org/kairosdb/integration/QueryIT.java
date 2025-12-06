@@ -136,15 +136,16 @@ public class QueryIT {
 
             post.setEntity(new StringEntity(query.toString()));
             try (final CloseableHttpResponse httpResponse = client.execute(post)) {
-                if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                    httpResponse.getEntity().writeTo(System.out);
-                    return (null);
-                }
-
                 final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
                 httpResponse.getEntity().writeTo(output);
+                final String responseBody = output.toString("UTF-8");
 
-                return (parser.parse(output.toString("UTF-8")));
+                if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                    throw new AssertionError("Query failed with status " +
+                            httpResponse.getStatusLine().getStatusCode() + ": " + responseBody);
+                }
+
+                return (parser.parse(responseBody));
             }
         }
     }

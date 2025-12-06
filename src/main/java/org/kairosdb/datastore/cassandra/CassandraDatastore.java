@@ -120,6 +120,7 @@ public class CassandraDatastore implements Datastore, ProcessorHandler, ServiceK
     @Named("kairosdb.queue_processor.batch_size")
     private int m_batchSize;  //Used for batching delete requests
 
+    @SuppressWarnings("this-escape")
     @Inject
     public CassandraDatastore(
             final CassandraClient cassandraClient,

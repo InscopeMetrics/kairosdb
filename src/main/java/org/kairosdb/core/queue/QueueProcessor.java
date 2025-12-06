@@ -34,6 +34,7 @@ public abstract class QueueProcessor {
     private int m_batchSize;
     private volatile ProcessorHandler m_processorHandler;
 
+    @SuppressWarnings("this-escape")
     public QueueProcessor(
             final ExecutorService executor,
             final PeriodicMetrics periodicMetrics,

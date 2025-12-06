@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM eclipse-temurin:8u472-b08-jre-noble
+FROM eclipse-temurin:21-jre-noble
 
 MAINTAINER inscopemetrics
 
@@ -60,17 +60,22 @@ CMD [ \
     "${LOGBACK_CONFIG}", \
     "-XX:+HeapDumpOnOutOfMemoryError", \
     "-XX:HeapDumpPath=/opt/kairosdb/logs/kairosdb.oom.hprof", \
-    "-XX:+PrintGCDetails", \
-    "-XX:+PrintGCDateStamps", \
-    "-Xloggc:/opt/kairosdb/logs/kairosdb.gc.log", \
-    "-XX:NumberOfGCLogFiles=2", \
-    "-XX:GCLogFileSize=50M", \
-    "-XX:+UseGCLogFileRotation", \
+    "-Xlog:gc*:file=/opt/kairosdb/logs/kairosdb.gc.log:time,uptime:filecount=2,filesize=50M", \
     "-Xms${JVM_XMS}", \
     "-Xmx${JVM_XMX}", \
     "-XX:+UseStringDeduplication", \
     "-XX:+UseG1GC", \
     "-Duser.timezone=UTC", \
+    "--add-opens", \
+    "java.base/java.lang=ALL-UNNAMED", \
+    "--add-opens", \
+    "java.base/java.lang.reflect=ALL-UNNAMED", \
+    "--add-opens", \
+    "java.base/java.util=ALL-UNNAMED", \
+    "--add-opens", \
+    "java.base/java.io=ALL-UNNAMED", \
+    "--add-opens", \
+    "java.base/java.math=ALL-UNNAMED", \
     "--", \
     "-c", \
     "run", \

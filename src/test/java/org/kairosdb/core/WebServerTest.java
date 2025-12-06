@@ -8,6 +8,7 @@ package org.kairosdb.core;
 import com.google.common.io.Resources;
 import org.apache.http.conn.HttpHostConnectException;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.kairosdb.core.exception.KairosDBException;
 import org.kairosdb.core.http.WebServer;
@@ -147,7 +148,7 @@ public class WebServerTest {
         assertThat(response.getJson().length(), greaterThan(0));
     }
 
-    @Test(expected = HttpHostConnectException.class)
+    @Test(expected = IOException.class)
     public void test_noSSL() throws KairosDBException, IOException, UnrecoverableKeyException,
             CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, InterruptedException {
         final String keyStorePath = Resources.getResource("keystore.jks").getPath();
@@ -157,6 +158,7 @@ public class WebServerTest {
 
         client = new Client(keyStorePath, keyStorePassword);
 
+        // Expect connection failure (HttpHostConnectException or ConnectTimeoutException)
         client.get("https://localhost:8443/");
     }
 

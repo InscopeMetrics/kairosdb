@@ -96,6 +96,7 @@ public class Main {
     private final Injector m_injector;
     private final List<KairosDBService> m_services = new ArrayList<KairosDBService>();
 
+    @SuppressWarnings("this-escape")
     public Main(final File propertiesFile) throws IOException {
         final Properties props = new Properties();
         final InputStream is = getClass().getClassLoader().getResourceAsStream("kairosdb.properties");
@@ -172,7 +173,7 @@ public class Main {
                         if (constructor != null)
                             mod = (Module) constructor.newInstance(props);
                         else
-                            mod = (Module) aClass.newInstance();
+                            mod = (Module) aClass.getDeclaredConstructor().newInstance();
 
                         if (mod instanceof CoreModule) {
                             mod = Modules.override(moduleList.get(0)).with(mod);

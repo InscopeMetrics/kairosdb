@@ -317,7 +317,7 @@ public class CachedSearchResult implements SearchResult {
 
         private long m_startPosition;
         private long m_endPosition;
-        private final Map<String, String> m_tags;
+        private final transient Map<String, String> m_tags;
         private String m_dataType;
         private int m_dataPointCount;
 

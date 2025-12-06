@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public abstract class RollupTestBase {
     static final String LOCAL_HOST = "hostname0";
@@ -48,7 +48,7 @@ public abstract class RollupTestBase {
     @Before
     public void setupBase()
             throws KairosDBException {
-        initMocks(this);
+        openMocks(this);
         queryParser = new QueryParser(new TestKairosDBProcessor(ImmutableList.of(new TestAggregatorFactory())), new TestQueryPluginFactory());
         taskStore = new RollUpTasksStoreImpl(fakeServiceKeyStore,
                 queryParser);

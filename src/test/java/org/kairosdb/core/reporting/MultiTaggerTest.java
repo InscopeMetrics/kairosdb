@@ -57,7 +57,7 @@ public final class MultiTaggerTest {
     public MultiTaggerTest() {
         final SetMultimap<String, String> tags = HashMultimap.create();
         tags.put("foo", "bar");
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(tagsSupplier.get()).thenReturn(tags);
     }
 

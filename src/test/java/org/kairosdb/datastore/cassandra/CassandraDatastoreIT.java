@@ -391,7 +391,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
 
         final DataPointGroup dataPointGroup = results.get(0);
         int counter = 0;
-        int total = 0;
+        long total = 0;
         while (dataPointGroup.hasNext()) {
             final DataPoint dp = dataPointGroup.next();
             total += dp.getLongValue();
@@ -399,7 +399,7 @@ public class CassandraDatastoreIT extends DatastoreTestHelper {
         }
 
         dataPointGroup.close();
-        assertThat(total, equalTo(counter * 42));
+        assertThat(total, equalTo((long) counter * 42));
         assertEquals(OVERFLOW_SIZE, counter);
         dq.close();
     }

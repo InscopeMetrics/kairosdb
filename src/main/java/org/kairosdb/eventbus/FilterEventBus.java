@@ -19,13 +19,15 @@ public class FilterEventBus {
     public static final org.slf4j.Logger logger = LoggerFactory.getLogger(FilterEventBus.class);
 
     private final LoggingHandler exceptionHandler = new LoggingHandler();
-    private final PipelineRegistry filters = new PipelineRegistry(this);
+    private final PipelineRegistry filters;
     private final EventBusConfiguration config;
 
+    @SuppressWarnings("this-escape")
     @Inject
     public FilterEventBus(final EventBusConfiguration config) {
         super();
         this.config = checkNotNull(config);
+        this.filters = new PipelineRegistry(this);
     }
 
     public void register(final Object listener) {

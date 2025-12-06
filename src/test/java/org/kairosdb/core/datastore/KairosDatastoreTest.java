@@ -48,7 +48,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.junit.Assert.assertThat;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class KairosDatastoreTest {
     private final FeatureProcessingFactory<Aggregator> aggFactory;
@@ -56,8 +56,9 @@ public class KairosDatastoreTest {
     @Mock
     private PeriodicMetrics periodicMetrics;
 
+    @SuppressWarnings("this-escape")
     public KairosDatastoreTest() throws KairosDBException {
-        initMocks(this);
+        openMocks(this);
         aggFactory = new TestAggregatorFactory();
     }
 

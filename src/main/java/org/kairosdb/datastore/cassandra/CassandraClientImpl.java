@@ -55,6 +55,7 @@ public class CassandraClientImpl implements CassandraClient {
         m_retryPolicy = new KairosRetryPolicy(1, periodicMetrics);
     }
 
+    @SuppressWarnings("deprecation")
     public void init() {
         //Passing shuffleReplicas = false so we can properly batch data to
         //instances.

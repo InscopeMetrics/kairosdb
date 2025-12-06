@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.kairosdb.core.KairosFeatureProcessor;
 import org.kairosdb.core.aggregator.TestAggregatorFactory;
@@ -276,6 +277,7 @@ public class RollUpResourceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testUpdate() throws IOException, QueryException, RollUpException {
         resource = new RollUpResource(queryParser, mockStore, mockStatusStore);
         final String json = Resources.toString(Resources.getResource("rolluptasks.json"), Charsets.UTF_8);
@@ -284,8 +286,7 @@ public class RollUpResourceTest {
         // Replace task 1 with task 2
         final Response response = resource.update(tasks.get(0).getId(), tasks.get(1).getJson());
 
-        @SuppressWarnings("unchecked") final Class<ArrayList<RollupTask>> listClass = (Class<ArrayList<RollupTask>>) (Class) ArrayList.class;
-        final ArgumentCaptor<ArrayList<RollupTask>> captor = ArgumentCaptor.forClass(listClass);
+        final ArgumentCaptor<List<RollupTask>> captor = ArgumentCaptor.forClass(List.class);
 
         verify(mockStore, times(1)).write(captor.capture());
         final List<RollupTask> modifiedTasks = captor.getValue();

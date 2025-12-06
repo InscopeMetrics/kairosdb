@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 public class QueryQueuingManagerTest {
     private AtomicInteger runningCount;
@@ -30,7 +30,7 @@ public class QueryQueuingManagerTest {
 
     @Before
     public void setup() {
-        initMocks(this);
+        openMocks(this);
         runningCount = new AtomicInteger();
     }
 
