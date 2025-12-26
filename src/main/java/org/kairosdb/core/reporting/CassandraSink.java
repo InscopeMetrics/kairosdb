@@ -31,9 +31,33 @@ public class CassandraSink implements Sink, KairosMetricReporter {
 
     @Override
     public void record(final Event event) {
-        addDataPoints(event.getCounterSamples(), event.getAnnotations());
-        addDataPoints(event.getGaugeSamples(), event.getAnnotations());
-        addDataPoints(event.getTimerSamples(), event.getAnnotations());
+        final Map<String, String> filteredAnnotations = filterAnnotations(event.getAnnotations());
+        addDataPoints(event.getCounterSamples(), filteredAnnotations);
+        addDataPoints(event.getGaugeSamples(), filteredAnnotations);
+        addDataPoints(event.getTimerSamples(), filteredAnnotations);
+    }
+
+    /**
+     * Filter out ArpNetworking internal metadata annotations that should not become KairosDB tags.
+     * Removes event metadata (_start, _end, _id) which are unique per event and would cause
+     * massive tag cardinality. Keeps identifying tags (_host, _service, _cluster) which are
+     * needed to distinguish metrics from different KairosDB instances.
+     *
+     * @param annotations the raw annotations from the event
+     * @return filtered map without internal event metadata
+     */
+    private Map<String, String> filterAnnotations(final Map<String, String> annotations) {
+        final Map<String, String> filtered = new HashMap<>();
+        for (final Map.Entry<String, String> entry : annotations.entrySet()) {
+            final String key = entry.getKey();
+            // Skip ArpNetworking internal event metadata that would cause cardinality explosion
+            // Keep _host, _service, _cluster as they're needed to distinguish different instances
+            if (key.equals("_start") || key.equals("_end") || key.equals("_id")) {
+                continue;
+            }
+            filtered.put(key, entry.getValue());
+        }
+        return filtered;
     }
 
     private void addDataPoints(
